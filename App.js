@@ -67,7 +67,7 @@ const IA_APIS = {
   OPENAI: {
     nome: 'ChatGPT',
     chaveNecessaria: true,
-    chaveDefault: '',
+    chaveDefault: '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',
     endpoint: 'https://api.openai.com/v1/chat/completions'
   },
   CLAUDE: {
@@ -948,6 +948,11 @@ const analisarCurriculoComIA = async (curriculoData, tipoAnalise, tipoIA = 'GEMI
     if (pessoal.github) texto += `GitHub: ${pessoal.github}\n`;
     if (pessoal.site) texto += `Site: ${pessoal.site}\n`;
     texto += '\n';
+
+    // Resumo Profissional
+    if (data.resumo_profissional) {
+      texto += `RESUMO PROFISSIONAL:\n${data.resumo_profissional}\n\n`;
+    }
     
     // Formação Acadêmica
     adicionarSecao('Formação Acadêmica', data.formacoes_academicas, (f) => {
@@ -1001,17 +1006,17 @@ const analisarCurriculoComIA = async (curriculoData, tipoAnalise, tipoIA = 'GEMI
   // Função para gerar o prompt adequado
   const gerarPrompt = (tipo, textoCurriculo) => {
     const prompts = {
-      pontuacao: `Você é um consultor de RH. Avalie este currículo (0-10) em: Conteúdo (30%), Estrutura (20%), Apresentação (20%), Impacto (30%). Forneça nota geral ponderada e justifique brevemente.`,
+      pontuacao: `Você é um consultor de RH. Avalie este currículo (0-10) em: Conteúdo (30%), Estrutura (20%), Apresentação (20%), Impacto (30%). Considere especialmente o resumo profissional, experiências e formação. Forneça nota geral ponderada e justifique brevemente.`,
       
-      melhorias: `Você é um consultor de RH. Identifique 3 melhorias específicas para este currículo aumentar chances de entrevistas. Para cada, explique por quê e como implementar.`,
+      melhorias: `Você é um consultor de RH. Identifique 3 melhorias específicas para este currículo aumentar chances de entrevistas. Analise especialmente o resumo profissional e as competências demonstradas. Para cada melhoria, explique por quê e como implementar.`,
       
-      dicas: `Você é um coach de carreira. Forneça 3 dicas de carreira para este candidato, considerando seu perfil. Seja específico e prático.`,
+      dicas: `Você é um coach de carreira. Com base no resumo profissional e perfil completo deste candidato, forneça 3 dicas de carreira personalizadas. Seja específico e prático, considerando os objetivos mencionados no resumo.`,
       
-      cursos: `Sugira 3 cursos ou certificações específicas para complementar este perfil e aumentar empregabilidade. Explique onde encontrar e como agregaria valor.`,
+      cursos: `Com base no resumo profissional e perfil geral deste candidato, sugira 3 cursos ou certificações específicas para complementar suas habilidades e aumentar empregabilidade. Explique onde encontrar e como agregaria valor.`,
       
-      vagas: `Sugira 3 tipos de vagas onde este candidato teria boas chances. Explique por que, competências valorizadas e palavras-chave para busca.`,
+      vagas: `Após analisar o resumo profissional e experiências deste candidato, sugira 3 tipos de vagas onde teria boas chances. Explique por que, competências valorizadas e palavras-chave para busca.`,
       
-      geral: `Analise este currículo: 1) Pontos fortes (2), 2) Áreas de melhoria (2), 3) Impressão geral, 4) Nota de 0-10.`
+      geral: `Analise este currículo, incluindo o resumo profissional: 1) Pontos fortes (2), 2) Áreas de melhoria (2), 3) Impressão geral do perfil profissional, 4) Nota de 0-10.`
     };
     
     // Usar prompt específico ou default
@@ -1183,6 +1188,14 @@ const CurriculumPreview = ({ data }) => {
         </View>
       )}
       
+      {/* Resumo Profissional - Nova seção */}
+      {data.resumo_profissional ? (
+        <View style={styles.previewSection}>
+          <Text style={styles.previewSectionTitle}>Resumo Profissional</Text>
+          <Text style={styles.previewResumeText}>{data.resumo_profissional}</Text>
+        </View>
+      ) : null}
+      
       {/* Formação Acadêmica */}
       {data.formacoes_academicas && data.formacoes_academicas.length > 0 && (
         <View style={styles.previewSection}>
@@ -1226,6 +1239,9 @@ const CurriculumPreview = ({ data }) => {
                     ''}
                 </Text>
               ) : null}
+              {exp.descricao ? (
+                <Text style={styles.previewItemDescription}>{exp.descricao}</Text>
+              ) : null}
             </View>
           ))}
         </View>
@@ -1246,6 +1262,9 @@ const CurriculumPreview = ({ data }) => {
                   {curso.data_fim || ''}
                 </Text>
               ) : null}
+              {curso.descricao ? (
+                <Text style={styles.previewItemDescription}>{curso.descricao}</Text>
+              ) : null}
             </View>
           ))}
         </View>
@@ -1262,6 +1281,9 @@ const CurriculumPreview = ({ data }) => {
                 <Text style={styles.previewItemSubtitle}>
                   <Text style={{fontWeight: 'bold'}}>Habilidades:</Text> {projeto.habilidades}
                 </Text>
+              ) : null}
+              {projeto.descricao ? (
+                <Text style={styles.previewItemDescription}>{projeto.descricao}</Text>
               ) : null}
             </View>
           ))}
@@ -1301,6 +1323,7 @@ const AnalysisSummaryCard = ({ title, score, description, color }) => (
 // Lógica do Chatbot
 const initialCVData = {
   informacoes_pessoais: {},
+  resumo_profissional: "", // Novo campo para resumo/biografia
   formacoes_academicas: [],
   cursos: [],
   projetos: [],
@@ -1469,7 +1492,18 @@ const processMessage = (message, currentStep, cvData) => {
       }
       
       return {
-        response: "Vamos prosseguir. O que você prefere adicionar primeiro? (Você pode finalizar a qualquer momento digitando 'finalizar')",
+        response: "Agora, conte um pouco sobre você. Descreva brevemente sua trajetória profissional, acadêmica ou objetivos pessoais. Esse texto será um resumo que aparecerá no início do seu currículo.",
+        nextStep: 'resumo_profissional',
+        options: [],
+        cvData: data
+      };
+
+    case 'resumo_profissional':
+      // Salvar o resumo profissional
+      data.resumo_profissional = message.trim();
+      
+      return {
+        response: "Obrigado por compartilhar sua trajetória! Agora, o que você prefere adicionar primeiro? (Você pode finalizar a qualquer momento digitando 'finalizar')",
         nextStep: 'escolher_proximo',
         options: ['Formação Acadêmica', 'Experiência Profissional', 'Cursos e Certificados', 'Projetos', 'Idiomas', 'Finalizar'],
         cvData: data
@@ -5165,6 +5199,13 @@ const styles = StyleSheet.create({
     color: Colors.white,
     fontWeight: 'bold',
     fontSize: 15,
+  },
+
+  previewResumeText: {
+    color: Colors.dark,
+    lineHeight: 20,
+    textAlign: 'justify',
+    paddingHorizontal: 2,
   },
 
 });
