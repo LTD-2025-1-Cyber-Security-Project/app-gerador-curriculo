@@ -55,7 +55,6 @@ const Colors = {
   mediumGray: '#e0e0e0',
   divider: 'rgba(0, 0, 0, 0.1)'
 };
-
 // Constantes para APIs de IAs
 const IA_APIS = {
   GEMINI: {
