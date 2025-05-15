@@ -140,21 +140,21 @@ const salvarIAAPIKey = async (tipoIA, apiKey) => {
 //   try {
 //     // Obter API key do Gemini
 //     const apiKey = await getIAAPIKey('GEMINI');
-    
+
 //     if (!apiKey) {
 //       throw new Error("API key do Google Gemini não configurada");
 //     }
-    
+
 //     // Formatar dados relevantes do currículo para o prompt
 //     const cv = curriculoData.data;
-    
+
 //     // Extrair informações chave do currículo
 //     const area = cv.informacoes_pessoais?.area || '';
 //     const nome = `${cv.informacoes_pessoais?.nome || ''} ${cv.informacoes_pessoais?.sobrenome || ''}`.trim();
-    
+
 //     // Extrair competências e palavras-chave do currículo
 //     const habilidades = new Set();
-    
+
 //     // De projetos
 //     if (cv.projetos && cv.projetos.length > 0) {
 //       cv.projetos.forEach(projeto => {
@@ -165,7 +165,7 @@ const salvarIAAPIKey = async (tipoIA, apiKey) => {
 //         }
 //       });
 //     }
-    
+
 //     // De experiências
 //     const experiencias = [];
 //     if (cv.experiencias && cv.experiencias.length > 0) {
@@ -175,7 +175,7 @@ const salvarIAAPIKey = async (tipoIA, apiKey) => {
 //           empresa: exp.empresa,
 //           descricao: exp.descricao
 //         });
-        
+
 //         // Extrair palavras-chave das descrições de experiência
 //         if (exp.descricao) {
 //           const palavrasChave = exp.descricao
@@ -184,12 +184,12 @@ const salvarIAAPIKey = async (tipoIA, apiKey) => {
 //               palavra.length > 4 && 
 //               !['sobre', 'como', 'para', 'onde', 'quando', 'quem', 'porque', 'então'].includes(palavra.toLowerCase())
 //             );
-          
+
 //           palavrasChave.forEach(palavra => habilidades.add(palavra));
 //         }
 //       });
 //     }
-    
+
 //     // De formação
 //     const formacoes = [];
 //     if (cv.formacoes_academicas && cv.formacoes_academicas.length > 0) {
@@ -199,14 +199,14 @@ const salvarIAAPIKey = async (tipoIA, apiKey) => {
 //           area: formacao.area_estudo,
 //           instituicao: formacao.instituicao
 //         });
-        
+
 //         // Adicionar área de estudo às habilidades
 //         if (formacao.area_estudo) {
 //           habilidades.add(formacao.area_estudo);
 //         }
 //       });
 //     }
-    
+
 //     // De idiomas
 //     const idiomas = [];
 //     if (cv.idiomas && cv.idiomas.length > 0) {
@@ -217,7 +217,7 @@ const salvarIAAPIKey = async (tipoIA, apiKey) => {
 //         });
 //       });
 //     }
-    
+
 //     // Prompt melhorado para garantir informações completas e links funcionais
 //     const promptText = `
 // Você é um recrutador e especialista em RH com 15 anos de experiência no mercado brasileiro.
@@ -319,17 +319,17 @@ const salvarIAAPIKey = async (tipoIA, apiKey) => {
 //         topK: 40
 //       }
 //     };
-    
+
 //     // Fazer a chamada para o Gemini
 //     const response = await axios.post(endpoint, requestBody, {
 //       headers: { 'Content-Type': 'application/json' },
 //       timeout: 30000  // Aumentado para 30 segundos
 //     });
-    
+
 //     // Processar a resposta
 //     if (response.data?.candidates?.[0]?.content?.parts?.[0]?.text) {
 //       const resultado = response.data.candidates[0].content.parts[0].text;
-      
+
 //       // Armazenar no cache
 //       try {
 //         const cacheKey = `vagas_${JSON.stringify(curriculoData).slice(0, 50)}`;
@@ -340,7 +340,7 @@ const salvarIAAPIKey = async (tipoIA, apiKey) => {
 //       } catch (cacheError) {
 //         console.log('Erro ao salvar busca de vagas no cache:', cacheError.message);
 //       }
-      
+
 //       return {
 //         success: true,
 //         vagas: resultado,
@@ -365,12 +365,12 @@ const buscarVagasComGemini = async (curriculoData, forceRefresh = false) => {
     if (!forceRefresh) {
       const cacheKey = `vagas_${JSON.stringify(curriculoData).slice(0, 50)}`;
       const cachedResult = await AsyncStorage.getItem(cacheKey);
-      
+
       if (cachedResult) {
         const parsed = JSON.parse(cachedResult);
         const cacheAge = new Date() - new Date(parsed.timestamp);
         const cacheValidHours = 24;
-        
+
         if (cacheAge < cacheValidHours * 60 * 60 * 1000) {
           console.log(`Usando resultado em cache para busca de vagas`);
           return {
@@ -382,27 +382,27 @@ const buscarVagasComGemini = async (curriculoData, forceRefresh = false) => {
         }
       }
     }
-    
+
     // Se estamos forçando refresh ou não tem cache válido, proceder com busca
     console.log('Iniciando busca de vagas com IA', forceRefresh ? '(forçando atualização)' : '');
-    
+
     // Obter API key do Gemini
     const apiKey = await getIAAPIKey('GEMINI');
-    
+
     if (!apiKey) {
       throw new Error("API key do Google Gemini não configurada");
     }
-    
+
     // Formatar dados relevantes do currículo para o prompt
     const cv = curriculoData.data;
-    
+
     // Extrair informações chave do currículo
     const area = cv.informacoes_pessoais?.area || '';
     const nome = `${cv.informacoes_pessoais?.nome || ''} ${cv.informacoes_pessoais?.sobrenome || ''}`.trim();
-    
+
     // Extrair competências e palavras-chave do currículo
     const habilidades = new Set();
-    
+
     // De projetos
     if (cv.projetos && cv.projetos.length > 0) {
       cv.projetos.forEach(projeto => {
@@ -413,7 +413,7 @@ const buscarVagasComGemini = async (curriculoData, forceRefresh = false) => {
         }
       });
     }
-    
+
     // De experiências
     const experiencias = [];
     if (cv.experiencias && cv.experiencias.length > 0) {
@@ -423,21 +423,21 @@ const buscarVagasComGemini = async (curriculoData, forceRefresh = false) => {
           empresa: exp.empresa,
           descricao: exp.descricao
         });
-        
+
         // Extrair palavras-chave das descrições de experiência
         if (exp.descricao) {
           const palavrasChave = exp.descricao
             .split(/[\s,;.]+/)
-            .filter(palavra => 
-              palavra.length > 4 && 
+            .filter(palavra =>
+              palavra.length > 4 &&
               !['sobre', 'como', 'para', 'onde', 'quando', 'quem', 'porque', 'então'].includes(palavra.toLowerCase())
             );
-          
+
           palavrasChave.forEach(palavra => habilidades.add(palavra));
         }
       });
     }
-    
+
     // De formação
     const formacoes = [];
     if (cv.formacoes_academicas && cv.formacoes_academicas.length > 0) {
@@ -447,14 +447,14 @@ const buscarVagasComGemini = async (curriculoData, forceRefresh = false) => {
           area: formacao.area_estudo,
           instituicao: formacao.instituicao
         });
-        
+
         // Adicionar área de estudo às habilidades
         if (formacao.area_estudo) {
           habilidades.add(formacao.area_estudo);
         }
       });
     }
-    
+
     // De idiomas
     const idiomas = [];
     if (cv.idiomas && cv.idiomas.length > 0) {
@@ -465,10 +465,10 @@ const buscarVagasComGemini = async (curriculoData, forceRefresh = false) => {
         });
       });
     }
-    
+
     // Adicionar timestamp para diversificar as respostas quando forçar atualização
     const timestamp = new Date().toISOString();
-    
+
     // Prompt melhorado para garantir informações completas e links funcionais
     const promptText = `
 Você é um recrutador e especialista em RH com 15 anos de experiência no mercado brasileiro.
@@ -571,17 +571,17 @@ IMPORTANTE: Todas as vagas informadas devem ser REAIS e ATUAIS (2025), baseando-
         topK: 40
       }
     };
-    
+
     // Fazer a chamada para o Gemini
     const response = await axios.post(endpoint, requestBody, {
       headers: { 'Content-Type': 'application/json' },
       timeout: 30000  // 30 segundos
     });
-    
+
     // Processar a resposta
     if (response.data?.candidates?.[0]?.content?.parts?.[0]?.text) {
       const resultado = response.data.candidates[0].content.parts[0].text;
-      
+
       // Armazenar no cache
       try {
         const cacheKey = `vagas_${JSON.stringify(curriculoData).slice(0, 50)}`;
@@ -592,7 +592,7 @@ IMPORTANTE: Todas as vagas informadas devem ser REAIS e ATUAIS (2025), baseando-
       } catch (cacheError) {
         console.log('Erro ao salvar busca de vagas no cache:', cacheError.message);
       }
-      
+
       return {
         success: true,
         vagas: resultado,
@@ -618,7 +618,7 @@ IMPORTANTE: Todas as vagas informadas devem ser REAIS e ATUAIS (2025), baseando-
 //   const [error, setError] = useState(null);
 //   const [vagasResultado, setVagasResultado] = useState(null);
 //   const [loadingProgress, setLoadingProgress] = useState(0);
-  
+
 //   useEffect(() => {
 //     // Simular progresso durante a busca para feedback visual
 //     const progressInterval = setInterval(() => {
@@ -627,24 +627,24 @@ IMPORTANTE: Todas as vagas informadas devem ser REAIS e ATUAIS (2025), baseando-
 //         return newProgress > 0.9 ? 0.9 : newProgress;
 //       });
 //     }, 800);
-    
+
 //     // Iniciar a busca de vagas
 //     buscarVagas();
-    
+
 //     return () => clearInterval(progressInterval);
 //   }, []);
-  
+
 //   const buscarVagas = async () => {
 //     try {
 //       // Verificar o cache primeiro
 //       const cacheKey = `vagas_${JSON.stringify(curriculoData).slice(0, 50)}`;
 //       const cachedResult = await AsyncStorage.getItem(cacheKey);
-      
+
 //       if (cachedResult) {
 //         const parsed = JSON.parse(cachedResult);
 //         const cacheAge = new Date() - new Date(parsed.timestamp);
 //         const cacheValidHours = 24;
-        
+
 //         if (cacheAge < cacheValidHours * 60 * 60 * 1000) {
 //           console.log(`Usando resultado em cache para busca de vagas`);
 //           setVagasResultado(parsed.resultado);
@@ -653,10 +653,10 @@ IMPORTANTE: Todas as vagas informadas devem ser REAIS e ATUAIS (2025), baseando-
 //           return;
 //         }
 //       }
-      
+
 //       // Se não tem cache válido, fazer a busca
 //       const resultado = await buscarVagasComGemini(curriculoData);
-      
+
 //       if (resultado.success) {
 //         setVagasResultado(resultado.vagas);
 //       } else {
@@ -670,14 +670,14 @@ IMPORTANTE: Todas as vagas informadas devem ser REAIS e ATUAIS (2025), baseando-
 //       setLoadingProgress(1);
 //     }
 //   };
-  
+
 //   const handleTryAgain = () => {
 //     setLoading(true);
 //     setError(null);
 //     setLoadingProgress(0.1);
 //     buscarVagas();
 //   };
-  
+
 //   const handleShare = async () => {
 //     try {
 //       await Share.share({
@@ -689,11 +689,11 @@ IMPORTANTE: Todas as vagas informadas devem ser REAIS e ATUAIS (2025), baseando-
 //       Alert.alert('Erro', 'Não foi possível compartilhar as vagas.');
 //     }
 //   };
-  
+
 //   return (
 //     <SafeAreaView style={styles.container}>
 //       <StatusBar barStyle="light-content" backgroundColor={Colors.dark} />
-      
+
 //       <View style={styles.header}>
 //         <TouchableOpacity
 //           style={styles.backButton}
@@ -703,7 +703,7 @@ IMPORTANTE: Todas as vagas informadas devem ser REAIS e ATUAIS (2025), baseando-
 //         </TouchableOpacity>
 //         <Text style={styles.headerTitle}>Vagas para Você</Text>
 //       </View>
-      
+
 //       {loading ? (
 //         <View style={styles.loadingContainer}>
 //           <Text style={{
@@ -715,7 +715,7 @@ IMPORTANTE: Todas as vagas informadas devem ser REAIS e ATUAIS (2025), baseando-
 //           }}>
 //             Buscando vagas personalizadas
 //           </Text>
-          
+
 //           <View style={{
 //             width: '80%',
 //             height: 10,
@@ -730,7 +730,7 @@ IMPORTANTE: Todas as vagas informadas devem ser REAIS e ATUAIS (2025), baseando-
 //               borderRadius: 5
 //             }} />
 //           </View>
-          
+
 //           <View style={{
 //             backgroundColor: 'rgba(0, 188, 212, 0.1)',
 //             padding: 15,
@@ -782,7 +782,7 @@ IMPORTANTE: Todas as vagas informadas devem ser REAIS e ATUAIS (2025), baseando-
 //               }}>
 //                 Vagas Personalizadas para Seu Perfil
 //               </Text>
-              
+
 //               <Text style={{
 //                 fontSize: 14,
 //                 color: Colors.lightText,
@@ -791,7 +791,7 @@ IMPORTANTE: Todas as vagas informadas devem ser REAIS e ATUAIS (2025), baseando-
 //                 Com base nas informações do seu currículo, encontramos estas vagas que correspondem ao seu perfil profissional.
 //               </Text>
 //             </View>
-            
+
 //             {/* Resultados da IA */}
 //             <View style={{
 //               backgroundColor: Colors.white,
@@ -866,7 +866,7 @@ IMPORTANTE: Todas as vagas informadas devem ser REAIS e ATUAIS (2025), baseando-
 //               </Markdown>
 //             </View>
 //           </ScrollView>
-          
+
 //           {/* Botão para compartilhar */}
 //           <View style={{
 //             padding: 15,
@@ -907,7 +907,7 @@ const BuscaVagasScreen = ({ route, navigation }) => {
   const [loadingProgress, setLoadingProgress] = useState(0);
   const [fromCache, setFromCache] = useState(false);
   const [lastUpdate, setLastUpdate] = useState(null);
-  
+
   useEffect(() => {
     // Simular progresso durante a busca para feedback visual
     const progressInterval = setInterval(() => {
@@ -916,30 +916,30 @@ const BuscaVagasScreen = ({ route, navigation }) => {
         return newProgress > 0.9 ? 0.9 : newProgress;
       });
     }, 800);
-    
+
     // Iniciar a busca de vagas
     buscarVagas();
-    
+
     return () => clearInterval(progressInterval);
   }, []);
-  
+
   const buscarVagas = async (forceRefresh = false) => {
     try {
       setLoading(true);
       setError(null);
       setLoadingProgress(0.1);
-      
+
       if (forceRefresh) {
         // Mostrar tooltip/mensagem quando forçar a atualização
         Alert.alert(
-          'Buscando Novas Vagas', 
+          'Buscando Novas Vagas',
           'Estamos buscando novas vagas compatíveis com seu perfil. Isso pode levar alguns instantes...'
         );
       }
-      
+
       // Chamar a função de busca com o parâmetro de forçar atualização
       const resultado = await buscarVagasComGemini(curriculoData, forceRefresh);
-      
+
       if (resultado.success) {
         setVagasResultado(resultado.vagas);
         setFromCache(resultado.fromCache || false);
@@ -955,19 +955,19 @@ const BuscaVagasScreen = ({ route, navigation }) => {
       setLoadingProgress(1);
     }
   };
-  
+
   const handleRefresh = () => {
     // Forçar atualização (ignorar cache)
     buscarVagas(true);
   };
-  
+
   const handleTryAgain = () => {
     setLoading(true);
     setError(null);
     setLoadingProgress(0.1);
     buscarVagas();
   };
-  
+
   const handleShare = async () => {
     try {
       await Share.share({
@@ -979,16 +979,16 @@ const BuscaVagasScreen = ({ route, navigation }) => {
       Alert.alert('Erro', 'Não foi possível compartilhar as vagas.');
     }
   };
-  
+
   // Funções de processamento de links (manter de antes)
   const processarConteudo = (texto) => {
     if (!texto) return { conteudoProcessado: '', links: [] };
-    
+
     // Extrair links do formato markdown [texto](url)
     const regex = /\[([^\]]+)\]\(([^)]+)\)/g;
     let match;
     const links = [];
-    
+
     while ((match = regex.exec(texto)) !== null) {
       links.push({
         texto: match[1],
@@ -996,13 +996,13 @@ const BuscaVagasScreen = ({ route, navigation }) => {
         completo: match[0]
       });
     }
-    
+
     return {
       conteudoProcessado: texto,
       links
     };
   };
-  
+
   // Componente VagaLink (manter de antes)
   const VagaLink = ({ url, label }) => {
     const handlePress = async () => {
@@ -1010,10 +1010,10 @@ const BuscaVagasScreen = ({ route, navigation }) => {
       if (!url.startsWith('http')) {
         url = 'https://' + url;
       }
-      
+
       try {
         const supported = await Linking.canOpenURL(url);
-        
+
         if (supported) {
           await Linking.openURL(url);
         } else {
@@ -1024,9 +1024,9 @@ const BuscaVagasScreen = ({ route, navigation }) => {
         Alert.alert('Erro', 'Não foi possível abrir este link.');
       }
     };
-    
+
     return (
-      <TouchableOpacity 
+      <TouchableOpacity
         onPress={handlePress}
         style={{
           backgroundColor: Colors.primary,
@@ -1043,16 +1043,16 @@ const BuscaVagasScreen = ({ route, navigation }) => {
       </TouchableOpacity>
     );
   };
-  
+
   // Manter de antes
   const renderizarLinksVagas = () => {
     const { conteudoProcessado, links } = processarConteudo(vagasResultado);
-    
+
     // Agrupar links por vaga (baseado na ocorrência de "Vaga X" no texto)
     const secoes = conteudoProcessado.split(/## Vaga \d+:/);
-    
+
     if (secoes.length <= 1) return null;
-    
+
     return (
       <View style={{
         backgroundColor: '#e8f5e9',
@@ -1068,26 +1068,26 @@ const BuscaVagasScreen = ({ route, navigation }) => {
         }}>
           Links Diretos para as Vagas:
         </Text>
-        
+
         {secoes.map((secao, index) => {
           if (index === 0) return null; // Pular a introdução
-          
+
           // Extrair o título da vaga
           const tituloMatch = secao.match(/\[([^\]]+)\]\s*-\s*\[([^\]]+)\]/);
-          const titulo = tituloMatch 
-            ? `${tituloMatch[1]} - ${tituloMatch[2]}` 
+          const titulo = tituloMatch
+            ? `${tituloMatch[1]} - ${tituloMatch[2]}`
             : `Vaga ${index}`;
-          
+
           // Encontrar links nesta seção
-          const linksVaga = links.filter(link => 
-            secao.includes(link.completo) && 
-            (link.texto.includes('Link') || 
-             link.texto.includes('vaga') || 
-             link.texto.includes('Aplicar'))
+          const linksVaga = links.filter(link =>
+            secao.includes(link.completo) &&
+            (link.texto.includes('Link') ||
+              link.texto.includes('vaga') ||
+              link.texto.includes('Aplicar'))
           );
-          
+
           if (linksVaga.length === 0) return null;
-          
+
           return (
             <View key={index} style={{
               marginBottom: 10,
@@ -1100,13 +1100,13 @@ const BuscaVagasScreen = ({ route, navigation }) => {
               <Text style={{ fontWeight: 'bold', marginBottom: 5 }}>
                 {titulo}
               </Text>
-              
+
               <View style={{ flexDirection: 'row', flexWrap: 'wrap' }}>
                 {linksVaga.map((link, linkIndex) => (
-                  <VagaLink 
-                    key={linkIndex} 
-                    url={link.url} 
-                    label={link.texto} 
+                  <VagaLink
+                    key={linkIndex}
+                    url={link.url}
+                    label={link.texto}
                   />
                 ))}
               </View>
@@ -1116,14 +1116,14 @@ const BuscaVagasScreen = ({ route, navigation }) => {
       </View>
     );
   };
-  
+
   // Para processar os resultados
   const { conteudoProcessado, links } = vagasResultado ? processarConteudo(vagasResultado) : { conteudoProcessado: '', links: [] };
-  
+
   return (
     <SafeAreaView style={styles.container}>
       <StatusBar barStyle="light-content" backgroundColor={Colors.dark} />
-      
+
       <View style={styles.header}>
         <TouchableOpacity
           style={styles.backButton}
@@ -1132,7 +1132,7 @@ const BuscaVagasScreen = ({ route, navigation }) => {
           <Text style={styles.backButtonText}>‹</Text>
         </TouchableOpacity>
         <Text style={styles.headerTitle}>Vagas para Você</Text>
-        
+
         {/* Novo botão de atualização */}
         {!loading && !error && (
           <TouchableOpacity
@@ -1148,7 +1148,7 @@ const BuscaVagasScreen = ({ route, navigation }) => {
           </TouchableOpacity>
         )}
       </View>
-      
+
       {loading ? (
         <View style={styles.loadingContainer}>
           <Text style={{
@@ -1160,7 +1160,7 @@ const BuscaVagasScreen = ({ route, navigation }) => {
           }}>
             Buscando vagas personalizadas
           </Text>
-          
+
           <View style={{
             width: '80%',
             height: 10,
@@ -1175,7 +1175,7 @@ const BuscaVagasScreen = ({ route, navigation }) => {
               borderRadius: 5
             }} />
           </View>
-          
+
           <View style={{
             backgroundColor: 'rgba(0, 188, 212, 0.1)',
             padding: 15,
@@ -1227,7 +1227,7 @@ const BuscaVagasScreen = ({ route, navigation }) => {
                 }}>
                   Vagas Personalizadas para Seu Perfil
                 </Text>
-                
+
                 {/* Botão de refresh alternativo */}
                 <TouchableOpacity
                   style={{
@@ -1244,7 +1244,7 @@ const BuscaVagasScreen = ({ route, navigation }) => {
                   <Text style={{ color: Colors.white, fontSize: 16 }}>↻</Text>
                 </TouchableOpacity>
               </View>
-              
+
               <Text style={{
                 fontSize: 14,
                 color: Colors.lightText,
@@ -1252,7 +1252,7 @@ const BuscaVagasScreen = ({ route, navigation }) => {
               }}>
                 Com base nas informações do seu currículo, encontramos estas vagas que correspondem ao seu perfil profissional.
               </Text>
-              
+
               {fromCache && (
                 <View style={{
                   backgroundColor: '#e3f2fd',
@@ -1270,7 +1270,7 @@ const BuscaVagasScreen = ({ route, navigation }) => {
                   }}>
                     Última atualização: {new Date(lastUpdate).toLocaleDateString()} às {new Date(lastUpdate).toLocaleTimeString()}
                   </Text>
-                  
+
                   <TouchableOpacity
                     style={{
                       backgroundColor: '#1976d2',
@@ -1286,10 +1286,10 @@ const BuscaVagasScreen = ({ route, navigation }) => {
                 </View>
               )}
             </View>
-            
+
             {/* Renderizar links para vagas */}
             {renderizarLinksVagas()}
-            
+
             {/* Resultados da IA */}
             <View style={{
               backgroundColor: Colors.white,
@@ -1311,34 +1311,34 @@ const BuscaVagasScreen = ({ route, navigation }) => {
               <Markdown
                 style={{
                   body: { fontSize: 16, lineHeight: 24, color: Colors.dark },
-                  heading1: { 
-                    fontSize: 22, 
-                    fontWeight: 'bold', 
-                    marginBottom: 10, 
+                  heading1: {
+                    fontSize: 22,
+                    fontWeight: 'bold',
+                    marginBottom: 10,
                     color: Colors.dark,
                     borderBottomWidth: 1,
                     borderBottomColor: Colors.mediumGray,
                     paddingBottom: 5,
                   },
-                  heading2: { 
-                    fontSize: 20, 
-                    fontWeight: 'bold', 
+                  heading2: {
+                    fontSize: 20,
+                    fontWeight: 'bold',
                     marginBottom: 10,
                     marginTop: 15,
-                    color: Colors.dark 
+                    color: Colors.dark
                   },
-                  heading3: { 
-                    fontSize: 18, 
-                    fontWeight: 'bold', 
+                  heading3: {
+                    fontSize: 18,
+                    fontWeight: 'bold',
                     marginTop: 10,
                     marginBottom: 5,
-                    color: Colors.dark 
+                    color: Colors.dark
                   },
-                  paragraph: { 
-                    fontSize: 16, 
+                  paragraph: {
+                    fontSize: 16,
                     lineHeight: 24,
                     marginBottom: 10,
-                    color: Colors.dark 
+                    color: Colors.dark
                   },
                   list_item: {
                     marginBottom: 5,
@@ -1370,7 +1370,7 @@ const BuscaVagasScreen = ({ route, navigation }) => {
               </Markdown>
             </View>
           </ScrollView>
-          
+
           {/* Botão para compartilhar */}
           <View style={{
             padding: 15,
@@ -1401,7 +1401,7 @@ const BuscaVagasScreen = ({ route, navigation }) => {
                 Buscar Novas Vagas
               </Text>
             </TouchableOpacity>
-            
+
             <TouchableOpacity
               style={{
                 backgroundColor: Colors.primary,
@@ -1433,113 +1433,113 @@ const BuscaVagasScreen = ({ route, navigation }) => {
 const getApiKeySourceForIA = async (tipoIA) => {
   switch (tipoIA) {
     // No caso do Gemini dentro da função chamarIAAPI
-  case 'GEMINI':
-  return await tentarComRetry(async () => {
-    // Lista de modelos disponíveis em ordem de preferência
-    const modelos = [
-      'gemini-2.0-flash',       // Mais rápido, nova versão
-      'gemini-2.0-pro',         // Mais capacidade, nova versão
-      'gemini-1.5-flash',       // Fallback
-      'gemini-1.5-pro',         // Fallback
-      'gemini-pro'              // Versão original, para compatibilidade
-    ];
-    
-    // Construir URLs para todos os modelos e versões da API
-    const endpoints = [];
-    
-    // Adicionar endpoints v1beta (mais recentes)
-    modelos.forEach(modelo => {
-      endpoints.push(`https://generativelanguage.googleapis.com/v1beta/models/${modelo}:generateContent?key=${apiKey}`);
-    });
-    
-    // Adicionar endpoints v1 (estáveis)
-    modelos.forEach(modelo => {
-      endpoints.push(`https://generativelanguage.googleapis.com/v1/models/${modelo}:generateContent?key=${apiKey}`);
-    });
-    
-    let lastError = null;
-    
-    // Tentar cada endpoint até encontrar um que funcione
-    for (const endpoint of endpoints) {
-      try {
-        console.log(`Tentando endpoint Gemini: ${endpoint}`);
-        
-        // Preparar requisição no formato correto conforme documentação
-        const requestBody = {
-          contents: [
-            {
-              parts: [
-                { text: promptText }
+    case 'GEMINI':
+      return await tentarComRetry(async () => {
+        // Lista de modelos disponíveis em ordem de preferência
+        const modelos = [
+          'gemini-2.0-flash',       // Mais rápido, nova versão
+          'gemini-2.0-pro',         // Mais capacidade, nova versão
+          'gemini-1.5-flash',       // Fallback
+          'gemini-1.5-pro',         // Fallback
+          'gemini-pro'              // Versão original, para compatibilidade
+        ];
+
+        // Construir URLs para todos os modelos e versões da API
+        const endpoints = [];
+
+        // Adicionar endpoints v1beta (mais recentes)
+        modelos.forEach(modelo => {
+          endpoints.push(`https://generativelanguage.googleapis.com/v1beta/models/${modelo}:generateContent?key=${apiKey}`);
+        });
+
+        // Adicionar endpoints v1 (estáveis)
+        modelos.forEach(modelo => {
+          endpoints.push(`https://generativelanguage.googleapis.com/v1/models/${modelo}:generateContent?key=${apiKey}`);
+        });
+
+        let lastError = null;
+
+        // Tentar cada endpoint até encontrar um que funcione
+        for (const endpoint of endpoints) {
+          try {
+            console.log(`Tentando endpoint Gemini: ${endpoint}`);
+
+            // Preparar requisição no formato correto conforme documentação
+            const requestBody = {
+              contents: [
+                {
+                  parts: [
+                    { text: promptText }
+                  ]
+                }
+              ],
+              generationConfig: {
+                temperature: 0.7,
+                maxOutputTokens: 800,
+                topK: 40,
+                topP: 0.95
+              },
+              safetySettings: [
+                {
+                  category: "HARM_CATEGORY_HARASSMENT",
+                  threshold: "BLOCK_MEDIUM_AND_ABOVE"
+                }
               ]
+            };
+
+            // Configurar requisição com headers adequados
+            const config = {
+              headers: {
+                'Content-Type': 'application/json',
+                'Accept': 'application/json'
+              },
+              timeout: 15000
+            };
+
+            // Fazer a requisição
+            const response = await axios.post(endpoint, requestBody, config);
+
+            // Verificar resposta corretamente
+            if (response.status === 200) {
+              // Checar cada possível caminho de resposta (algumas APIs têm formatos ligeiramente diferentes)
+              if (response.data?.candidates?.[0]?.content?.parts?.[0]?.text) {
+                console.log('Resposta do Gemini obtida via caminho normal');
+                return response.data.candidates[0].content.parts[0].text;
+              }
+
+              if (response.data?.candidates?.[0]?.output) {
+                console.log('Resposta do Gemini obtida via caminho alternativo');
+                return response.data.candidates[0].output;
+              }
+
+              if (response.data?.candidates?.[0]?.text) {
+                console.log('Resposta do Gemini obtida via caminho simplificado');
+                return response.data.candidates[0].text;
+              }
+
+              // Se chegamos aqui, encontramos um endpoint que funciona mas formato inesperado
+              console.log('Formato de resposta inesperado do Gemini, mas status 200');
+              console.log('Resposta completa:', JSON.stringify(response.data));
+
+              // Tente extrair algum texto útil como fallback
+              const respString = JSON.stringify(response.data);
+              if (respString.length > 0) {
+                return `Análise recebida em formato não reconhecido. Dados brutos: ${respString.substring(0, 500)}...`;
+              }
             }
-          ],
-          generationConfig: {
-            temperature: 0.7,
-            maxOutputTokens: 800,
-            topK: 40,
-            topP: 0.95
-          },
-          safetySettings: [
-            {
-              category: "HARM_CATEGORY_HARASSMENT",
-              threshold: "BLOCK_MEDIUM_AND_ABOVE"
+          } catch (error) {
+            console.log(`Erro no endpoint ${endpoint}:`, error.message);
+            if (error.response) {
+              console.log('Detalhes do erro:', error.response.status, error.response.data);
             }
-          ]
-        };
-        
-        // Configurar requisição com headers adequados
-        const config = {
-          headers: { 
-            'Content-Type': 'application/json',
-            'Accept': 'application/json'
-          },
-          timeout: 15000
-        };
-        
-        // Fazer a requisição
-        const response = await axios.post(endpoint, requestBody, config);
-        
-        // Verificar resposta corretamente
-        if (response.status === 200) {
-          // Checar cada possível caminho de resposta (algumas APIs têm formatos ligeiramente diferentes)
-          if (response.data?.candidates?.[0]?.content?.parts?.[0]?.text) {
-            console.log('Resposta do Gemini obtida via caminho normal');
-            return response.data.candidates[0].content.parts[0].text;
-          } 
-          
-          if (response.data?.candidates?.[0]?.output) {
-            console.log('Resposta do Gemini obtida via caminho alternativo');
-            return response.data.candidates[0].output;
-          }
-          
-          if (response.data?.candidates?.[0]?.text) {
-            console.log('Resposta do Gemini obtida via caminho simplificado');
-            return response.data.candidates[0].text;
-          }
-          
-          // Se chegamos aqui, encontramos um endpoint que funciona mas formato inesperado
-          console.log('Formato de resposta inesperado do Gemini, mas status 200');
-          console.log('Resposta completa:', JSON.stringify(response.data));
-          
-          // Tente extrair algum texto útil como fallback
-          const respString = JSON.stringify(response.data);
-          if (respString.length > 0) {
-            return `Análise recebida em formato não reconhecido. Dados brutos: ${respString.substring(0, 500)}...`;
+            lastError = error;
+            // Continue tentando o próximo endpoint
           }
         }
-      } catch (error) {
-        console.log(`Erro no endpoint ${endpoint}:`, error.message);
-        if (error.response) {
-          console.log('Detalhes do erro:', error.response.status, error.response.data);
-        }
-        lastError = error;
-        // Continue tentando o próximo endpoint
-      }
-    }
-    
-    // Se chegou aqui, nenhum endpoint funcionou
-    throw lastError || new Error('Todos os endpoints do Gemini falharam');
-  });
+
+        // Se chegou aqui, nenhum endpoint funcionou
+        throw lastError || new Error('Todos os endpoints do Gemini falharam');
+      });
     case 'OPENAI':
       return 'https://platform.openai.com/api-keys';
     case 'CLAUDE':
@@ -1581,12 +1581,12 @@ const AuthProvider = ({ children }) => {
       // Buscar usuários
       const usuarios = await AsyncStorage.getItem('usuarios');
       const usuariosArray = usuarios ? JSON.parse(usuarios) : [];
-      
+
       // Verificar credenciais
       const usuarioEncontrado = usuariosArray.find(
         u => u.email === email && u.password === password
       );
-      
+
       if (usuarioEncontrado) {
         setUser(usuarioEncontrado);
         await AsyncStorage.setItem('currentUser', JSON.stringify(usuarioEncontrado));
@@ -1605,11 +1605,11 @@ const AuthProvider = ({ children }) => {
       // Verificar se o email já está em uso
       const usuarios = await AsyncStorage.getItem('usuarios');
       const usuariosArray = usuarios ? JSON.parse(usuarios) : [];
-      
+
       if (usuariosArray.some(u => u.email === email)) {
         return { success: false, message: 'Email já cadastrado' };
       }
-      
+
       // Criar novo usuário
       const novoUsuario = {
         id: Date.now().toString(),
@@ -1618,15 +1618,15 @@ const AuthProvider = ({ children }) => {
         password,
         dataCadastro: new Date().toISOString()
       };
-      
+
       // Salvar usuário
       const novosUsuarios = [...usuariosArray, novoUsuario];
       await AsyncStorage.setItem('usuarios', JSON.stringify(novosUsuarios));
-      
+
       // Fazer login automático
       setUser(novoUsuario);
       await AsyncStorage.setItem('currentUser', JSON.stringify(novoUsuario));
-      
+
       return { success: true };
     } catch (error) {
       console.error('Erro ao cadastrar:', error);
@@ -1655,30 +1655,30 @@ const useAuth = () => useContext(AuthContext);
 // Função para chamar diferentes APIs de IA
 const chamarIAAPI = async (tipoIA, apiKey, promptText) => {
   const MAX_RETRIES = 2;
-  
+
   // Implementação de backoff exponencial para retries
   const tentarComRetry = async (funcaoRequest) => {
     for (let tentativa = 0; tentativa <= MAX_RETRIES; tentativa++) {
       try {
         if (tentativa > 0) {
           const tempoEspera = Math.pow(2, tentativa) * 1000;
-          console.log(`chamarIAAPI: Aguardando ${tempoEspera}ms antes da tentativa ${tentativa+1}`);
+          console.log(`chamarIAAPI: Aguardando ${tempoEspera}ms antes da tentativa ${tentativa + 1}`);
           await new Promise(resolve => setTimeout(resolve, tempoEspera));
         }
-        
+
         return await funcaoRequest();
       } catch (error) {
-        console.log(`chamarIAAPI: Erro na tentativa ${tentativa+1}:`, error.message);
-        
+        console.log(`chamarIAAPI: Erro na tentativa ${tentativa + 1}:`, error.message);
+
         // Se é a última tentativa, propagar o erro
         if (tentativa === MAX_RETRIES) throw error;
-        
+
         // Se não é erro de rate limit (429), não tente novamente
         if (error.response?.status !== 429) throw error;
       }
     }
   };
-  
+
   // Handlers específicos para cada IA
   switch (tipoIA) {
     case 'GEMINI':
@@ -1691,19 +1691,19 @@ const chamarIAAPI = async (tipoIA, apiKey, promptText) => {
             maxOutputTokens: 800,
           }
         };
-        
+
         const response = await axios.post(endpoint, requestBody, {
           headers: { 'Content-Type': 'application/json' },
           timeout: 15000
         });
-        
+
         if (response.data?.candidates?.[0]?.content?.parts?.[0]?.text) {
           return response.data.candidates[0].content.parts[0].text;
         } else {
           throw new Error('Formato de resposta inesperado do Gemini');
         }
       });
-      
+
     case 'OPENAI':
       return await tentarComRetry(async () => {
         const endpoint = IA_APIS.OPENAI.endpoint;
@@ -1716,7 +1716,7 @@ const chamarIAAPI = async (tipoIA, apiKey, promptText) => {
           temperature: 0.7,
           max_tokens: 800
         };
-        
+
         const response = await axios.post(endpoint, requestBody, {
           headers: {
             'Content-Type': 'application/json',
@@ -1724,14 +1724,14 @@ const chamarIAAPI = async (tipoIA, apiKey, promptText) => {
           },
           timeout: 15000
         });
-        
+
         if (response.data?.choices?.[0]?.message?.content) {
           return response.data.choices[0].message.content;
         } else {
           throw new Error('Formato de resposta inesperado do ChatGPT');
         }
       });
-      
+
     case 'CLAUDE':
       return await tentarComRetry(async () => {
         const endpoint = IA_APIS.CLAUDE.endpoint;
@@ -1742,7 +1742,7 @@ const chamarIAAPI = async (tipoIA, apiKey, promptText) => {
             { role: "user", content: promptText }
           ]
         };
-        
+
         const response = await axios.post(endpoint, requestBody, {
           headers: {
             'Content-Type': 'application/json',
@@ -1751,14 +1751,14 @@ const chamarIAAPI = async (tipoIA, apiKey, promptText) => {
           },
           timeout: 20000
         });
-        
+
         if (response.data?.content?.[0]?.text) {
           return response.data.content[0].text;
         } else {
           throw new Error('Formato de resposta inesperado do Claude');
         }
       });
-    
+
     case 'PERPLEXITY':
       return await tentarComRetry(async () => {
         const endpoint = IA_APIS.PERPLEXITY.endpoint;
@@ -1770,7 +1770,7 @@ const chamarIAAPI = async (tipoIA, apiKey, promptText) => {
           temperature: 0.7,
           max_tokens: 800
         };
-        
+
         const response = await axios.post(endpoint, requestBody, {
           headers: {
             'Content-Type': 'application/json',
@@ -1778,14 +1778,14 @@ const chamarIAAPI = async (tipoIA, apiKey, promptText) => {
           },
           timeout: 20000
         });
-        
+
         if (response.data?.choices?.[0]?.message?.content) {
           return response.data.choices[0].message.content;
         } else {
           throw new Error('Formato de resposta inesperado do Perplexity');
         }
       });
-    
+
     case 'DEEPSEEK':
       return await tentarComRetry(async () => {
         const endpoint = IA_APIS.DEEPSEEK.endpoint;
@@ -1797,7 +1797,7 @@ const chamarIAAPI = async (tipoIA, apiKey, promptText) => {
           temperature: 0.7,
           max_tokens: 800
         };
-        
+
         const response = await axios.post(endpoint, requestBody, {
           headers: {
             'Content-Type': 'application/json',
@@ -1805,14 +1805,14 @@ const chamarIAAPI = async (tipoIA, apiKey, promptText) => {
           },
           timeout: 20000
         });
-        
+
         if (response.data?.choices?.[0]?.message?.content) {
           return response.data.choices[0].message.content;
         } else {
           throw new Error('Formato de resposta inesperado do DeepSeek');
         }
       });
-    
+
     case 'BLACKBOX':
       return await tentarComRetry(async () => {
         const endpoint = IA_APIS.BLACKBOX.endpoint;
@@ -1823,7 +1823,7 @@ const chamarIAAPI = async (tipoIA, apiKey, promptText) => {
           temperature: 0.7,
           max_tokens: 800
         };
-        
+
         const response = await axios.post(endpoint, requestBody, {
           headers: {
             'Content-Type': 'application/json',
@@ -1831,14 +1831,14 @@ const chamarIAAPI = async (tipoIA, apiKey, promptText) => {
           },
           timeout: 20000
         });
-        
+
         if (response.data?.message?.content) {
           return response.data.message.content;
         } else {
           throw new Error('Formato de resposta inesperado do Blackbox');
         }
       });
-      
+
     case 'BING':
       return await tentarComRetry(async () => {
         const endpoint = IA_APIS.BING.endpoint;
@@ -1847,7 +1847,7 @@ const chamarIAAPI = async (tipoIA, apiKey, promptText) => {
           count: 5,
           responseFilter: 'Computation,Entities,Places,Webpages'
         };
-        
+
         const response = await axios.get(endpoint, {
           headers: {
             'Ocp-Apim-Subscription-Key': apiKey
@@ -1855,20 +1855,20 @@ const chamarIAAPI = async (tipoIA, apiKey, promptText) => {
           params: params,
           timeout: 15000
         });
-        
+
         if (response.data?.webPages?.value) {
           // Construa um texto resumindo os resultados
           let resultado = "Análise baseada em resultados da busca Bing:\n\n";
           response.data.webPages.value.forEach((item, index) => {
             resultado += `${index + 1}. ${item.name}\n${item.snippet}\n\n`;
           });
-          
+
           return resultado;
         } else {
           throw new Error('Formato de resposta inesperado do Bing');
         }
       });
-    
+
     case 'GROK':
       return await tentarComRetry(async () => {
         const endpoint = IA_APIS.GROK.endpoint;
@@ -1879,7 +1879,7 @@ const chamarIAAPI = async (tipoIA, apiKey, promptText) => {
           temperature: 0.7,
           max_tokens: 800
         };
-        
+
         const response = await axios.post(endpoint, requestBody, {
           headers: {
             'Content-Type': 'application/json',
@@ -1887,14 +1887,14 @@ const chamarIAAPI = async (tipoIA, apiKey, promptText) => {
           },
           timeout: 20000
         });
-        
+
         if (response.data?.choices?.[0]?.message?.content) {
           return response.data.choices[0].message.content;
         } else {
           throw new Error('Formato de resposta inesperado do Grok');
         }
       });
-      
+
     default:
       throw new Error(`IA não implementada: ${tipoIA}`);
   }
@@ -1908,30 +1908,30 @@ const gerarAnaliseLocal = (curriculoData, tipoAnalise) => {
     const sobrenome = curriculoData.informacoes_pessoais?.sobrenome || '';
     const nomeCompleto = `${nome} ${sobrenome}`.trim();
     const area = curriculoData.informacoes_pessoais?.area || 'profissional';
-    
+
     // Verificar completude das seções para pontuação
     const temFormacao = curriculoData.formacoes_academicas?.length > 0;
     const temExperiencia = curriculoData.experiencias?.length > 0;
     const temCursos = curriculoData.cursos?.length > 0;
     const temProjetos = curriculoData.projetos?.length > 0;
     const temIdiomas = curriculoData.idiomas?.length > 0;
-    
+
     // Calcular pontuação básica
     let pontuacaoBase = 5; // Base média
-    
+
     // Adicionar pontos para cada seção preenchida
     if (temFormacao) pontuacaoBase += 1;
     if (temExperiencia) pontuacaoBase += 1.5;
     if (temCursos) pontuacaoBase += 0.5;
     if (temProjetos) pontuacaoBase += 1;
     if (temIdiomas) pontuacaoBase += 0.5;
-    
+
     // Limitar a 10
     const pontuacaoFinal = Math.min(10, pontuacaoBase);
-    
+
     // Gerar análise baseada no tipo
     let analiseTexto = '';
-    
+
     switch (tipoAnalise) {
       case 'pontuacao':
         analiseTexto = `# Análise de Pontuação do Currículo
@@ -1958,7 +1958,7 @@ const gerarAnaliseLocal = (curriculoData, tipoAnalise) => {
 
 *Esta análise foi gerada automaticamente com base nos dados fornecidos.*`;
         break;
-        
+
       case 'melhorias':
         analiseTexto = `# 5 Melhorias para o Currículo
 
@@ -1984,7 +1984,7 @@ const gerarAnaliseLocal = (curriculoData, tipoAnalise) => {
 
 *Implementar estas melhorias pode aumentar significativamente suas chances de ser chamado para entrevistas.*`;
         break;
-        
+
       case 'dicas':
         analiseTexto = `# Dicas Estratégicas de Carreira
 
@@ -2017,27 +2017,27 @@ const gerarAnaliseLocal = (curriculoData, tipoAnalise) => {
 
 *Estas recomendações foram personalizadas com base nas informações do seu currículo.*`;
         break;
-        
+
       case 'cursos':
         analiseTexto = `# Cursos Recomendados para Seu Perfil
 
 Com base no seu currículo na área de ${area}, recomendamos os seguintes cursos:
 
-1. **${area === 'Tecnologia da Informação' ? 'AWS Certified Solutions Architect' : 
-          area === 'Marketing' ? 'Google Analytics Certification' : 
-          area === 'Administração' ? 'Gestão Ágil de Projetos (PMI-ACP)' : 
-          'Especialização em ' + area}**
-   - Plataforma: ${area === 'Tecnologia da Informação' ? 'AWS Training' : 
-                 area === 'Marketing' ? 'Google Skillshop' : 
-                 area === 'Administração' ? 'PMI ou Coursera' : 
-                 'EdX ou Coursera'}
+1. **${area === 'Tecnologia da Informação' ? 'AWS Certified Solutions Architect' :
+            area === 'Marketing' ? 'Google Analytics Certification' :
+              area === 'Administração' ? 'Gestão Ágil de Projetos (PMI-ACP)' :
+                'Especialização em ' + area}**
+   - Plataforma: ${area === 'Tecnologia da Informação' ? 'AWS Training' :
+            area === 'Marketing' ? 'Google Skillshop' :
+              area === 'Administração' ? 'PMI ou Coursera' :
+                'EdX ou Coursera'}
    - Por que fazer: Certificação reconhecida globalmente que comprova competências avançadas
    - Como agregaria: Abre portas para posições sênior com remuneração até 30% maior
 
-2. **${area === 'Tecnologia da Informação' ? 'Data Science Specialization' : 
-          area === 'Marketing' ? 'Digital Marketing Specialization' : 
-          area === 'Administração' ? 'Liderança e Gestão de Equipes' : 
-          'Fundamentos de ' + area}**
+2. **${area === 'Tecnologia da Informação' ? 'Data Science Specialization' :
+            area === 'Marketing' ? 'Digital Marketing Specialization' :
+              area === 'Administração' ? 'Liderança e Gestão de Equipes' :
+                'Fundamentos de ' + area}**
    - Plataforma: Coursera (em parceria com universidades)
    - Por que fazer: Complementa sua formação com habilidades analíticas fundamentais
    - Como agregaria: Amplia o perfil para funções que exigem tomada de decisão baseada em dados
@@ -2047,73 +2047,73 @@ Com base no seu currículo na área de ${area}, recomendamos os seguintes cursos
    - Por que fazer: Comunicação em inglês é requisito para empresas multinacionais
    - Como agregaria: Aumenta empregabilidade em 65% e possibilidade de aumento salarial
 
-4. **${area === 'Tecnologia da Informação' ? 'DevOps for Professionals' : 
-          area === 'Marketing' ? 'Growth Hacking Masterclass' : 
-          area === 'Administração' ? 'Financial Management' : 
-          'Inovação em ' + area}**
+4. **${area === 'Tecnologia da Informação' ? 'DevOps for Professionals' :
+            area === 'Marketing' ? 'Growth Hacking Masterclass' :
+              area === 'Administração' ? 'Financial Management' :
+                'Inovação em ' + area}**
    - Plataforma: Udemy ou LinkedIn Learning
    - Por que fazer: Conhecimentos emergentes com alta demanda no mercado atual
    - Como agregaria: Posiciona você como profissional atualizado com tendências recentes
 
-5. **${area === 'Tecnologia da Informação' ? 'UI/UX Design Fundamentals' : 
-          area === 'Marketing' ? 'Content Marketing Strategy' : 
-          area === 'Administração' ? 'Business Analytics' : 
-          'Gestão de Projetos para ' + area}**
+5. **${area === 'Tecnologia da Informação' ? 'UI/UX Design Fundamentals' :
+            area === 'Marketing' ? 'Content Marketing Strategy' :
+              area === 'Administração' ? 'Business Analytics' :
+                'Gestão de Projetos para ' + area}**
    - Plataforma: Alura, Udacity ou Domestika
    - Por que fazer: Complementa habilidades técnicas com visão de experiência do usuário
    - Como agregaria: Diferencial competitivo para posições que exigem múltiplas competências
 
 *Esta lista foi personalizada com base no seu perfil atual e tendências de mercado para 2024. Atualizar estas competências pode aumentar significativamente sua empregabilidade.*`;
         break;
-        
+
       case 'vagas':
         analiseTexto = `# Vagas Recomendadas para Seu Perfil
 
 Com base no seu currículo na área de ${area}, você teria boas chances nas seguintes vagas:
 
-1. **${area === 'Tecnologia da Informação' ? 'Desenvolvedor Full-Stack' : 
-          area === 'Marketing' ? 'Especialista em Marketing Digital' : 
-          area === 'Administração' ? 'Analista de Projetos' : 
-          'Especialista em ' + area}**
+1. **${area === 'Tecnologia da Informação' ? 'Desenvolvedor Full-Stack' :
+            area === 'Marketing' ? 'Especialista em Marketing Digital' :
+              area === 'Administração' ? 'Analista de Projetos' :
+                'Especialista em ' + area}**
    - Por que combina: ${temExperiencia ? 'Sua experiência anterior demonstra as competências necessárias' : 'Seu perfil de formação se alinha com os requisitos típicos'}
    - Competências valorizadas: ${temProjetos ? 'Experiência prática em projetos' : 'Conhecimentos teóricos'}, ${temIdiomas ? 'domínio de idiomas' : 'habilidades analíticas'}
-   - Empresas/setores: ${area === 'Tecnologia da Informação' ? 'Fintechs, agências digitais' : 
-                        area === 'Marketing' ? 'E-commerces, agências' : 
-                        area === 'Administração' ? 'Multinacionais, consultorias' : 
-                        'Empresas de médio e grande porte'}
+   - Empresas/setores: ${area === 'Tecnologia da Informação' ? 'Fintechs, agências digitais' :
+            area === 'Marketing' ? 'E-commerces, agências' :
+              area === 'Administração' ? 'Multinacionais, consultorias' :
+                'Empresas de médio e grande porte'}
    - Palavras-chave: ${area.toLowerCase()}, especialista, ${temFormacao ? 'graduação' : 'experiência'}, análise
 
-2. **${area === 'Tecnologia da Informação' ? 'Analista de Dados' : 
-          area === 'Marketing' ? 'Coordenador de Mídia Social' : 
-          area === 'Administração' ? 'Gerente de Operações' : 
-          'Consultor em ' + area}**
+2. **${area === 'Tecnologia da Informação' ? 'Analista de Dados' :
+            area === 'Marketing' ? 'Coordenador de Mídia Social' :
+              area === 'Administração' ? 'Gerente de Operações' :
+                'Consultor em ' + area}**
    - Por que combina: Aproveita suas competências em ${temProjetos ? 'projetos' : 'análise'} e ${temCursos ? 'conhecimentos específicos' : 'formação'}
    - Competências valorizadas: Análise crítica, conhecimentos técnicos, ${temIdiomas ? 'comunicação multilíngue' : 'comunicação eficaz'}
    - Empresas/setores: Consultorias, startups em crescimento, empresas de tecnologia
    - Palavras-chave: análise, ${area.toLowerCase()}, consultoria, projetos, ${temExperiencia ? 'experiência comprovada' : 'potencial'}
 
-3. **${area === 'Tecnologia da Informação' ? 'Gerente de Produto Técnico' : 
-          area === 'Marketing' ? 'Brand Manager' : 
-          area === 'Administração' ? 'Analista de Negócios' : 
-          'Analista de ' + area}**
+3. **${area === 'Tecnologia da Informação' ? 'Gerente de Produto Técnico' :
+            area === 'Marketing' ? 'Brand Manager' :
+              area === 'Administração' ? 'Analista de Negócios' :
+                'Analista de ' + area}**
    - Por que combina: Mescla ${temFormacao ? 'formação acadêmica' : 'visão prática'} com ${temProjetos ? 'experiência em projetos' : 'capacidade analítica'}
    - Competências valorizadas: Visão estratégica, conhecimento de mercado, ${temIdiomas ? 'habilidades de comunicação internacional' : 'comunicação clara'}
    - Empresas/setores: Empresas de médio e grande porte, multinacionais, consultorias especializadas
    - Palavras-chave: gerenciamento, estratégia, ${area.toLowerCase()}, análise, ${temFormacao ? 'qualificação acadêmica' : 'experiência prática'}
 
-4. **${area === 'Tecnologia da Informação' ? 'Arquiteto de Soluções' : 
-          area === 'Marketing' ? 'Gerente de Growth Marketing' : 
-          area === 'Administração' ? 'Coordenador de Projetos' : 
-          'Gerente de ' + area}**
+4. **${area === 'Tecnologia da Informação' ? 'Arquiteto de Soluções' :
+            area === 'Marketing' ? 'Gerente de Growth Marketing' :
+              area === 'Administração' ? 'Coordenador de Projetos' :
+                'Gerente de ' + area}**
    - Por que combina: Utiliza ${temFormacao ? 'conhecimento teórico' : 'visão prática'} combinado com ${temExperiencia ? 'experiência no mercado' : 'potencial de liderança'}
    - Competências valorizadas: Visão holística, capacidade de coordenação, ${temCursos ? 'especialização técnica' : 'adaptabilidade'}
    - Empresas/setores: Empresas inovadoras, líderes de mercado, organizações em transformação
    - Palavras-chave: coordenação, ${area.toLowerCase()}, gerenciamento, ${temIdiomas ? 'internacional' : 'nacional'}, estratégia
 
-5. **${area === 'Tecnologia da Informação' ? 'Especialista em Segurança da Informação' : 
-          area === 'Marketing' ? 'Customer Success Manager' : 
-          area === 'Administração' ? 'Analista de Processos' : 
-          'Especialista em ' + area} ${temIdiomas ? 'Internacional' : 'Sênior'}**
+5. **${area === 'Tecnologia da Informação' ? 'Especialista em Segurança da Informação' :
+            area === 'Marketing' ? 'Customer Success Manager' :
+              area === 'Administração' ? 'Analista de Processos' :
+                'Especialista em ' + area} ${temIdiomas ? 'Internacional' : 'Sênior'}**
    - Por que combina: Aproveita ${temFormacao && temExperiencia ? 'combinação de teoria e prática' : temFormacao ? 'sólida formação acadêmica' : 'experiência prática'}
    - Competências valorizadas: Especialização técnica, ${temIdiomas ? 'comunicação multilíngue' : 'comunicação eficaz'}, resolução de problemas
    - Empresas/setores: Empresas de tecnologia, multinacionais, consultorias especializadas
@@ -2121,7 +2121,7 @@ Com base no seu currículo na área de ${area}, você teria boas chances nas seg
 
 *Esta lista foi personalizada com base no seu perfil atual. Adapte seu currículo para destacar as competências relevantes para cada tipo de vaga.*`;
         break;
-        
+
       default:
         analiseTexto = `# Análise Geral do Currículo
 
@@ -2142,7 +2142,7 @@ O currículo apresenta um profissional ${pontuacaoFinal > 7 ? 'bem qualificado' 
 
 *Esta análise foi gerada pelo sistema de análise local e representa uma avaliação baseada nos dados fornecidos.*`;
     }
-    
+
     // Informar que estamos usando análise local
     return {
       success: true,
@@ -2152,7 +2152,7 @@ O currículo apresenta um profissional ${pontuacaoFinal > 7 ? 'bem qualificado' 
     };
   } catch (error) {
     console.error('Erro na análise local:', error);
-    
+
     // Em caso de erro, retornar uma análise genérica
     return {
       success: true,
@@ -2174,23 +2174,23 @@ const analisarCurriculoComIA = async (curriculoData, tipoAnalise, tipoIA = 'GEMI
       offline: true
     };
   }
-  
+
   if (!tipoAnalise) {
     tipoAnalise = 'geral'; // Valor padrão
   }
-  
+
   // Verificar se a IA selecionada existe
   if (!IA_APIS[tipoIA]) {
     console.error(`analisarCurriculoComIA: Tipo de IA inválido: ${tipoIA}`);
     tipoIA = 'GEMINI'; // Fallback para Gemini
   }
-  
+
   // Se a IA selecionada é offline ou forceOffline, usar análise local
   if (forceOffline || IA_APIS[tipoIA].offline) {
     console.log('analisarCurriculoComIA: Usando modo offline');
     return gerarAnaliseLocal(curriculoData, tipoAnalise);
   }
-  
+
   // Verificar cache usando a combinação de tipoAnalise e tipoIA como chave
   const cacheKey = `analise_${tipoIA}_${tipoAnalise}_${JSON.stringify(curriculoData).slice(0, 50)}`;
   try {
@@ -2199,7 +2199,7 @@ const analisarCurriculoComIA = async (curriculoData, tipoAnalise, tipoIA = 'GEMI
       const parsed = JSON.parse(cachedResult);
       const cacheAge = new Date() - new Date(parsed.timestamp);
       const cacheValidHours = 24;
-      
+
       if (cacheAge < cacheValidHours * 60 * 60 * 1000) {
         console.log(`analisarCurriculoComIA: Usando resultado em cache para ${IA_APIS[tipoIA].nome}`);
         return {
@@ -2214,15 +2214,15 @@ const analisarCurriculoComIA = async (curriculoData, tipoAnalise, tipoIA = 'GEMI
   } catch (cacheError) {
     console.log('Erro ao verificar cache:', cacheError.message);
   }
-  
+
   // Função para formatar currículo - definida explicitamente dentro do escopo
   const formatarCurriculo = (data) => {
     let texto = '';
-    
+
     // Helper para adicionar seção apenas se existir dados
     const adicionarSecao = (titulo, items, formatoItem) => {
       if (!items || items.length === 0) return;
-      
+
       texto += `${titulo.toUpperCase()}:\n`;
       items.forEach(item => {
         texto += formatoItem(item);
@@ -2230,7 +2230,7 @@ const analisarCurriculoComIA = async (curriculoData, tipoAnalise, tipoIA = 'GEMI
       });
       texto += '\n';
     };
-    
+
     // Informações Pessoais
     const pessoal = data.informacoes_pessoais || {};
     const nomeCompleto = `${pessoal.nome || ''} ${pessoal.sobrenome || ''}`.trim();
@@ -2247,7 +2247,7 @@ const analisarCurriculoComIA = async (curriculoData, tipoAnalise, tipoIA = 'GEMI
     if (data.resumo_profissional) {
       texto += `RESUMO PROFISSIONAL:\n${data.resumo_profissional}\n\n`;
     }
-    
+
     // Formação Acadêmica
     adicionarSecao('Formação Acadêmica', data.formacoes_academicas, (f) => {
       let item = `- ${f.diploma || ''} em ${f.area_estudo || ''}\n`;
@@ -2257,7 +2257,7 @@ const analisarCurriculoComIA = async (curriculoData, tipoAnalise, tipoIA = 'GEMI
       if (f.competencias) item += `  Competências: ${f.competencias}\n`;
       return item;
     });
-    
+
     // Experiência Profissional
     adicionarSecao('Experiência Profissional', data.experiencias, (e) => {
       let item = `- ${e.cargo || ''}\n`;
@@ -2266,7 +2266,7 @@ const analisarCurriculoComIA = async (curriculoData, tipoAnalise, tipoIA = 'GEMI
       if (e.descricao) item += `  Descrição: ${e.descricao}\n`;
       return item;
     });
-    
+
     // Cursos
     adicionarSecao('Cursos e Certificados', data.cursos, (c) => {
       let item = `- ${c.nome || ''}\n`;
@@ -2277,7 +2277,7 @@ const analisarCurriculoComIA = async (curriculoData, tipoAnalise, tipoIA = 'GEMI
       if (c.descricao) item += `  Descrição: ${c.descricao}\n`;
       return item;
     });
-    
+
     // Projetos
     adicionarSecao('Projetos', data.projetos, (p) => {
       let item = `- ${p.nome || ''}\n`;
@@ -2285,37 +2285,37 @@ const analisarCurriculoComIA = async (curriculoData, tipoAnalise, tipoIA = 'GEMI
       if (p.descricao) item += `  Descrição: ${p.descricao}\n`;
       return item;
     });
-    
+
     // Idiomas
     adicionarSecao('Idiomas', data.idiomas, (i) => {
       return `- ${i.nome || ''}: ${i.nivel || ''}\n`;
     });
-    
+
     return texto;
   };
 
   // Estruturar o currículo em texto para análise
   const curriculoTexto = formatarCurriculo(curriculoData);
-  
+
   // Função para gerar o prompt adequado
   const gerarPrompt = (tipo, textoCurriculo) => {
     const prompts = {
       pontuacao: `Você é um consultor de RH. Avalie este currículo (0-10) em: Conteúdo (30%), Estrutura (20%), Apresentação (20%), Impacto (30%). Considere especialmente o resumo profissional, experiências e formação. Forneça nota geral ponderada e justifique brevemente.`,
-      
+
       melhorias: `Você é um consultor de RH. Identifique 3 melhorias específicas para este currículo aumentar chances de entrevistas. Analise especialmente o resumo profissional e as competências demonstradas. Para cada melhoria, explique por quê e como implementar.`,
-      
+
       dicas: `Você é um coach de carreira. Com base no resumo profissional e perfil completo deste candidato, forneça 3 dicas de carreira personalizadas. Seja específico e prático, considerando os objetivos mencionados no resumo.`,
-      
+
       cursos: `Com base no resumo profissional e perfil geral deste candidato, sugira 3 cursos ou certificações específicas para complementar suas habilidades e aumentar empregabilidade. Explique onde encontrar e como agregaria valor.`,
-      
+
       vagas: `Após analisar o resumo profissional e experiências deste candidato, sugira 3 tipos de vagas onde teria boas chances. Explique por que, competências valorizadas e palavras-chave para busca.`,
-      
+
       geral: `Analise este currículo, incluindo o resumo profissional: 1) Pontos fortes (2), 2) Áreas de melhoria (2), 3) Impressão geral do perfil profissional, 4) Nota de 0-10.`
     };
-    
+
     // Usar prompt específico ou default
     const promptBase = prompts[tipo] || prompts.geral;
-    
+
     return `${promptBase}
     
     CURRÍCULO:
@@ -2325,10 +2325,10 @@ const analisarCurriculoComIA = async (curriculoData, tipoAnalise, tipoIA = 'GEMI
   };
 
   const promptText = gerarPrompt(tipoAnalise, curriculoTexto);
-  
+
   // Obter a API key para o tipo de IA selecionado
   const apiKey = await getIAAPIKey(tipoIA);
-  
+
   // Verificar se precisa de API key e se ela está disponível
   if (IA_APIS[tipoIA].chaveNecessaria && !apiKey) {
     console.error(`analisarCurriculoComIA: API key não encontrada para ${IA_APIS[tipoIA].nome}`);
@@ -2339,11 +2339,11 @@ const analisarCurriculoComIA = async (curriculoData, tipoAnalise, tipoIA = 'GEMI
       provider: IA_APIS[tipoIA].nome
     };
   }
-  
+
   // Chamar a função específica para o tipo de IA
   try {
     const resultado = await chamarIAAPI(tipoIA, apiKey, promptText);
-    
+
     // Salvar no cache
     try {
       await AsyncStorage.setItem(cacheKey, JSON.stringify({
@@ -2353,7 +2353,7 @@ const analisarCurriculoComIA = async (curriculoData, tipoAnalise, tipoIA = 'GEMI
     } catch (cacheError) {
       console.log('Erro ao salvar no cache:', cacheError.message);
     }
-    
+
     return {
       success: true,
       analise: resultado,
@@ -2362,7 +2362,7 @@ const analisarCurriculoComIA = async (curriculoData, tipoAnalise, tipoIA = 'GEMI
     };
   } catch (error) {
     console.error(`analisarCurriculoComIA: Erro ao chamar API de ${IA_APIS[tipoIA].nome}:`, error.message);
-    
+
     // Tentar com Gemini como fallback se não for Gemini que já falhou
     if (tipoIA !== 'GEMINI') {
       console.log('analisarCurriculoComIA: Tentando fallback para Gemini');
@@ -2372,7 +2372,7 @@ const analisarCurriculoComIA = async (curriculoData, tipoAnalise, tipoIA = 'GEMI
         console.error('analisarCurriculoComIA: Fallback para Gemini também falhou:', fallbackError.message);
       }
     }
-    
+
     // Último recurso: usar análise local
     console.log('analisarCurriculoComIA: Usando análise local como último recurso');
     return gerarAnaliseLocal(curriculoData, tipoAnalise);
@@ -2399,17 +2399,17 @@ const ChatMessage = ({ message, isUser, time }) => (
 
 const ChatOptions = ({ options, onSelect }) => {
   if (!options || options.length === 0) return null;
-  
+
   // Identificar se são opções longas
   const hasLongOptions = options.some(option => option.length > 10);
-  
+
   // Verificar se são opções de áreas específicas
-  const isAreaStep = options.includes('Tecnologia da Informação') || 
-                     options.includes('Administração');
-  
+  const isAreaStep = options.includes('Tecnologia da Informação') ||
+    options.includes('Administração');
+
   return (
-    <ScrollView 
-      horizontal 
+    <ScrollView
+      horizontal
       showsHorizontalScrollIndicator={false}
       contentContainerStyle={styles.optionsContainer}
     >
@@ -2423,7 +2423,7 @@ const ChatOptions = ({ options, onSelect }) => {
           ]}
           onPress={() => onSelect(option)}
         >
-          <Text 
+          <Text
             style={[
               styles.optionText,
               hasLongOptions && styles.longOptionText
@@ -2452,13 +2452,13 @@ const CurriculumPreview = ({ data }) => {
 
   const personalInfo = data.informacoes_pessoais;
   const fullName = `${personalInfo.nome || ''} ${personalInfo.sobrenome || ''}`.trim();
-  
+
   return (
     <View style={styles.previewContainer}>
       {fullName ? (
         <Text style={styles.previewName}>{fullName}</Text>
       ) : null}
-      
+
       {personalInfo.email || personalInfo.endereco ? (
         <Text style={styles.previewContact}>
           {personalInfo.email}
@@ -2466,7 +2466,7 @@ const CurriculumPreview = ({ data }) => {
           {personalInfo.endereco}
         </Text>
       ) : null}
-      
+
       {/* Links */}
       {(personalInfo.site || personalInfo.linkedin || personalInfo.github) && (
         <View style={styles.previewLinks}>
@@ -2481,7 +2481,7 @@ const CurriculumPreview = ({ data }) => {
           )}
         </View>
       )}
-      
+
       {/* Resumo Profissional - Nova seção */}
       {data.resumo_profissional ? (
         <View style={styles.previewSection}>
@@ -2489,7 +2489,7 @@ const CurriculumPreview = ({ data }) => {
           <Text style={styles.previewResumeText}>{data.resumo_profissional}</Text>
         </View>
       ) : null}
-      
+
       {/* Formação Acadêmica */}
       {data.formacoes_academicas && data.formacoes_academicas.length > 0 && (
         <View style={styles.previewSection}>
@@ -2503,10 +2503,10 @@ const CurriculumPreview = ({ data }) => {
               {formacao.data_inicio ? (
                 <Text style={styles.previewItemDate}>
                   {formacao.data_inicio}
-                  {formacao.data_fim ? 
-                    formacao.data_fim.toLowerCase() === 'atual' ? 
-                      ' - Presente' : 
-                      ` - ${formacao.data_fim}` : 
+                  {formacao.data_fim ?
+                    formacao.data_fim.toLowerCase() === 'atual' ?
+                      ' - Presente' :
+                      ` - ${formacao.data_fim}` :
                     ''}
                 </Text>
               ) : null}
@@ -2514,7 +2514,7 @@ const CurriculumPreview = ({ data }) => {
           ))}
         </View>
       )}
-      
+
       {/* Experiência Profissional */}
       {data.experiencias && data.experiencias.length > 0 && (
         <View style={styles.previewSection}>
@@ -2526,10 +2526,10 @@ const CurriculumPreview = ({ data }) => {
               {exp.data_inicio ? (
                 <Text style={styles.previewItemDate}>
                   {exp.data_inicio}
-                  {exp.data_fim ? 
-                    exp.data_fim.toLowerCase() === 'atual' ? 
-                      ' - Presente' : 
-                      ` - ${exp.data_fim}` : 
+                  {exp.data_fim ?
+                    exp.data_fim.toLowerCase() === 'atual' ?
+                      ' - Presente' :
+                      ` - ${exp.data_fim}` :
                     ''}
                 </Text>
               ) : null}
@@ -2573,7 +2573,7 @@ const CurriculumPreview = ({ data }) => {
               <Text style={styles.previewItemTitle}>{projeto.nome}</Text>
               {projeto.habilidades ? (
                 <Text style={styles.previewItemSubtitle}>
-                  <Text style={{fontWeight: 'bold'}}>Habilidades:</Text> {projeto.habilidades}
+                  <Text style={{ fontWeight: 'bold' }}>Habilidades:</Text> {projeto.habilidades}
                 </Text>
               ) : null}
               {projeto.descricao ? (
@@ -2629,7 +2629,7 @@ const initialCVData = {
 const processMessage = (message, currentStep, cvData) => {
   // Se não temos dados do CV ainda, inicializar
   const data = cvData || { ...initialCVData };
-  
+
   // Processamento baseado na etapa atual
   switch (currentStep) {
     case 'boas_vindas':
@@ -2648,7 +2648,7 @@ const processMessage = (message, currentStep, cvData) => {
           cvData: data
         };
       }
-      
+
     case 'nome':
       if (!message.trim()) {
         return {
@@ -2658,16 +2658,16 @@ const processMessage = (message, currentStep, cvData) => {
           cvData: data
         };
       }
-      
+
       data.informacoes_pessoais.nome = message.trim();
-      
+
       return {
         response: `Prazer em conhecê-lo, ${message.trim()}! Agora, qual é o seu sobrenome?`,
         nextStep: 'sobrenome',
         options: [],
         cvData: data
       };
-      
+
     case 'sobrenome':
       if (!message.trim()) {
         return {
@@ -2677,16 +2677,16 @@ const processMessage = (message, currentStep, cvData) => {
           cvData: data
         };
       }
-      
+
       data.informacoes_pessoais.sobrenome = message.trim();
-      
+
       return {
         response: "Ótimo! Agora, qual é o seu endereço de e-mail?",
         nextStep: 'email',
         options: [],
         cvData: data
       };
-      
+
     case 'email':
       if (!message.includes('@')) {
         return {
@@ -2696,16 +2696,16 @@ const processMessage = (message, currentStep, cvData) => {
           cvData: data
         };
       }
-      
+
       data.informacoes_pessoais.email = message.trim();
-      
+
       return {
         response: "Excelente! Agora, qual é o seu endereço?",
         nextStep: 'endereco',
         options: [],
         cvData: data
       };
-      
+
     case 'endereco':
       if (!message.trim()) {
         return {
@@ -2715,16 +2715,16 @@ const processMessage = (message, currentStep, cvData) => {
           cvData: data
         };
       }
-      
+
       data.informacoes_pessoais.endereco = message.trim();
-      
+
       return {
         response: "Perfeito! Agora, qual é a sua área de atuação profissional?",
         nextStep: 'area',
         options: ['Tecnologia da Informação', 'Saúde', 'Educação', 'Engenharia', 'Direito', 'Marketing', 'Administração', 'Outro'],
         cvData: data
       };
-      
+
     case 'area':
       if (!message.trim()) {
         return {
@@ -2734,37 +2734,37 @@ const processMessage = (message, currentStep, cvData) => {
           cvData: data
         };
       }
-      
+
       data.informacoes_pessoais.area = message.trim();
-      
+
       return {
         response: "Você tem um site pessoal ou portfólio? Se sim, qual é o endereço? (Se não tiver, digite 'não')",
         nextStep: 'site',
         options: ['Não'],
         cvData: data
       };
-      
+
     case 'site':
       if (!['não', 'nao', 'no', 'n'].includes(message.toLowerCase())) {
         data.informacoes_pessoais.site = message.trim();
       }
-      
+
       return {
         response: "Você tem um perfil no LinkedIn? Se sim, qual é o endereço? (Se não tiver, digite 'não')",
         nextStep: 'linkedin',
         options: ['Não'],
         cvData: data
       };
-      
+
     case 'linkedin':
       if (!['não', 'nao', 'no', 'n'].includes(message.toLowerCase())) {
         data.informacoes_pessoais.linkedin = message.trim();
       }
-      
+
       // Verificar se é da área de tecnologia para perguntar sobre GitHub
-      if (data.informacoes_pessoais.area && 
-          ['tecnologia', 'tecnologia da informação', 'ti', 'desenvolvimento', 'programação']
-            .includes(data.informacoes_pessoais.area.toLowerCase())) {
+      if (data.informacoes_pessoais.area &&
+        ['tecnologia', 'tecnologia da informação', 'ti', 'desenvolvimento', 'programação']
+          .includes(data.informacoes_pessoais.area.toLowerCase())) {
         return {
           response: "Você tem uma conta no GitHub? Se sim, qual é o endereço? (Se não tiver, digite 'não')",
           nextStep: 'github',
@@ -2779,12 +2779,12 @@ const processMessage = (message, currentStep, cvData) => {
           cvData: data
         };
       }
-      
+
     case 'github':
       if (!['não', 'nao', 'no', 'n'].includes(message.toLowerCase())) {
         data.informacoes_pessoais.github = message.trim();
       }
-      
+
       return {
         response: "Agora, conte um pouco sobre você. Descreva brevemente sua trajetória profissional, acadêmica ou objetivos pessoais. Esse texto será um resumo que aparecerá no início do seu currículo.",
         nextStep: 'resumo_profissional',
@@ -2795,17 +2795,17 @@ const processMessage = (message, currentStep, cvData) => {
     case 'resumo_profissional':
       // Salvar o resumo profissional
       data.resumo_profissional = message.trim();
-      
+
       return {
         response: "Obrigado por compartilhar sua trajetória! Agora, o que você prefere adicionar primeiro? (Você pode finalizar a qualquer momento digitando 'finalizar')",
         nextStep: 'escolher_proximo',
         options: ['Formação Acadêmica', 'Experiência Profissional', 'Cursos e Certificados', 'Projetos', 'Idiomas', 'Finalizar'],
         cvData: data
       };
-      
+
     case 'escolher_proximo':
       const option = message.toLowerCase();
-      
+
       if (option.includes('finalizar') || option.includes('concluir') || option.includes('pronto')) {
         return {
           response: "Deseja finalizar seu currículo? Todas as informações já foram salvas.",
@@ -2856,7 +2856,7 @@ const processMessage = (message, currentStep, cvData) => {
           cvData: data
         };
       }
-      
+
     case 'formacao_instituicao':
       if (!message.trim()) {
         return {
@@ -2866,12 +2866,12 @@ const processMessage = (message, currentStep, cvData) => {
           cvData: data
         };
       }
-      
+
       // Inicializar nova formação acadêmica
       const novaFormacao = {
         instituicao: message.trim()
       };
-      
+
       return {
         response: "Qual diploma ou grau você obteve? (Ex: Bacharel, Tecnólogo, Mestrado)",
         nextStep: 'formacao_diploma',
@@ -2881,7 +2881,7 @@ const processMessage = (message, currentStep, cvData) => {
           formacao_atual: novaFormacao
         }
       };
-      
+
     case 'formacao_diploma':
       if (!message.trim()) {
         return {
@@ -2891,16 +2891,16 @@ const processMessage = (message, currentStep, cvData) => {
           cvData: data
         };
       }
-      
+
       data.formacao_atual.diploma = message.trim();
-      
+
       return {
         response: "Qual foi a área de estudo ou curso?",
         nextStep: 'formacao_area',
         options: [],
         cvData: data
       };
-      
+
     case 'formacao_area':
       if (!message.trim()) {
         return {
@@ -2910,16 +2910,16 @@ const processMessage = (message, currentStep, cvData) => {
           cvData: data
         };
       }
-      
+
       data.formacao_atual.area_estudo = message.trim();
-      
+
       return {
         response: "Qual foi a data de início? (formato: MM/AAAA)",
         nextStep: 'formacao_data_inicio',
         options: [],
         cvData: data
       };
-      
+
     case 'formacao_data_inicio':
       if (!message.trim()) {
         return {
@@ -2929,34 +2929,34 @@ const processMessage = (message, currentStep, cvData) => {
           cvData: data
         };
       }
-      
+
       data.formacao_atual.data_inicio = message.trim();
-      
+
       return {
         response: "Qual foi a data de conclusão? (formato: MM/AAAA, ou digite 'cursando' se ainda estiver em andamento)",
         nextStep: 'formacao_data_fim',
         options: ['Cursando'],
         cvData: data
       };
-      
+
     case 'formacao_data_fim':
       data.formacao_atual.data_fim = message.toLowerCase() === 'cursando' ? 'Atual' : message.trim();
-      
+
       // Adicionar a formação à lista e limpar a formação atual
       if (!data.formacoes_academicas) {
         data.formacoes_academicas = [];
       }
-      
+
       data.formacoes_academicas.push(data.formacao_atual);
       delete data.formacao_atual;
-      
+
       return {
         response: "Formação acadêmica adicionada com sucesso! O que você gostaria de adicionar agora?",
         nextStep: 'escolher_proximo',
         options: ['Formação Acadêmica', 'Experiência Profissional', 'Cursos e Certificados', 'Projetos', 'Idiomas', 'Finalizar'],
         cvData: data
       };
-      
+
     case 'experiencia_cargo':
       if (!message.trim()) {
         return {
@@ -2966,12 +2966,12 @@ const processMessage = (message, currentStep, cvData) => {
           cvData: data
         };
       }
-      
+
       // Inicializar nova experiência profissional
       const novaExperiencia = {
         cargo: message.trim()
       };
-      
+
       return {
         response: "Em qual empresa ou organização você trabalhou?",
         nextStep: 'experiencia_empresa',
@@ -2981,7 +2981,7 @@ const processMessage = (message, currentStep, cvData) => {
           experiencia_atual: novaExperiencia
         }
       };
-      
+
     case 'experiencia_empresa':
       if (!message.trim()) {
         return {
@@ -2991,16 +2991,16 @@ const processMessage = (message, currentStep, cvData) => {
           cvData: data
         };
       }
-      
+
       data.experiencia_atual.empresa = message.trim();
-      
+
       return {
         response: "Qual foi a data de início? (formato: MM/AAAA)",
         nextStep: 'experiencia_data_inicio',
         options: [],
         cvData: data
       };
-      
+
     case 'experiencia_data_inicio':
       if (!message.trim()) {
         return {
@@ -3010,34 +3010,34 @@ const processMessage = (message, currentStep, cvData) => {
           cvData: data
         };
       }
-      
+
       data.experiencia_atual.data_inicio = message.trim();
-      
+
       return {
         response: "Qual foi a data de término? (formato: MM/AAAA, ou digite 'atual' se ainda estiver neste emprego)",
         nextStep: 'experiencia_data_fim',
         options: ['Atual'],
         cvData: data
       };
-      
+
     case 'experiencia_data_fim':
       data.experiencia_atual.data_fim = message.toLowerCase() === 'atual' ? 'Atual' : message.trim();
-      
+
       // Adicionar a experiência à lista e limpar a experiência atual
       if (!data.experiencias) {
         data.experiencias = [];
       }
-      
+
       data.experiencias.push(data.experiencia_atual);
       delete data.experiencia_atual;
-      
+
       return {
         response: "Experiência profissional adicionada com sucesso! O que você gostaria de adicionar agora?",
         nextStep: 'escolher_proximo',
         options: ['Formação Acadêmica', 'Experiência Profissional', 'Cursos e Certificados', 'Projetos', 'Idiomas', 'Finalizar'],
         cvData: data
       };
-    
+
     // Curso
     case 'curso_nome':
       if (!message.trim()) {
@@ -3048,12 +3048,12 @@ const processMessage = (message, currentStep, cvData) => {
           cvData: data
         };
       }
-      
+
       // Inicializar novo curso
       const novoCurso = {
         nome: message.trim()
       };
-      
+
       return {
         response: "Qual instituição ofereceu este curso?",
         nextStep: 'curso_instituicao',
@@ -3063,7 +3063,7 @@ const processMessage = (message, currentStep, cvData) => {
           curso_atual: novoCurso
         }
       };
-      
+
     case 'curso_instituicao':
       if (!message.trim()) {
         return {
@@ -3073,50 +3073,50 @@ const processMessage = (message, currentStep, cvData) => {
           cvData: data
         };
       }
-      
+
       data.curso_atual.instituicao = message.trim();
-      
+
       return {
         response: "Qual foi a data de início? (formato: MM/AAAA, ou digite 'não sei' se não lembrar)",
         nextStep: 'curso_data_inicio',
         options: ['Não sei'],
         cvData: data
       };
-      
+
     case 'curso_data_inicio':
       if (message.toLowerCase() !== 'não sei' && message.toLowerCase() !== 'nao sei') {
         data.curso_atual.data_inicio = message.trim();
       }
-      
+
       return {
         response: "Qual foi a data de conclusão? (formato: MM/AAAA, ou digite 'cursando' se ainda estiver em andamento)",
         nextStep: 'curso_data_fim',
         options: ['Cursando', 'Não sei'],
         cvData: data
       };
-      
+
     case 'curso_data_fim':
       if (message.toLowerCase() === 'cursando') {
         data.curso_atual.data_fim = 'Atual';
       } else if (message.toLowerCase() !== 'não sei' && message.toLowerCase() !== 'nao sei') {
         data.curso_atual.data_fim = message.trim();
       }
-      
+
       // Adicionar o curso à lista e limpar o curso atual
       if (!data.cursos) {
         data.cursos = [];
       }
-      
+
       data.cursos.push(data.curso_atual);
       delete data.curso_atual;
-      
+
       return {
         response: "Curso adicionado com sucesso! O que você gostaria de adicionar agora?",
         nextStep: 'escolher_proximo',
         options: ['Formação Acadêmica', 'Experiência Profissional', 'Cursos e Certificados', 'Projetos', 'Idiomas', 'Finalizar'],
         cvData: data
       };
-    
+
     // Projeto
     case 'projeto_nome':
       if (!message.trim()) {
@@ -3127,12 +3127,12 @@ const processMessage = (message, currentStep, cvData) => {
           cvData: data
         };
       }
-      
+
       // Inicializar novo projeto
       const novoProjeto = {
         nome: message.trim()
       };
-      
+
       return {
         response: "Quais habilidades ou tecnologias você utilizou neste projeto? (separadas por vírgula)",
         nextStep: 'projeto_habilidades',
@@ -3142,35 +3142,35 @@ const processMessage = (message, currentStep, cvData) => {
           projeto_atual: novoProjeto
         }
       };
-      
+
     case 'projeto_habilidades':
       data.projeto_atual.habilidades = message.trim();
-      
+
       return {
         response: "Descreva brevemente este projeto:",
         nextStep: 'projeto_descricao',
         options: [],
         cvData: data
       };
-      
+
     case 'projeto_descricao':
       data.projeto_atual.descricao = message.trim();
-      
+
       // Adicionar o projeto à lista e limpar o projeto atual
       if (!data.projetos) {
         data.projetos = [];
       }
-      
+
       data.projetos.push(data.projeto_atual);
       delete data.projeto_atual;
-      
+
       return {
         response: "Projeto adicionado com sucesso! O que você gostaria de adicionar agora?",
         nextStep: 'escolher_proximo',
         options: ['Formação Acadêmica', 'Experiência Profissional', 'Cursos e Certificados', 'Projetos', 'Idiomas', 'Finalizar'],
         cvData: data
       };
-    
+
     // Idioma
     case 'idioma_nome':
       if (!message.trim()) {
@@ -3181,12 +3181,12 @@ const processMessage = (message, currentStep, cvData) => {
           cvData: data
         };
       }
-      
+
       // Inicializar novo idioma
       const novoIdioma = {
         nome: message.trim()
       };
-      
+
       return {
         response: "Qual é o seu nível neste idioma?",
         nextStep: 'idioma_nivel',
@@ -3196,25 +3196,25 @@ const processMessage = (message, currentStep, cvData) => {
           idioma_atual: novoIdioma
         }
       };
-      
+
     case 'idioma_nivel':
       data.idioma_atual.nivel = message.trim();
-      
+
       // Adicionar o idioma à lista e limpar o idioma atual
       if (!data.idiomas) {
         data.idiomas = [];
       }
-      
+
       data.idiomas.push(data.idioma_atual);
       delete data.idioma_atual;
-      
+
       return {
         response: "Idioma adicionado com sucesso! O que você gostaria de adicionar agora?",
         nextStep: 'escolher_proximo',
         options: ['Formação Acadêmica', 'Experiência Profissional', 'Cursos e Certificados', 'Projetos', 'Idiomas', 'Finalizar'],
         cvData: data
       };
-      
+
     case 'finalizar':
       if (['sim', 'sim, finalizar', 'yes', 's', 'y'].includes(message.toLowerCase())) {
         return {
@@ -3232,7 +3232,7 @@ const processMessage = (message, currentStep, cvData) => {
           cvData: data
         };
       }
-      
+
     default:
       return {
         response: "Parece que tivemos um problema. Vamos recomeçar. Como posso ajudar com seu currículo?",
@@ -3260,7 +3260,7 @@ const salvarCurriculo = async (data, userId) => {
     // Buscar currículos existentes do usuário
     const cvs = await AsyncStorage.getItem(`curriculos_${userId}`);
     const curriculos = cvs ? JSON.parse(cvs) : [];
-    
+
     // Criar novo currículo
     const novoCurriculo = {
       id: getUniqueId(),
@@ -3268,11 +3268,11 @@ const salvarCurriculo = async (data, userId) => {
       data: data,
       dataCriacao: new Date().toISOString()
     };
-    
+
     // Adicionar ao array e salvar
     curriculos.push(novoCurriculo);
     await AsyncStorage.setItem(`curriculos_${userId}`, JSON.stringify(curriculos));
-    
+
     return novoCurriculo.id;
   } catch (error) {
     console.error('Erro ao salvar currículo:', error);
@@ -3298,17 +3298,17 @@ const formatDate = (dateString) => {
 //   const [iaAtual, setIaAtual] = useState('GEMINI');
 //   const [apiKey, setApiKey] = useState('');
 //   const [isSaving, setIsSaving] = useState(false);
-  
+
 //   useEffect(() => {
 //     carregarConfiguracoes();
 //   }, []);
-  
+
 //   const carregarConfiguracoes = async () => {
 //     try {
 //       // Carregar IA padrão
 //       const defaultIA = await AsyncStorage.getItem('ia_padrao');
 //       if (defaultIA) setIaAtual(defaultIA);
-      
+
 //       // Carregar status das IAs
 //       const iasStatus = {};
 //       for (const [key, value] of Object.entries(IA_APIS)) {
@@ -3318,9 +3318,9 @@ const formatDate = (dateString) => {
 //           apiKey: apiKey
 //         };
 //       }
-      
+
 //       setIasSalvas(iasStatus);
-      
+
 //       // Carregar a API key da IA selecionada
 //       if (defaultIA) {
 //         const currentKey = await getIAAPIKey(defaultIA);
@@ -3331,16 +3331,16 @@ const formatDate = (dateString) => {
 //       Alert.alert('Erro', 'Não foi possível carregar as configurações das IAs.');
 //     }
 //   };
-  
+
 //   const salvarConfiguracao = async () => {
 //     setIsSaving(true);
 //     try {
 //       // Salvar a IA padrão
 //       await AsyncStorage.setItem('ia_padrao', iaAtual);
-      
+
 //       // Salvar a API key da IA selecionada
 //       await salvarIAAPIKey(iaAtual, apiKey);
-      
+
 //       // Atualizar o estado
 //       const novasIasSalvas = { ...iasSalvas };
 //       novasIasSalvas[iaAtual] = {
@@ -3348,7 +3348,7 @@ const formatDate = (dateString) => {
 //         apiKey: apiKey
 //       };
 //       setIasSalvas(novasIasSalvas);
-      
+
 //       Alert.alert('Sucesso', `Configuração de ${IA_APIS[iaAtual].nome} salva com sucesso!`);
 //     } catch (error) {
 //       console.error('Erro ao salvar configuração:', error);
@@ -3357,17 +3357,17 @@ const formatDate = (dateString) => {
 //       setIsSaving(false);
 //     }
 //   };
-  
+
 //   const selecionarIA = async (tipoIA) => {
 //     setIaAtual(tipoIA);
 //     const key = await getIAAPIKey(tipoIA);
 //     setApiKey(key || '');
 //   };
-  
+
 //   return (
 //     <SafeAreaView style={styles.container}>
 //       <StatusBar barStyle="light-content" backgroundColor={Colors.dark} />
-      
+
 //       <View style={styles.header}>
 //         <TouchableOpacity
 //           style={styles.backButton}
@@ -3377,10 +3377,10 @@ const formatDate = (dateString) => {
 //         </TouchableOpacity>
 //         <Text style={styles.headerTitle}>Configurar IAs</Text>
 //       </View>
-      
+
 //       <ScrollView style={styles.configContent}>
 //         <Text style={styles.configTitle}>Selecione uma IA para configurar:</Text>
-        
+
 //         <View style={styles.iasList}>
 //           {Object.entries(IA_APIS).map(([key, value]) => (
 //             <TouchableOpacity
@@ -3405,7 +3405,7 @@ const formatDate = (dateString) => {
 //             </TouchableOpacity>
 //           ))}
 //         </View>
-        
+
 //         {IA_APIS[iaAtual]?.chaveNecessaria ? (
 //           <View style={styles.apiKeyContainer}>
 //             <Text style={styles.apiKeyLabel}>
@@ -3429,7 +3429,7 @@ const formatDate = (dateString) => {
 //             </Text>
 //           </View>
 //         )}
-        
+
 //         <TouchableOpacity
 //           style={[
 //             styles.saveButton,
@@ -3454,17 +3454,17 @@ const ConfiguracoesIAScreen = ({ navigation }) => {
   const [apiKey, setApiKey] = useState('');
   const [isSaving, setIsSaving] = useState(false);
   const [showApiKey, setShowApiKey] = useState(false);
-  
+
   useEffect(() => {
     carregarConfiguracoes();
   }, []);
-  
+
   const carregarConfiguracoes = async () => {
     try {
       // Carregar IA padrão
       const defaultIA = await AsyncStorage.getItem('ia_padrao');
       if (defaultIA) setIaAtual(defaultIA);
-      
+
       // Carregar status das IAs
       const iasStatus = {};
       for (const [key, value] of Object.entries(IA_APIS)) {
@@ -3474,9 +3474,9 @@ const ConfiguracoesIAScreen = ({ navigation }) => {
           apiKey: apiKey
         };
       }
-      
+
       setIasSalvas(iasStatus);
-      
+
       // Carregar a API key da IA selecionada
       if (defaultIA) {
         const currentKey = await getIAAPIKey(defaultIA);
@@ -3487,16 +3487,16 @@ const ConfiguracoesIAScreen = ({ navigation }) => {
       Alert.alert('Erro', 'Não foi possível carregar as configurações das IAs.');
     }
   };
-  
+
   const salvarConfiguracao = async () => {
     setIsSaving(true);
     try {
       // Salvar a IA padrão
       await AsyncStorage.setItem('ia_padrao', iaAtual);
-      
+
       // Salvar a API key da IA selecionada
       await salvarIAAPIKey(iaAtual, apiKey);
-      
+
       // Atualizar o estado
       const novasIasSalvas = { ...iasSalvas };
       novasIasSalvas[iaAtual] = {
@@ -3504,7 +3504,7 @@ const ConfiguracoesIAScreen = ({ navigation }) => {
         apiKey: apiKey
       };
       setIasSalvas(novasIasSalvas);
-      
+
       Alert.alert('Sucesso', `Configuração de ${IA_APIS[iaAtual].nome} salva com sucesso!`);
     } catch (error) {
       console.error('Erro ao salvar configuração:', error);
@@ -3513,15 +3513,15 @@ const ConfiguracoesIAScreen = ({ navigation }) => {
       setIsSaving(false);
     }
   };
-  
+
   const selecionarIA = async (tipoIA) => {
     setIaAtual(tipoIA);
     const key = await getIAAPIKey(tipoIA);
     setApiKey(key || '');
   };
-  
+
   const obterUrlAjuda = (tipoIA) => {
-    switch(tipoIA) {
+    switch (tipoIA) {
       case 'GEMINI':
         return 'https://ai.google.dev/tutorials/setup';
       case 'OPENAI':
@@ -3534,7 +3534,7 @@ const ConfiguracoesIAScreen = ({ navigation }) => {
         return null;
     }
   };
-  
+
   const abrirUrlAjuda = (tipoIA) => {
     const url = obterUrlAjuda(tipoIA);
     if (url) {
@@ -3548,11 +3548,11 @@ const ConfiguracoesIAScreen = ({ navigation }) => {
       );
     }
   };
-  
+
   return (
     <SafeAreaView style={styles.container}>
       <StatusBar barStyle="light-content" backgroundColor={Colors.dark} />
-      
+
       <View style={styles.header}>
         <TouchableOpacity
           style={styles.backButton}
@@ -3562,20 +3562,20 @@ const ConfiguracoesIAScreen = ({ navigation }) => {
         </TouchableOpacity>
         <Text style={styles.headerTitle}>Configurar IAs</Text>
       </View>
-      
+
       <ScrollView style={styles.configContent}>
         <View style={styles.configCard}>
           <Text style={styles.configIntroTitle}>Configure suas IAs</Text>
           <Text style={styles.configIntroText}>
-            Adicione suas chaves de API para utilizar diferentes modelos de IA 
+            Adicione suas chaves de API para utilizar diferentes modelos de IA
             na análise de currículos. Uma chave API é necessária para cada serviço.
           </Text>
         </View>
-        
+
         <Text style={styles.configTitle}>Selecione uma IA para configurar:</Text>
-        
-        <ScrollView 
-          horizontal 
+
+        <ScrollView
+          horizontal
           showsHorizontalScrollIndicator={false}
           contentContainerStyle={styles.iaCardsContainer}
         >
@@ -3607,7 +3607,7 @@ const ConfiguracoesIAScreen = ({ navigation }) => {
             </TouchableOpacity>
           ))}
         </ScrollView>
-        
+
         {IA_APIS[iaAtual]?.chaveNecessaria ? (
           <View style={styles.apiKeyContainer}>
             <View style={styles.apiKeyHeader}>
@@ -3621,7 +3621,7 @@ const ConfiguracoesIAScreen = ({ navigation }) => {
                 <Text style={styles.helpButtonText}>Como obter?</Text>
               </TouchableOpacity>
             </View>
-            
+
             <View style={styles.apiKeyInputContainer}>
               <TextInput
                 style={styles.apiKeyInput}
@@ -3630,7 +3630,7 @@ const ConfiguracoesIAScreen = ({ navigation }) => {
                 placeholder="Insira sua API Key aqui"
                 secureTextEntry={!showApiKey}
               />
-              <TouchableOpacity 
+              <TouchableOpacity
                 style={styles.toggleVisibilityButton}
                 onPress={() => setShowApiKey(!showApiKey)}
               >
@@ -3639,7 +3639,7 @@ const ConfiguracoesIAScreen = ({ navigation }) => {
                 </Text>
               </TouchableOpacity>
             </View>
-            
+
             <Text style={styles.apiKeyHelper}>
               A API Key é necessária para usar os recursos de {IA_APIS[iaAtual]?.nome}.
             </Text>
@@ -3651,7 +3651,7 @@ const ConfiguracoesIAScreen = ({ navigation }) => {
             </Text>
           </View>
         )}
-        
+
         <TouchableOpacity
           style={[
             styles.saveButton,
@@ -3666,7 +3666,7 @@ const ConfiguracoesIAScreen = ({ navigation }) => {
             <Text style={styles.saveButtonText}>Salvar Configuração</Text>
           )}
         </TouchableOpacity>
-        
+
         <View style={styles.tipsContainer}>
           <Text style={styles.tipsTitle}>Dicas:</Text>
           <Text style={styles.tipItem}>• O Google Gemini já vem com uma chave padrão</Text>
@@ -3687,7 +3687,7 @@ const SplashScreen = ({ navigation }) => {
         navigation.replace('Auth');
       }
     }, 2000);
-    
+
     return () => clearTimeout(timer);
   }, [navigation]);
 
@@ -3732,7 +3732,7 @@ const LoginScreen = ({ navigation }) => {
         <Text style={styles.authTitle}>Login</Text>
         <Text style={styles.authSubtitle}>Entre na sua conta para continuar</Text>
       </View>
-      
+
       <View style={styles.authForm}>
         <View style={styles.inputContainer}>
           <Text style={styles.inputLabel}>Email</Text>
@@ -3748,7 +3748,7 @@ const LoginScreen = ({ navigation }) => {
             />
           </View>
         </View>
-        
+
         <View style={styles.inputContainer}>
           <Text style={styles.inputLabel}>Senha</Text>
           <View style={styles.enhancedInputWrapper}>
@@ -3762,7 +3762,7 @@ const LoginScreen = ({ navigation }) => {
             />
           </View>
         </View>
-        
+
         <TouchableOpacity
           style={styles.enhancedPrimaryButton}
           onPress={handleLogin}
@@ -3774,7 +3774,7 @@ const LoginScreen = ({ navigation }) => {
             <Text style={styles.enhancedPrimaryButtonText}>Entrar</Text>
           )}
         </TouchableOpacity>
-        
+
         <TouchableOpacity
           style={styles.textButton}
           onPress={() => navigation.navigate('Register')}
@@ -3821,7 +3821,7 @@ const RegisterScreen = ({ navigation }) => {
     <SafeAreaView style={styles.authContainer}>
       <StatusBar barStyle="light-content" backgroundColor={Colors.primary} />
       <View style={styles.authHeader}>
-        <TouchableOpacity 
+        <TouchableOpacity
           style={styles.backButton}
           onPress={() => navigation.goBack()}
         >
@@ -3830,7 +3830,7 @@ const RegisterScreen = ({ navigation }) => {
         <Text style={styles.authTitle}>Cadastro</Text>
         <Text style={styles.authSubtitle}>Crie sua conta para continuar</Text>
       </View>
-      
+
       <View style={styles.authForm}>
         <View style={styles.inputContainer}>
           <Text style={styles.inputLabel}>Nome</Text>
@@ -3844,7 +3844,7 @@ const RegisterScreen = ({ navigation }) => {
             />
           </View>
         </View>
-        
+
         <View style={styles.inputContainer}>
           <Text style={styles.inputLabel}>Email</Text>
           <View style={styles.enhancedInputWrapper}>
@@ -3859,7 +3859,7 @@ const RegisterScreen = ({ navigation }) => {
             />
           </View>
         </View>
-        
+
         <View style={styles.inputContainer}>
           <Text style={styles.inputLabel}>Senha</Text>
           <View style={styles.enhancedInputWrapper}>
@@ -3873,7 +3873,7 @@ const RegisterScreen = ({ navigation }) => {
             />
           </View>
         </View>
-        
+
         <View style={styles.inputContainer}>
           <Text style={styles.inputLabel}>Confirmar Senha</Text>
           <View style={styles.enhancedInputWrapper}>
@@ -3887,7 +3887,7 @@ const RegisterScreen = ({ navigation }) => {
             />
           </View>
         </View>
-        
+
         <TouchableOpacity
           style={styles.enhancedPrimaryButton}
           onPress={handleRegister}
@@ -3899,7 +3899,7 @@ const RegisterScreen = ({ navigation }) => {
             <Text style={styles.enhancedPrimaryButtonText}>Cadastrar</Text>
           )}
         </TouchableOpacity>
-        
+
         <TouchableOpacity
           style={styles.textButton}
           onPress={() => navigation.goBack()}
@@ -3918,15 +3918,15 @@ const HomeScreen = ({ navigation }) => {
 
   useEffect(() => {
     carregarCurriculos();
-    
+
     // Atualizar quando a tela ganhar foco
     const unsubscribe = navigation.addListener('focus', () => {
       carregarCurriculos();
     });
-    
+
     return unsubscribe;
   }, [navigation]);
-  
+
   const carregarCurriculos = async () => {
     try {
       const cvs = await AsyncStorage.getItem(`curriculos_${user.id}`);
@@ -3939,41 +3939,37 @@ const HomeScreen = ({ navigation }) => {
   };
 
   // Função para navegar para a busca de vagas com o currículo mais recente
+  // Na HomeScreen, modifique a função navegarParaBuscaVagas
   const navegarParaBuscaVagas = () => {
     if (curriculos.length === 0) {
       Alert.alert(
-        "Nenhum Currículo Encontrado", 
+        "Nenhum Currículo Encontrado",
         "Você precisa criar um currículo antes de buscar vagas.",
         [
           { text: "OK" },
-          { 
-            text: "Criar Currículo", 
-            onPress: () => navigation.navigate('Chatbot') 
+          {
+            text: "Criar Currículo",
+            onPress: () => navigation.navigate('Chatbot')
           }
         ]
       );
       return;
     }
-    
-    // Ordenar currículos por data (mais recente primeiro)
-    const curriculosOrdenados = [...curriculos].sort((a, b) => {
-      return new Date(b.dataCriacao) - new Date(a.dataCriacao);
-    });
-    
-    // Navegar para a tela de busca de vagas com o currículo mais recente
-    navigation.navigate('BuscaVagas', { curriculoData: curriculosOrdenados[0] });
+
+    // Navegar para a tela de seleção de currículo em vez de diretamente para a busca
+    navigation.navigate('SelecionarCurriculo');
   };
 
   return (
     <SafeAreaView style={styles.homeContainer}>
       <StatusBar barStyle="light-content" backgroundColor={Colors.primary} />
-      
+
       <View style={styles.homeHeader}>
         <Text style={styles.homeTitle}>CurriculoBot</Text>
         <Text style={styles.homeSubtitle}>
           Seu assistente para criação de currículos
         </Text>
-        
+
         <TouchableOpacity
           style={styles.logoutButton}
           onPress={logout}
@@ -3981,14 +3977,14 @@ const HomeScreen = ({ navigation }) => {
           <Text style={styles.logoutButtonText}>Sair</Text>
         </TouchableOpacity>
       </View>
-      
+
       <View style={styles.homeContent}>
-        <ScrollView 
+        <ScrollView
           showsVerticalScrollIndicator={false}
           contentContainerStyle={styles.homeScrollContent}
         >
           <Text style={styles.welcomeText}>Olá, {user?.nome || 'visitante'}!</Text>
-          
+
           {/* NOVO: Card de Busca de Vagas */}
           <View style={styles.featureSection}>
             <Text style={styles.featureSectionTitle}>Oportunidades Personalizadas</Text>
@@ -4025,11 +4021,11 @@ const HomeScreen = ({ navigation }) => {
                   Encontre Vagas para Seu Perfil
                 </Text>
               </View>
-              
+
               <Text style={[styles.featureDescription, { color: '#2e7d32' }]}>
                 Nossa IA analisará seu currículo e encontrará vagas reais que combinam com seu perfil, habilidades e experiência profissional.
               </Text>
-              
+
               <View style={{
                 backgroundColor: Colors.success,
                 paddingVertical: 8,
@@ -4044,7 +4040,7 @@ const HomeScreen = ({ navigation }) => {
               </View>
             </TouchableOpacity>
           </View>
-          
+
           <View style={styles.featureSection}>
             <Text style={styles.featureSectionTitle}>Criar Currículo</Text>
             <View style={styles.featureCard}>
@@ -4060,7 +4056,7 @@ const HomeScreen = ({ navigation }) => {
               </TouchableOpacity>
             </View>
           </View>
-          
+
           <View style={styles.featureSection}>
             <Text style={styles.featureSectionTitle}>Análise com IA</Text>
             <View style={styles.featureCard}>
@@ -4076,7 +4072,7 @@ const HomeScreen = ({ navigation }) => {
               </TouchableOpacity>
             </View>
           </View>
-          
+
           <View style={styles.featureSection}>
             <Text style={styles.featureSectionTitle}>Seus Currículos</Text>
             <TouchableOpacity
@@ -4089,7 +4085,7 @@ const HomeScreen = ({ navigation }) => {
               </Text>
             </TouchableOpacity>
           </View>
-          
+
           <View style={styles.featureSection}>
             <Text style={styles.featureSectionTitle}>Configurações</Text>
             <TouchableOpacity
@@ -4110,7 +4106,7 @@ const HomeScreen = ({ navigation }) => {
               </View>
             </TouchableOpacity>
           </View>
-          
+
           {/* Seção Sobre */}
           <View style={styles.featureSection}>
             <Text style={styles.featureSectionTitle}>Sobre o App</Text>
@@ -4130,7 +4126,7 @@ const HomeScreen = ({ navigation }) => {
               </View>
             </TouchableOpacity>
           </View>
-          
+
           {/* Espaço adicional no final do scroll */}
           <View style={{ height: 30 }} />
         </ScrollView>
@@ -4147,10 +4143,10 @@ const ChatbotScreen = ({ navigation }) => {
   const [currentStep, setCurrentStep] = useState('boas_vindas');
   const [cvData, setCvData] = useState(null);
   const [showPreview, setShowPreview] = useState(false);
-  
+
   const { user } = useAuth();
   const flatListRef = useRef();
-  
+
   // Inicializar com mensagem de boas-vindas
   useEffect(() => {
     const welcomeMessage = {
@@ -4159,13 +4155,13 @@ const ChatbotScreen = ({ navigation }) => {
       isUser: false,
       time: getCurrentTime()
     };
-    
+
     setMessages([welcomeMessage]);
   }, []);
-  
+
   const addBotMessage = (text) => {
     setIsTyping(true);
-    
+
     // Simular tempo de digitação do bot
     setTimeout(() => {
       const newMessage = {
@@ -4174,10 +4170,10 @@ const ChatbotScreen = ({ navigation }) => {
         isUser: false,
         time: getCurrentTime()
       };
-      
+
       setMessages(prevMessages => [...prevMessages, newMessage]);
       setIsTyping(false);
-      
+
       // Rolar para o final da lista com timeout para garantir que funcione
       setTimeout(() => {
         if (flatListRef.current) {
@@ -4186,10 +4182,10 @@ const ChatbotScreen = ({ navigation }) => {
       }, 100);
     }, 1000);
   };
-  
+
   const handleSendMessage = () => {
     if (currentMessage.trim() === '') return;
-    
+
     // Adicionar mensagem do usuário
     const userMessage = {
       id: getUniqueId(),
@@ -4197,24 +4193,24 @@ const ChatbotScreen = ({ navigation }) => {
       isUser: true,
       time: getCurrentTime()
     };
-    
+
     setMessages(prevMessages => [...prevMessages, userMessage]);
-    
+
     // Processar a mensagem
-    const { response, nextStep, options: newOptions, cvData: newCvData, isFinished } = 
+    const { response, nextStep, options: newOptions, cvData: newCvData, isFinished } =
       processMessage(currentMessage, currentStep, cvData);
-    
+
     // Atualizar estado
     setCvData(newCvData);
     setCurrentStep(nextStep);
     setOptions(newOptions || []);
-    
+
     // Limpar campo de entrada
     setCurrentMessage('');
-    
+
     // Adicionar resposta do bot
     addBotMessage(response);
-    
+
     // Salvar currículo se finalizado
     if (isFinished) {
       salvarCurriculo(newCvData, user.id)
@@ -4226,7 +4222,7 @@ const ChatbotScreen = ({ navigation }) => {
           Alert.alert('Erro', 'Não foi possível salvar o currículo.');
         });
     }
-    
+
     // Rolar para o final da lista - com timeout para garantir que funcione
     setTimeout(() => {
       if (flatListRef.current) {
@@ -4234,16 +4230,16 @@ const ChatbotScreen = ({ navigation }) => {
       }
     }, 100);
   };
-  
+
   const handleOptionSelect = (option) => {
     setCurrentMessage(option);
     handleSendMessage();
   };
-  
+
   return (
     <SafeAreaView style={styles.chatContainer}>
       <StatusBar barStyle="light-content" backgroundColor={Colors.dark} />
-      
+
       <View style={styles.chatHeader}>
         <TouchableOpacity
           style={styles.chatBackButton}
@@ -4252,7 +4248,7 @@ const ChatbotScreen = ({ navigation }) => {
           <Text style={styles.chatBackButtonText}>‹</Text>
         </TouchableOpacity>
         <Text style={styles.chatHeaderTitle}>CurriculoBot</Text>
-        <TouchableOpacity 
+        <TouchableOpacity
           style={styles.previewToggle}
           onPress={() => setShowPreview(!showPreview)}
         >
@@ -4261,7 +4257,7 @@ const ChatbotScreen = ({ navigation }) => {
           </Text>
         </TouchableOpacity>
       </View>
-      
+
       <View style={styles.chatContent}>
         {showPreview ? (
           <ScrollView style={styles.previewScroll}>
@@ -4284,43 +4280,43 @@ const ChatbotScreen = ({ navigation }) => {
             onLayout={() => flatListRef.current?.scrollToEnd({ animated: true })}
           />
         )}
-        
+
         {!showPreview && options && options.length > 0 && (
           <ChatOptions options={options} onSelect={handleOptionSelect} />
         )}
-        
+
         {!showPreview && isTyping && (
           <View style={styles.typingContainer}>
             <Text style={styles.typingText}>Bot está digitando...</Text>
           </View>
         )}
       </View>
-      
-        <KeyboardAvoidingView
-          behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-          keyboardVerticalOffset={Platform.OS === 'ios' ? 10 : 0}
-          style={{ width: '100%' }}
-        >
-          <View style={styles.chatInputContainer}>
-            <TextInput
-              style={styles.improvedChatInput}
-              placeholder="Digite sua mensagem..."
-              value={currentMessage}
-              onChangeText={setCurrentMessage}
-              onSubmitEditing={handleSendMessage}
-              returnKeyType="send"
-              multiline={true} // Permitir múltiplas linhas
-              numberOfLines={3} // Suporte até 3 linhas
-            />
-            <TouchableOpacity 
-              style={styles.improvedSendButton}
-              onPress={handleSendMessage}
-              disabled={currentMessage.trim() === ''}
-            >
-              <Text style={styles.improvedSendButtonText}>Enviar</Text>
-            </TouchableOpacity>
-          </View>
-        </KeyboardAvoidingView>
+
+      <KeyboardAvoidingView
+        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+        keyboardVerticalOffset={Platform.OS === 'ios' ? 10 : 0}
+        style={{ width: '100%' }}
+      >
+        <View style={styles.chatInputContainer}>
+          <TextInput
+            style={styles.improvedChatInput}
+            placeholder="Digite sua mensagem..."
+            value={currentMessage}
+            onChangeText={setCurrentMessage}
+            onSubmitEditing={handleSendMessage}
+            returnKeyType="send"
+            multiline={true} // Permitir múltiplas linhas
+            numberOfLines={3} // Suporte até 3 linhas
+          />
+          <TouchableOpacity
+            style={styles.improvedSendButton}
+            onPress={handleSendMessage}
+            disabled={currentMessage.trim() === ''}
+          >
+            <Text style={styles.improvedSendButtonText}>Enviar</Text>
+          </TouchableOpacity>
+        </View>
+      </KeyboardAvoidingView>
     </SafeAreaView>
   );
 };
@@ -4328,9 +4324,9 @@ const ChatbotScreen = ({ navigation }) => {
 const MeusCurriculosScreen = ({ navigation }) => {
   const [curriculos, setCurriculos] = useState([]);
   const [loading, setLoading] = useState(true);
-  
+
   const { user } = useAuth();
-  
+
   const loadCurriculos = async () => {
     try {
       const cvs = await AsyncStorage.getItem(`curriculos_${user.id}`);
@@ -4342,18 +4338,18 @@ const MeusCurriculosScreen = ({ navigation }) => {
       setLoading(false);
     }
   };
-  
+
   useEffect(() => {
     loadCurriculos();
-    
+
     // Atualizar quando a tela ganhar foco
     const unsubscribe = navigation.addListener('focus', () => {
       loadCurriculos();
     });
-    
+
     return unsubscribe;
   }, [navigation]);
-  
+
   const handleDeleteCV = (id) => {
     Alert.alert(
       "Excluir Currículo",
@@ -4370,11 +4366,11 @@ const MeusCurriculosScreen = ({ navigation }) => {
             try {
               const cvs = await AsyncStorage.getItem(`curriculos_${user.id}`);
               const curriculosArray = cvs ? JSON.parse(cvs) : [];
-              
+
               const updatedCurriculos = curriculosArray.filter(cv => cv.id !== id);
-              
+
               await AsyncStorage.setItem(`curriculos_${user.id}`, JSON.stringify(updatedCurriculos));
-              
+
               setCurriculos(updatedCurriculos);
             } catch (error) {
               console.error('Erro ao excluir currículo:', error);
@@ -4385,11 +4381,11 @@ const MeusCurriculosScreen = ({ navigation }) => {
       ]
     );
   };
-  
+
   const handleViewCV = (cv) => {
     navigation.navigate('PreviewCV', { curriculoData: cv });
   };
-  
+
   const renderEmptyState = () => (
     <View style={styles.emptyState}>
       <Text style={styles.emptyStateTitle}>Nenhum Currículo Encontrado</Text>
@@ -4404,7 +4400,7 @@ const MeusCurriculosScreen = ({ navigation }) => {
       </TouchableOpacity>
     </View>
   );
-  
+
   if (loading) {
     return (
       <SafeAreaView style={styles.container}>
@@ -4424,11 +4420,11 @@ const MeusCurriculosScreen = ({ navigation }) => {
       </SafeAreaView>
     );
   }
-  
+
   return (
     <SafeAreaView style={styles.container}>
       <StatusBar barStyle="light-content" backgroundColor={Colors.dark} />
-      
+
       <View style={styles.header}>
         <TouchableOpacity
           style={styles.backButton}
@@ -4438,7 +4434,7 @@ const MeusCurriculosScreen = ({ navigation }) => {
         </TouchableOpacity>
         <Text style={styles.headerTitle}>Meus Currículos</Text>
       </View>
-      
+
       {curriculos.length === 0 ? (
         renderEmptyState()
       ) : (
@@ -4447,7 +4443,7 @@ const MeusCurriculosScreen = ({ navigation }) => {
           keyExtractor={(item) => item.id}
           renderItem={({ item }) => (
             <View style={styles.cvListItemWithActions}>
-              <TouchableOpacity 
+              <TouchableOpacity
                 style={styles.cvListItem}
                 onPress={() => handleViewCV(item)}
               >
@@ -4457,7 +4453,7 @@ const MeusCurriculosScreen = ({ navigation }) => {
                 </View>
                 <Text style={styles.cvListItemArrow}>›</Text>
               </TouchableOpacity>
-              
+
               <View style={styles.cvListItemActions}>
                 <TouchableOpacity
                   style={styles.cvActionButton}
@@ -4465,7 +4461,7 @@ const MeusCurriculosScreen = ({ navigation }) => {
                 >
                   <Text style={styles.cvActionButtonText}>Analisar</Text>
                 </TouchableOpacity>
-                
+
                 <TouchableOpacity
                   style={[styles.cvActionButton, { backgroundColor: Colors.danger }]}
                   onPress={() => handleDeleteCV(item.id)}
@@ -4477,7 +4473,7 @@ const MeusCurriculosScreen = ({ navigation }) => {
           )}
         />
       )}
-      
+
       {curriculos.length > 0 && (
         <TouchableOpacity
           style={styles.fabButton}
@@ -4492,7 +4488,7 @@ const MeusCurriculosScreen = ({ navigation }) => {
 
 const PreviewCVScreen = ({ route, navigation }) => {
   const { curriculoData } = route.params;
-  
+
   const handleShare = async () => {
     try {
       await Share.share({
@@ -4504,11 +4500,11 @@ const PreviewCVScreen = ({ route, navigation }) => {
       Alert.alert('Erro', 'Não foi possível compartilhar o currículo.');
     }
   };
-  
+
   return (
     <SafeAreaView style={styles.container}>
       <StatusBar barStyle="light-content" backgroundColor={Colors.dark} />
-      
+
       <View style={styles.header}>
         <TouchableOpacity
           style={styles.backButton}
@@ -4518,13 +4514,13 @@ const PreviewCVScreen = ({ route, navigation }) => {
         </TouchableOpacity>
         <Text style={styles.headerTitle}>Visualizar Currículo</Text>
       </View>
-      
+
       <ScrollView style={styles.previewScreenScroll}>
         <View style={styles.previewScreenCard}>
           <CurriculumPreview data={curriculoData.data} />
         </View>
       </ScrollView>
-      
+
       <View style={styles.previewActions}>
         <TouchableOpacity
           style={styles.previewActionButton}
@@ -4532,7 +4528,7 @@ const PreviewCVScreen = ({ route, navigation }) => {
         >
           <Text style={styles.previewActionButtonText}>Compartilhar</Text>
         </TouchableOpacity>
-        
+
         <TouchableOpacity
           style={[styles.previewActionButton, { backgroundColor: Colors.secondary }]}
           onPress={() => navigation.navigate('AnaliseCV', { curriculoData })}
@@ -4547,9 +4543,9 @@ const PreviewCVScreen = ({ route, navigation }) => {
 const CurriculosAnaliseScreen = ({ navigation }) => {
   const [curriculos, setCurriculos] = useState([]);
   const [loading, setLoading] = useState(true);
-  
+
   const { user } = useAuth();
-  
+
   const loadCurriculos = async () => {
     try {
       const cvs = await AsyncStorage.getItem(`curriculos_${user.id}`);
@@ -4561,11 +4557,11 @@ const CurriculosAnaliseScreen = ({ navigation }) => {
       setLoading(false);
     }
   };
-  
+
   useEffect(() => {
     loadCurriculos();
   }, []);
-  
+
   if (loading) {
     return (
       <SafeAreaView style={styles.container}>
@@ -4585,7 +4581,7 @@ const CurriculosAnaliseScreen = ({ navigation }) => {
       </SafeAreaView>
     );
   }
-  
+
   if (curriculos.length === 0) {
     return (
       <SafeAreaView style={styles.container}>
@@ -4613,11 +4609,11 @@ const CurriculosAnaliseScreen = ({ navigation }) => {
       </SafeAreaView>
     );
   }
-  
+
   return (
     <SafeAreaView style={styles.container}>
       <StatusBar barStyle="light-content" backgroundColor={Colors.dark} />
-      
+
       <View style={styles.header}>
         <TouchableOpacity
           style={styles.backButton}
@@ -4627,21 +4623,21 @@ const CurriculosAnaliseScreen = ({ navigation }) => {
         </TouchableOpacity>
         <Text style={styles.headerTitle}>Analisar Currículo</Text>
       </View>
-      
+
       <View style={styles.analysisIntroContainer}>
         <Text style={styles.analysisIntroTitle}>Análise de Currículo com IA</Text>
         <Text style={styles.analysisIntroText}>
           Nossa tecnologia de IA analisará seu currículo e fornecerá feedback detalhado, pontuações, sugestões de melhoria, dicas de carreira e recomendações personalizadas.
         </Text>
       </View>
-      
+
       <Text style={styles.sectionTitle}>Selecione um currículo para analisar:</Text>
-      
+
       <FlatList
         data={curriculos}
         keyExtractor={(item) => item.id}
         renderItem={({ item }) => (
-          <TouchableOpacity 
+          <TouchableOpacity
             style={styles.analysisCvItem}
             onPress={() => navigation.navigate('AnaliseCV', { curriculoData: item })}
           >
@@ -4672,14 +4668,14 @@ const AnaliseCVScreen = ({ route, navigation }) => {
   const [iaOptions, setIaOptions] = useState([]);
   const [detalhado, setDetalhado] = useState(false); // Estado para controlar análise detalhada
   const [showCharts, setShowCharts] = useState(false); // Estado para mostrar/esconder gráficos
-  
+
   // Alteração: Adicionar um ID de currículo atual para controle
   const [currentCurriculoId, setCurrentCurriculoId] = useState(null);
-  
+
   useEffect(() => {
     carregarIAsConfiguradas();
   }, []);
-  
+
   // Alteração: Atualizar o ID do currículo atual quando mudar
   useEffect(() => {
     if (curriculoData && curriculoData.id !== currentCurriculoId) {
@@ -4687,11 +4683,11 @@ const AnaliseCVScreen = ({ route, navigation }) => {
       fetchAnalise(true); // Forçar nova análise quando currículo mudar
     }
   }, [curriculoData]);
-  
+
   useEffect(() => {
     fetchAnalise();
   }, [activeTab, preferOffline, selectedIA, detalhado]); // Adicionei 'detalhado' como dependência
-  
+
   const carregarIAsConfiguradas = async () => {
     try {
       // Carregar IA padrão
@@ -4699,7 +4695,7 @@ const AnaliseCVScreen = ({ route, navigation }) => {
       if (defaultIA && IA_APIS[defaultIA] && defaultIA !== 'OPENAI') {
         setSelectedIA(defaultIA);
       }
-      
+
       // Verificar quais IAs estão configuradas
       const options = [];
       for (const [key, value] of Object.entries(IA_APIS)) {
@@ -4714,27 +4710,27 @@ const AnaliseCVScreen = ({ route, navigation }) => {
           }
         }
       }
-      
+
       setIaOptions(options);
     } catch (error) {
       console.error('Erro ao carregar IAs configuradas:', error);
     }
   };
-  
+
   // Função para gerar dados de gráficos com base no currículo
   const gerarDadosGraficos = () => {
     if (!curriculoData || !curriculoData.data) {
       return null;
     }
-    
+
     // Dados do currículo
     const cv = curriculoData.data;
-    
+
     // Gerar dados para o gráfico de habilidades
     const gerarDadosHabilidades = () => {
       // Conjunto para armazenar habilidades únicas
       const habilidadesSet = new Set();
-      
+
       // Extrair habilidades de projetos
       if (cv.projetos && cv.projetos.length > 0) {
         cv.projetos.forEach(projeto => {
@@ -4745,36 +4741,36 @@ const AnaliseCVScreen = ({ route, navigation }) => {
           }
         });
       }
-      
+
       // Converter para array de objetos para o gráfico
       const habilidadesArray = Array.from(habilidadesSet).map(habilidade => ({
         nome: habilidade,
         valor: Math.floor(Math.random() * 5) + 5 // Valor aleatório entre 5-10 (demo)
       }));
-      
+
       return habilidadesArray.slice(0, 8); // Limitar a 8 habilidades para o gráfico
     };
-    
+
     // Gerar dados para o gráfico de experiência
     const gerarDadosExperiencia = () => {
       if (!cv.experiencias || cv.experiencias.length === 0) {
         return [];
       }
-      
+
       return cv.experiencias.map(exp => {
         // Calcular duração aproximada em meses
         let inicio = exp.data_inicio ? new Date(exp.data_inicio) : new Date();
-        let fim = exp.data_fim && exp.data_fim.toLowerCase() !== 'atual' 
-          ? new Date(exp.data_fim) 
+        let fim = exp.data_fim && exp.data_fim.toLowerCase() !== 'atual'
+          ? new Date(exp.data_fim)
           : new Date();
-        
+
         // Se as datas não são objetos Date válidos, usar valores padrão
         if (isNaN(inicio.getTime())) inicio = new Date('2020-01-01');
         if (isNaN(fim.getTime())) fim = new Date();
-        
+
         const diferencaMeses = (fim.getFullYear() - inicio.getFullYear()) * 12 +
-                              (fim.getMonth() - inicio.getMonth());
-        
+          (fim.getMonth() - inicio.getMonth());
+
         return {
           empresa: exp.empresa || 'Empresa',
           cargo: exp.cargo || 'Cargo',
@@ -4782,7 +4778,7 @@ const AnaliseCVScreen = ({ route, navigation }) => {
         };
       });
     };
-    
+
     // Gerar dados para pontuação por área
     const gerarDadosPontuacao = () => {
       const pontuacoes = {
@@ -4792,60 +4788,60 @@ const AnaliseCVScreen = ({ route, navigation }) => {
         'Cursos': cv.cursos && cv.cursos.length > 0 ? Math.min(10, cv.cursos.length * 2) : 3,
         'Idiomas': cv.idiomas && cv.idiomas.length > 0 ? Math.min(10, cv.idiomas.length * 3) : 5
       };
-      
+
       return Object.entries(pontuacoes).map(([area, valor]) => ({ area, valor }));
     };
-    
+
     return {
       habilidades: gerarDadosHabilidades(),
       experiencia: gerarDadosExperiencia(),
       pontuacao: gerarDadosPontuacao()
     };
   };
-  
+
   // Alteração: Melhorar a função fetchAnalise para incluir modo detalhado e aceitar parâmetro forceRefresh
   const fetchAnalise = async (forceRefresh = false) => {
     // Não recarrega se já estiver carregando, a menos que seja forçado
     if (loading && !forceRefresh) return;
-    
+
     setLoading(true);
     setError(null);
     setUsingOfflineMode(false);
     setProviderInfo(null);
-    
+
     // Limpar resultado anterior se for um currículo diferente ou forçar refresh
     if (forceRefresh) {
       setAnaliseResultado(null);
     }
-    
+
     try {
       const tipoIA = selectedIA === 'OFFLINE' ? 'OFFLINE' : selectedIA;
-      
+
       // Verificar se curriculoData existe e tem dados
       if (!curriculoData || !curriculoData.data) {
         throw new Error("Dados do currículo inválidos");
       }
-      
+
       // Configurar objeto com parâmetros adicionais para análise detalhada
       const opcoesAnalise = {
         analiseDetalhada: detalhado,  // Nova opção para controlar nível de detalhe
         tipoAnalise: activeTab,
         maxTokens: detalhado ? 1500 : 800  // Aumenta o limite de tokens para análises detalhadas
       };
-      
+
       // Passar as opções adicionais para a função de análise
       const resultado = await analisarCurriculoComIA(
-        curriculoData.data, 
-        activeTab, 
+        curriculoData.data,
+        activeTab,
         tipoIA,
         preferOffline,
         opcoesAnalise  // Novo parâmetro com opções adicionais
       );
-      
+
       if (resultado.offline || tipoIA === 'OFFLINE') {
         setUsingOfflineMode(true);
       }
-      
+
       if (resultado.success) {
         setAnaliseResultado(resultado.analise);
         setProviderInfo(resultado.provider || 'IA Não Identificada');
@@ -4859,22 +4855,22 @@ const AnaliseCVScreen = ({ route, navigation }) => {
       setLoading(false);
     }
   };
-  
+
   const toggleOfflineMode = () => {
     setPreferOffline(!preferOffline);
   };
-  
+
   // Toggle para modo detalhado
   const toggleModoDetalhado = () => {
     setDetalhado(!detalhado);
     // A análise será atualizada automaticamente pelo useEffect
   };
-  
+
   // Toggle para mostrar/esconder gráficos
   const toggleShowCharts = () => {
     setShowCharts(!showCharts);
   };
-  
+
   // Render do seletor de IA
   const renderIASelector = () => (
     <View style={styles.iaSelectorContainer}>
@@ -4885,9 +4881,9 @@ const AnaliseCVScreen = ({ route, navigation }) => {
         marginBottom: 8,
       }}>
         <Text style={styles.iaSelectorLabel}>Analisar com:</Text>
-        
+
         {/* Alteração: Adicionar botão de atualizar */}
-        <TouchableOpacity 
+        <TouchableOpacity
           style={{
             backgroundColor: Colors.secondary,
             paddingVertical: 6,
@@ -4910,9 +4906,9 @@ const AnaliseCVScreen = ({ route, navigation }) => {
           )}
         </TouchableOpacity>
       </View>
-      
-      <ScrollView 
-        horizontal 
+
+      <ScrollView
+        horizontal
         showsHorizontalScrollIndicator={false}
         contentContainerStyle={styles.iaOptionsContainer}
       >
@@ -4925,7 +4921,7 @@ const AnaliseCVScreen = ({ route, navigation }) => {
             ]}
             onPress={() => setSelectedIA(option.id)}
           >
-            <Text 
+            <Text
               style={[
                 styles.iaOptionText,
                 selectedIA === option.id && styles.iaOptionTextSelected
@@ -4936,7 +4932,7 @@ const AnaliseCVScreen = ({ route, navigation }) => {
           </TouchableOpacity>
         ))}
       </ScrollView>
-      
+
       {/* Nova linha com opções adicionais */}
       <View style={{
         flexDirection: 'row',
@@ -4966,7 +4962,7 @@ const AnaliseCVScreen = ({ route, navigation }) => {
             {detalhado ? 'Análise Detalhada ✓' : 'Análise Simples'}
           </Text>
         </TouchableOpacity>
-        
+
         {/* Botão para visualização de gráficos */}
         <TouchableOpacity
           style={{
@@ -4991,7 +4987,7 @@ const AnaliseCVScreen = ({ route, navigation }) => {
           </Text>
         </TouchableOpacity>
       </View>
-      
+
       {providerInfo && (
         <Text style={styles.providerInfo}>
           Análise fornecida por: {providerInfo}
@@ -4999,11 +4995,11 @@ const AnaliseCVScreen = ({ route, navigation }) => {
       )}
     </View>
   );
-  
+
   // Renderização dos gráficos
   const renderCharts = () => {
     const dadosGraficos = gerarDadosGraficos();
-    
+
     if (!dadosGraficos) {
       return (
         <View style={{ padding: 15, alignItems: 'center' }}>
@@ -5011,11 +5007,11 @@ const AnaliseCVScreen = ({ route, navigation }) => {
         </View>
       );
     }
-    
+
     return (
-      <View style={{ 
-        backgroundColor: '#f9f9f9', 
-        marginHorizontal: 15, 
+      <View style={{
+        backgroundColor: '#f9f9f9',
+        marginHorizontal: 15,
         marginBottom: 20,
         borderRadius: 10,
         padding: 15,
@@ -5025,27 +5021,27 @@ const AnaliseCVScreen = ({ route, navigation }) => {
         shadowOpacity: 0.1,
         shadowRadius: 2,
       }}>
-        <Text style={{ 
-          fontSize: 18, 
-          fontWeight: 'bold', 
+        <Text style={{
+          fontSize: 18,
+          fontWeight: 'bold',
           marginBottom: 15,
           color: Colors.dark,
           textAlign: 'center',
         }}>
           Visualização Gráfica do Currículo
         </Text>
-        
+
         {/* Gráfico de Pontuação por Área */}
         <View style={{ marginBottom: 20 }}>
-          <Text style={{ 
-            fontSize: 16, 
-            fontWeight: 'bold', 
+          <Text style={{
+            fontSize: 16,
+            fontWeight: 'bold',
             marginBottom: 10,
             color: Colors.dark,
           }}>
             Pontuação por Área
           </Text>
-          
+
           {/* Renderização do gráfico de barras horizontal */}
           {dadosGraficos.pontuacao.map((item, index) => (
             <View key={index} style={{ marginBottom: 8 }}>
@@ -5053,15 +5049,15 @@ const AnaliseCVScreen = ({ route, navigation }) => {
                 <Text>{item.area}</Text>
                 <Text>{item.valor.toFixed(1)}/10</Text>
               </View>
-              <View style={{ 
-                height: 10, 
-                backgroundColor: Colors.mediumGray, 
+              <View style={{
+                height: 10,
+                backgroundColor: Colors.mediumGray,
                 borderRadius: 5,
                 marginTop: 5,
               }}>
-                <View style={{ 
-                  width: `${item.valor * 10}%`, 
-                  height: '100%', 
+                <View style={{
+                  width: `${item.valor * 10}%`,
+                  height: '100%',
                   backgroundColor: getBarColor(item.valor),
                   borderRadius: 5,
                 }} />
@@ -5069,23 +5065,23 @@ const AnaliseCVScreen = ({ route, navigation }) => {
             </View>
           ))}
         </View>
-        
+
         {/* Gráfico de Habilidades */}
         {dadosGraficos.habilidades.length > 0 && (
           <View style={{ marginBottom: 20 }}>
-            <Text style={{ 
-              fontSize: 16, 
-              fontWeight: 'bold', 
+            <Text style={{
+              fontSize: 16,
+              fontWeight: 'bold',
               marginBottom: 10,
               color: Colors.dark,
             }}>
               Principais Habilidades
             </Text>
-            
+
             <View style={{ flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'space-between' }}>
               {dadosGraficos.habilidades.map((item, index) => (
-                <View key={index} style={{ 
-                  width: '48%', 
+                <View key={index} style={{
+                  width: '48%',
                   backgroundColor: Colors.white,
                   padding: 10,
                   borderRadius: 5,
@@ -5101,15 +5097,15 @@ const AnaliseCVScreen = ({ route, navigation }) => {
                   <Text style={{ fontWeight: 'bold' }}>{item.nome}</Text>
                   <View style={{ flexDirection: 'row', marginTop: 5 }}>
                     {Array(10).fill(0).map((_, i) => (
-                      <View 
-                        key={i} 
-                        style={{ 
-                          width: 8, 
-                          height: 8, 
+                      <View
+                        key={i}
+                        style={{
+                          width: 8,
+                          height: 8,
                           borderRadius: 4,
                           backgroundColor: i < item.valor ? Colors.primary : Colors.mediumGray,
                           marginRight: 2,
-                        }} 
+                        }}
                       />
                     ))}
                   </View>
@@ -5118,38 +5114,38 @@ const AnaliseCVScreen = ({ route, navigation }) => {
             </View>
           </View>
         )}
-        
+
         {/* Gráfico de Experiência Profissional */}
         {dadosGraficos.experiencia.length > 0 && (
           <View>
-            <Text style={{ 
-              fontSize: 16, 
-              fontWeight: 'bold', 
+            <Text style={{
+              fontSize: 16,
+              fontWeight: 'bold',
               marginBottom: 10,
               color: Colors.dark,
             }}>
               Experiência Profissional
             </Text>
-            
+
             {dadosGraficos.experiencia.map((item, index) => (
               <View key={index} style={{ marginBottom: 10 }}>
                 <Text style={{ fontWeight: 'bold' }}>{item.cargo} - {item.empresa}</Text>
-                <View style={{ 
-                  flexDirection: 'row', 
+                <View style={{
+                  flexDirection: 'row',
                   alignItems: 'center',
                   marginTop: 5,
                 }}>
-                  <View style={{ 
+                  <View style={{
                     width: `${Math.min(100, item.duracao * 2)}%`,
-                    maxWidth: '80%', 
-                    height: 20, 
+                    maxWidth: '80%',
+                    height: 20,
                     backgroundColor: Colors.primary,
                     borderRadius: 5,
                     justifyContent: 'center',
                     paddingHorizontal: 5,
                   }}>
-                    <Text style={{ 
-                      color: Colors.white, 
+                    <Text style={{
+                      color: Colors.white,
                       fontSize: 12,
                       textAlign: 'center',
                     }}>
@@ -5164,7 +5160,7 @@ const AnaliseCVScreen = ({ route, navigation }) => {
       </View>
     );
   };
-  
+
   // Função para determinar a cor da barra com base no valor
   const getBarColor = (valor) => {
     if (valor >= 8) return Colors.success;
@@ -5172,11 +5168,11 @@ const AnaliseCVScreen = ({ route, navigation }) => {
     if (valor >= 3) return Colors.warning;
     return Colors.danger;
   };
-  
+
   return (
     <SafeAreaView style={styles.container}>
       <StatusBar barStyle="light-content" backgroundColor={Colors.dark} />
-      
+
       <View style={styles.header}>
         <TouchableOpacity
           style={styles.backButton}
@@ -5185,8 +5181,8 @@ const AnaliseCVScreen = ({ route, navigation }) => {
           <Text style={styles.backButtonText}>‹</Text>
         </TouchableOpacity>
         <Text style={styles.headerTitle}>Análise com IA</Text>
-        
-        <TouchableOpacity 
+
+        <TouchableOpacity
           style={styles.modeToggleButton}
           onPress={toggleOfflineMode}
         >
@@ -5195,15 +5191,15 @@ const AnaliseCVScreen = ({ route, navigation }) => {
           </Text>
         </TouchableOpacity>
       </View>
-      
+
       <View style={styles.cvAnalysisHeader}>
         <Text style={styles.cvAnalysisTitle}>
           Análise do currículo: {curriculoData.nome || 'Sem nome'}
         </Text>
       </View>
-      
-      <ScrollView 
-        horizontal 
+
+      <ScrollView
+        horizontal
         showsHorizontalScrollIndicator={false}
         style={styles.analysisTabs}
         contentContainerStyle={styles.analysisTabsContent}
@@ -5215,7 +5211,7 @@ const AnaliseCVScreen = ({ route, navigation }) => {
           ]}
           onPress={() => setActiveTab('pontuacao')}
         >
-          <Text 
+          <Text
             style={[
               styles.analysisTabText,
               activeTab === 'pontuacao' && styles.activeAnalysisTabText
@@ -5224,7 +5220,7 @@ const AnaliseCVScreen = ({ route, navigation }) => {
             Pontuação
           </Text>
         </TouchableOpacity>
-        
+
         <TouchableOpacity
           style={[
             styles.analysisTab,
@@ -5232,7 +5228,7 @@ const AnaliseCVScreen = ({ route, navigation }) => {
           ]}
           onPress={() => setActiveTab('melhorias')}
         >
-          <Text 
+          <Text
             style={[
               styles.analysisTabText,
               activeTab === 'melhorias' && styles.activeAnalysisTabText
@@ -5241,7 +5237,7 @@ const AnaliseCVScreen = ({ route, navigation }) => {
             Melhorias
           </Text>
         </TouchableOpacity>
-        
+
         <TouchableOpacity
           style={[
             styles.analysisTab,
@@ -5249,7 +5245,7 @@ const AnaliseCVScreen = ({ route, navigation }) => {
           ]}
           onPress={() => setActiveTab('dicas')}
         >
-          <Text 
+          <Text
             style={[
               styles.analysisTabText,
               activeTab === 'dicas' && styles.activeAnalysisTabText
@@ -5258,7 +5254,7 @@ const AnaliseCVScreen = ({ route, navigation }) => {
             Dicas
           </Text>
         </TouchableOpacity>
-        
+
         <TouchableOpacity
           style={[
             styles.analysisTab,
@@ -5266,7 +5262,7 @@ const AnaliseCVScreen = ({ route, navigation }) => {
           ]}
           onPress={() => setActiveTab('cursos')}
         >
-          <Text 
+          <Text
             style={[
               styles.analysisTabText,
               activeTab === 'cursos' && styles.activeAnalysisTabText
@@ -5275,7 +5271,7 @@ const AnaliseCVScreen = ({ route, navigation }) => {
             Cursos
           </Text>
         </TouchableOpacity>
-        
+
         <TouchableOpacity
           style={[
             styles.analysisTab,
@@ -5283,7 +5279,7 @@ const AnaliseCVScreen = ({ route, navigation }) => {
           ]}
           onPress={() => setActiveTab('vagas')}
         >
-          <Text 
+          <Text
             style={[
               styles.analysisTabText,
               activeTab === 'vagas' && styles.activeAnalysisTabText
@@ -5293,10 +5289,10 @@ const AnaliseCVScreen = ({ route, navigation }) => {
           </Text>
         </TouchableOpacity>
       </ScrollView>
-      
+
       {/* Selector de IA */}
       {renderIASelector()}
-      
+
       {usingOfflineMode && (
         <View style={styles.offlineBanner}>
           <Text style={styles.offlineBannerText}>
@@ -5304,7 +5300,7 @@ const AnaliseCVScreen = ({ route, navigation }) => {
           </Text>
         </View>
       )}
-      
+
       {detalhado && !usingOfflineMode && (
         <View style={{
           backgroundColor: '#e1f5fe',
@@ -5320,16 +5316,16 @@ const AnaliseCVScreen = ({ route, navigation }) => {
           </Text>
         </View>
       )}
-      
+
       {/* Visualização de gráficos */}
       {showCharts && !loading && !error && renderCharts()}
-      
+
       {loading ? (
         <View style={styles.loadingAnalysisContainer}>
           <ActivityIndicator size="large" color={Colors.primary} />
           <Text style={styles.loadingAnalysisText}>
-            {detalhado 
-              ? 'Realizando análise detalhada do currículo...' 
+            {detalhado
+              ? 'Realizando análise detalhada do currículo...'
               : 'Analisando seu currículo...'}
           </Text>
         </View>
@@ -5349,34 +5345,34 @@ const AnaliseCVScreen = ({ route, navigation }) => {
           <Markdown
             style={{
               body: styles.analysisResultText,
-              heading1: { 
-                fontSize: 22, 
-                fontWeight: 'bold', 
-                marginBottom: 10, 
+              heading1: {
+                fontSize: 22,
+                fontWeight: 'bold',
+                marginBottom: 10,
                 color: Colors.dark,
                 borderBottomWidth: 1,
                 borderBottomColor: Colors.mediumGray,
                 paddingBottom: 5,
               },
-              heading2: { 
-                fontSize: 20, 
-                fontWeight: 'bold', 
+              heading2: {
+                fontSize: 20,
+                fontWeight: 'bold',
                 marginBottom: 10,
                 marginTop: 15,
-                color: Colors.dark 
+                color: Colors.dark
               },
-              heading3: { 
-                fontSize: 18, 
-                fontWeight: 'bold', 
+              heading3: {
+                fontSize: 18,
+                fontWeight: 'bold',
                 marginTop: 10,
                 marginBottom: 5,
-                color: Colors.dark 
+                color: Colors.dark
               },
-              paragraph: { 
-                fontSize: 16, 
+              paragraph: {
+                fontSize: 16,
                 lineHeight: 24,
                 marginBottom: 10,
-                color: Colors.dark 
+                color: Colors.dark
               },
               list_item: {
                 marginBottom: 5,
@@ -5413,10 +5409,10 @@ const AnaliseCVScreen = ({ route, navigation }) => {
           >
             {analiseResultado}
           </Markdown>
-          
+
           {/* Adicione também um botão para compartilhar a análise */}
           <TouchableOpacity
-            style={[styles.shareAnalysisButton, {marginTop: 20}]}
+            style={[styles.shareAnalysisButton, { marginTop: 20 }]}
             onPress={() => {
               Share.share({
                 message: analiseResultado,
@@ -5436,8 +5432,8 @@ const AnaliseCVScreen = ({ route, navigation }) => {
 const AuthStack = createStackNavigator();
 
 const AuthNavigator = () => (
-  <AuthStack.Navigator 
-    screenOptions={{ 
+  <AuthStack.Navigator
+    screenOptions={{
       headerShown: false,
     }}
   >
@@ -5557,7 +5553,7 @@ const SobreAppScreen = ({ navigation }) => {
   return (
     <SafeAreaView style={localStyles.container}>
       <StatusBar barStyle="light-content" backgroundColor={Colors.dark} />
-      
+
       <View style={localStyles.header}>
         <TouchableOpacity
           style={localStyles.backButton}
@@ -5567,20 +5563,20 @@ const SobreAppScreen = ({ navigation }) => {
         </TouchableOpacity>
         <Text style={localStyles.headerTitle}>Sobre o App</Text>
       </View>
-      
+
       <ScrollView style={localStyles.contentContainer}>
         <View style={localStyles.aboutCard}>
           <Text style={localStyles.appTitle}>CurriculoBot Premium</Text>
           <Text style={localStyles.versionText}>Versão 1.0.0</Text>
-          
+
           <View style={localStyles.divider} />
-          
+
           <Text style={localStyles.sectionTitle}>O que é o CurriculoBot?</Text>
           <Text style={localStyles.bodyText}>
-            CurriculoBot é um assistente inteligente que ajuda você a criar, gerenciar e analisar 
+            CurriculoBot é um assistente inteligente que ajuda você a criar, gerenciar e analisar
             currículos profissionais utilizando inteligência artificial de múltiplos provedores.
           </Text>
-          
+
           <Text style={localStyles.sectionTitle}>Recursos</Text>
           <View style={localStyles.featureItem}>
             <Text style={localStyles.featureTitle}>• Criação Guiada</Text>
@@ -5588,21 +5584,21 @@ const SobreAppScreen = ({ navigation }) => {
               Interface conversacional que simplifica a criação do seu currículo.
             </Text>
           </View>
-          
+
           <View style={localStyles.featureItem}>
             <Text style={localStyles.featureTitle}>• Análise com IA</Text>
             <Text style={localStyles.bodyText}>
               Análise profissional do seu currículo usando diferentes IAs como Google Gemini, OpenAI e Claude.
             </Text>
           </View>
-          
+
           <View style={localStyles.featureItem}>
             <Text style={localStyles.featureTitle}>• Dicas Personalizadas</Text>
             <Text style={localStyles.bodyText}>
               Recomendações de melhorias, cursos e vagas adequadas ao seu perfil.
             </Text>
           </View>
-          
+
           <Text style={localStyles.sectionTitle}>Contato</Text>
           <Text style={localStyles.bodyText}>
             Email: suporte@curriculobot.app
@@ -5610,8 +5606,8 @@ const SobreAppScreen = ({ navigation }) => {
           <Text style={localStyles.bodyText}>
             Website: www.curriculobot.app
           </Text>
-          
-          <TouchableOpacity 
+
+          <TouchableOpacity
             style={localStyles.contactButton}
             onPress={() => {
               Alert.alert('Obrigado', 'Agradecemos por usar o CurriculoBot!');
@@ -5624,6 +5620,241 @@ const SobreAppScreen = ({ navigation }) => {
     </SafeAreaView>
   );
 };
+
+  // Nova tela para seleção de currículo antes da busca de vagas
+  const SelecionarCurriculoScreen = ({ navigation }) => {
+    const { user } = useAuth();
+    const [curriculos, setCurriculos] = useState([]);
+    const [loading, setLoading] = useState(true);
+
+    useEffect(() => {
+      carregarCurriculos();
+    }, []);
+
+    const carregarCurriculos = async () => {
+      try {
+        setLoading(true);
+        const cvs = await AsyncStorage.getItem(`curriculos_${user.id}`);
+        setCurriculos(cvs ? JSON.parse(cvs) : []);
+      } catch (error) {
+        console.error('Erro ao carregar currículos:', error);
+        Alert.alert('Erro', 'Não foi possível carregar seus currículos.');
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    const handleSelecionarCurriculo = (curriculo) => {
+      navigation.navigate('BuscaVagas', { curriculoData: curriculo });
+    };
+
+    const formatDate = (dateString) => {
+      try {
+        if (!dateString) return 'Data não disponível';
+        const date = new Date(dateString);
+        return `${date.getDate().toString().padStart(2, '0')}/${(date.getMonth() + 1).toString().padStart(2, '0')}/${date.getFullYear()}`;
+      } catch (error) {
+        return 'Data inválida';
+      }
+    };
+
+    // Extrair informações do currículo para exibição
+    const getResumoCurriculo = (curriculo) => {
+      const cv = curriculo.data;
+      const experiencias = cv.experiencias?.length || 0;
+      const formacoes = cv.formacoes_academicas?.length || 0;
+      const projetos = cv.projetos?.length || 0;
+      const area = cv.informacoes_pessoais?.area || 'Não especificada';
+
+      return { experiencias, formacoes, projetos, area };
+    };
+
+    return (
+      <SafeAreaView style={styles.container}>
+        <StatusBar barStyle="light-content" backgroundColor={Colors.dark} />
+
+        <View style={styles.header}>
+          <TouchableOpacity
+            style={styles.backButton}
+            onPress={() => navigation.goBack()}
+          >
+            <Text style={styles.backButtonText}>‹</Text>
+          </TouchableOpacity>
+          <Text style={styles.headerTitle}>Selecionar Currículo</Text>
+        </View>
+
+        {loading ? (
+          <View style={styles.loadingContainer}>
+            <ActivityIndicator size="large" color={Colors.primary} />
+            <Text style={{ marginTop: 10 }}>Carregando currículos...</Text>
+          </View>
+        ) : curriculos.length === 0 ? (
+          <View style={styles.emptyState}>
+            <Text style={styles.emptyStateTitle}>Nenhum Currículo Encontrado</Text>
+            <Text style={styles.emptyStateText}>
+              Você precisa criar um currículo antes de buscar vagas.
+            </Text>
+            <TouchableOpacity
+              style={styles.primaryButton}
+              onPress={() => navigation.navigate('Chatbot')}
+            >
+              <Text style={styles.primaryButtonText}>Criar Currículo</Text>
+            </TouchableOpacity>
+          </View>
+        ) : (
+          <View style={{ flex: 1, padding: 15 }}>
+            <View style={{
+              backgroundColor: '#e8f5e9',
+              padding: 15,
+              borderRadius: 10,
+              marginBottom: 20,
+              borderLeftWidth: 4,
+              borderLeftColor: Colors.success,
+            }}>
+              <Text style={{
+                fontSize: 16,
+                fontWeight: 'bold',
+                marginBottom: 5,
+                color: Colors.dark,
+              }}>
+                Buscar Vagas Personalizadas
+              </Text>
+              <Text style={{
+                fontSize: 14,
+                color: '#2e7d32',
+              }}>
+                Selecione o currículo que deseja usar como base para a busca de vagas. Nossa IA encontrará oportunidades de emprego alinhadas ao seu perfil profissional.
+              </Text>
+            </View>
+
+            <Text style={{
+              fontSize: 16,
+              fontWeight: 'bold',
+              marginBottom: 10,
+              color: Colors.dark,
+            }}>
+              Selecione um currículo:
+            </Text>
+
+            <FlatList
+              data={curriculos}
+              keyExtractor={(item) => item.id}
+              renderItem={({ item }) => {
+                const resumo = getResumoCurriculo(item);
+
+                return (
+                  <TouchableOpacity
+                    style={{
+                      backgroundColor: Colors.white,
+                      borderRadius: 10,
+                      marginBottom: 15,
+                      padding: 16,
+                      ...Platform.select({
+                        ios: {
+                          shadowColor: '#000',
+                          shadowOffset: { width: 0, height: 2 },
+                          shadowOpacity: 0.1,
+                          shadowRadius: 3,
+                        },
+                        android: {
+                          elevation: 2,
+                        },
+                      }),
+                      borderLeftWidth: 4,
+                      borderLeftColor: Colors.primary,
+                    }}
+                    onPress={() => handleSelecionarCurriculo(item)}
+                  >
+                    <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
+                      <Text style={{
+                        fontSize: 18,
+                        fontWeight: 'bold',
+                        color: Colors.dark,
+                        marginBottom: 5,
+                      }}>
+                        {item.nome || 'Currículo sem nome'}
+                      </Text>
+
+                      <View style={{
+                        backgroundColor: Colors.primary,
+                        paddingVertical: 4,
+                        paddingHorizontal: 8,
+                        borderRadius: 15,
+                      }}>
+                        <Text style={{ color: Colors.white, fontSize: 12 }}>
+                          Selecionar
+                        </Text>
+                      </View>
+                    </View>
+
+                    <Text style={{
+                      fontSize: 14,
+                      color: Colors.lightText,
+                      marginBottom: 10,
+                    }}>
+                      Criado em: {formatDate(item.dataCriacao)}
+                    </Text>
+
+                    <View style={{
+                      backgroundColor: '#f5f5f5',
+                      padding: 10,
+                      borderRadius: 5,
+                      marginTop: 5,
+                    }}>
+                      <Text style={{ color: Colors.dark }}>
+                        <Text style={{ fontWeight: 'bold' }}>Área: </Text>
+                        {resumo.area}
+                      </Text>
+
+                      <View style={{ flexDirection: 'row', marginTop: 5, flexWrap: 'wrap' }}>
+                        <View style={{
+                          backgroundColor: Colors.primary,
+                          paddingVertical: 3,
+                          paddingHorizontal: 8,
+                          borderRadius: 12,
+                          marginRight: 8,
+                          marginBottom: 5,
+                        }}>
+                          <Text style={{ color: Colors.white, fontSize: 12 }}>
+                            {resumo.experiencias} experiência(s)
+                          </Text>
+                        </View>
+
+                        <View style={{
+                          backgroundColor: Colors.secondary,
+                          paddingVertical: 3,
+                          paddingHorizontal: 8,
+                          borderRadius: 12,
+                          marginRight: 8,
+                          marginBottom: 5,
+                        }}>
+                          <Text style={{ color: Colors.white, fontSize: 12 }}>
+                            {resumo.formacoes} formação(ões)
+                          </Text>
+                        </View>
+
+                        <View style={{
+                          backgroundColor: '#673AB7',
+                          paddingVertical: 3,
+                          paddingHorizontal: 8,
+                          borderRadius: 12,
+                          marginBottom: 5,
+                        }}>
+                          <Text style={{ color: Colors.white, fontSize: 12 }}>
+                            {resumo.projetos} projeto(s)
+                          </Text>
+                        </View>
+                      </View>
+                    </View>
+                  </TouchableOpacity>
+                );
+              }}
+            />
+          </View>
+        )}
+      </SafeAreaView>
+    );
+  };
 
 // Modificar o AppNavigator para adicionar a rota "SobreApp"
 const AppNavigator = () => (
@@ -5640,7 +5871,8 @@ const AppNavigator = () => (
     <AppStack.Screen name="AnaliseCV" component={AnaliseCVScreen} />
     <AppStack.Screen name="ConfiguracoesIA" component={ConfiguracoesIAScreen} />
     <AppStack.Screen name="SobreApp" component={SobreAppScreen} />
-    {/* Nova rota para a busca de vagas */}
+    {/* Nova rota para seleção de currículo */}
+    <AppStack.Screen name="SelecionarCurriculo" component={SelecionarCurriculoScreen} />
     <AppStack.Screen name="BuscaVagas" component={BuscaVagasScreen} />
   </AppStack.Navigator>
 );
@@ -5724,7 +5956,7 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: '#f5f7fa',
   },
-  
+
   messageContainer: {
     maxWidth: '80%',
     padding: 12,
@@ -5773,7 +6005,7 @@ const styles = StyleSheet.create({
     alignSelf: 'flex-end',
     marginTop: 6,
   },
-  
+
   chatInput: {
     flex: 1,
     backgroundColor: '#f5f5f5',
@@ -5942,7 +6174,7 @@ const styles = StyleSheet.create({
     fontWeight: 'bold',
     fontSize: 16,
   },
-  
+
   // Splash Screen
   splashContainer: {
     flex: 1,
@@ -6054,7 +6286,7 @@ const styles = StyleSheet.create({
     borderRadius: 8,
     padding: 15,
     fontSize: 16,
-  },  
+  },
   // Home
   homeContainer: {
     flex: 1,
@@ -6142,8 +6374,8 @@ const styles = StyleSheet.create({
     lineHeight: 22,
     marginBottom: 15,
   },
-  
-  
+
+
   chatBackButton: {
     width: 30,
     height: 30,
@@ -6281,7 +6513,7 @@ const styles = StyleSheet.create({
     color: Colors.lightText,
     fontSize: 14,
   },
-  
+
   // Lista de Currículos
   cvListItemWithActions: {
     backgroundColor: Colors.white,
@@ -6353,7 +6585,7 @@ const styles = StyleSheet.create({
     fontSize: 24,
     color: Colors.white,
   },
-  
+
   // Tela de Prévia do Currículo
   previewScreenScroll: {
     flex: 1,
@@ -6394,7 +6626,7 @@ const styles = StyleSheet.create({
     color: Colors.white,
     fontWeight: 'bold',
   },
-  
+
   // Análise com IA
   analysisIntroContainer: {
     backgroundColor: Colors.white,
@@ -6591,7 +6823,7 @@ const styles = StyleSheet.create({
     color: Colors.dark,
     lineHeight: 22,
   },
-  
+
   // Selector de IA
   iaSelectorContainer: {
     backgroundColor: '#f8f9fa',
@@ -6651,7 +6883,7 @@ const styles = StyleSheet.create({
     color: '#856404',
     fontSize: 14,
   },
-  
+
   // Configuração de IAs
   configContent: {
     flex: 1,
@@ -6764,12 +6996,12 @@ const styles = StyleSheet.create({
     flexGrow: 1,
   },
   shareAnalysisButton: {
-  backgroundColor: Colors.secondary,
-  paddingVertical: 12,
-  paddingHorizontal: 20,
-  borderRadius: 8,
-  alignItems: 'center',
-  marginBottom: 30,
+    backgroundColor: Colors.secondary,
+    paddingVertical: 12,
+    paddingHorizontal: 20,
+    borderRadius: 8,
+    alignItems: 'center',
+    marginBottom: 30,
   },
   shareAnalysisButtonText: {
     color: Colors.white,
@@ -6853,7 +7085,7 @@ const styles = StyleSheet.create({
     backgroundColor: Colors.white,
     borderRadius: 12,
     padding:
-    12,
+      12,
     marginRight: 12,
     ...Platform.select({
       ios: {
