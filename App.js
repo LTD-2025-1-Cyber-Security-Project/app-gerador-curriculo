@@ -2334,65 +2334,101 @@ const HomeScreen = ({ navigation }) => {
       </View>
       
       <View style={styles.homeContent}>
-        <Text style={styles.welcomeText}>Olá, {user?.nome || 'visitante'}!</Text>
-        
-        <View style={styles.featureSection}>
-          <Text style={styles.featureSectionTitle}>Criar Currículo</Text>
-          <View style={styles.featureCard}>
-            <Text style={styles.featureTitle}>Novo Currículo</Text>
-            <Text style={styles.featureDescription}>
-              Crie um currículo do zero através de uma conversa intuitiva com nosso assistente.
-            </Text>
+        <ScrollView 
+          showsVerticalScrollIndicator={false}
+          contentContainerStyle={styles.homeScrollContent}
+        >
+          <Text style={styles.welcomeText}>Olá, {user?.nome || 'visitante'}!</Text>
+          
+          <View style={styles.featureSection}>
+            <Text style={styles.featureSectionTitle}>Criar Currículo</Text>
+            <View style={styles.featureCard}>
+              <Text style={styles.featureTitle}>Novo Currículo</Text>
+              <Text style={styles.featureDescription}>
+                Crie um currículo do zero através de uma conversa intuitiva com nosso assistente.
+              </Text>
+              <TouchableOpacity
+                style={styles.primaryButton}
+                onPress={() => navigation.navigate('Chatbot')}
+              >
+                <Text style={styles.primaryButtonText}>Começar Agora</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+          
+          <View style={styles.featureSection}>
+            <Text style={styles.featureSectionTitle}>Análise com IA</Text>
+            <View style={styles.featureCard}>
+              <Text style={styles.featureTitle}>Analise seu Currículo</Text>
+              <Text style={styles.featureDescription}>
+                Use nossa inteligência artificial para analisar seu currículo, receber pontuação, dicas de melhorias, sugestões de carreira e muito mais.
+              </Text>
+              <TouchableOpacity
+                style={styles.secondaryButton}
+                onPress={() => navigation.navigate('CurriculosAnalise')}
+              >
+                <Text style={styles.secondaryButtonText}>Analisar Currículo</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+          
+          <View style={styles.featureSection}>
+            <Text style={styles.featureSectionTitle}>Seus Currículos</Text>
             <TouchableOpacity
-              style={styles.primaryButton}
-              onPress={() => navigation.navigate('Chatbot')}
+              style={[styles.featureCard, styles.compactCard]}
+              onPress={() => navigation.navigate('MeusCurriculos')}
             >
-              <Text style={styles.primaryButtonText}>Começar Agora</Text>
+              <Text style={styles.featureTitle}>Gerenciar Currículos</Text>
+              <Text style={styles.featureDescription}>
+                Visualize, edite e compartilhe seus currículos salvos.
+              </Text>
             </TouchableOpacity>
           </View>
-        </View>
-        
-        <View style={styles.featureSection}>
-          <Text style={styles.featureSectionTitle}>Análise com IA</Text>
-          <View style={styles.featureCard}>
-            <Text style={styles.featureTitle}>Analise seu Currículo</Text>
-            <Text style={styles.featureDescription}>
-              Use nossa inteligência artificial para analisar seu currículo, receber pontuação, dicas de melhorias, sugestões de carreira e muito mais.
-            </Text>
+          
+          <View style={styles.featureSection}>
+            <Text style={styles.featureSectionTitle}>Configurações</Text>
             <TouchableOpacity
-              style={styles.secondaryButton}
-              onPress={() => navigation.navigate('CurriculosAnalise')}
+              style={[styles.featureCard, styles.compactCard]}
+              onPress={() => {
+                console.log('Navegando para ConfiguracoesIA');
+                // Adicione uma verificação para ver se a navegação está funcionando
+                if (navigation && navigation.navigate) {
+                  try {
+                    navigation.navigate('ConfiguracoesIA');
+                  } catch (error) {
+                    console.error('Erro ao navegar:', error);
+                    Alert.alert('Erro', 'Não foi possível acessar essa tela no momento.');
+                  }
+                } else {
+                  console.error('Navigation não está disponível');
+                  Alert.alert('Erro', 'Navegação não disponível.');
+                }
+              }}
             >
-              <Text style={styles.secondaryButtonText}>Analisar Currículo</Text>
+              <Text style={styles.featureTitle}>Configurar IAs</Text>
+              <Text style={styles.featureDescription}>
+                Escolha qual IA usar para análise e configure suas chaves de API.
+              </Text>
             </TouchableOpacity>
           </View>
-        </View>
-        
-        <View style={styles.featureSection}>
-          <Text style={styles.featureSectionTitle}>Seus Currículos</Text>
-          <TouchableOpacity
-            style={[styles.featureCard, styles.compactCard]}
-            onPress={() => navigation.navigate('MeusCurriculos')}
-          >
-            <Text style={styles.featureTitle}>Gerenciar Currículos</Text>
-            <Text style={styles.featureDescription}>
-              Visualize, edite e compartilhe seus currículos salvos.
-            </Text>
-          </TouchableOpacity>
-        </View>
-        
-        <View style={styles.featureSection}>
-          <Text style={styles.featureSectionTitle}>Configurações</Text>
-          <TouchableOpacity
-            style={[styles.featureCard, styles.compactCard]}
-            onPress={() => navigation.navigate('ConfiguracoesIA')}
-          >
-            <Text style={styles.featureTitle}>Configurar IAs</Text>
-            <Text style={styles.featureDescription}>
-              Escolha qual IA usar para análise e configure suas chaves de API.
-            </Text>
-          </TouchableOpacity>
-        </View>
+          
+          {/* Seção Sobre */}
+          <View style={styles.featureSection}>
+            <Text style={styles.featureSectionTitle}>Sobre o App</Text>
+            <View style={[styles.featureCard, styles.compactCard]}>
+              <Text style={styles.featureTitle}>CurriculoBot Premium</Text>
+              <Text style={styles.featureDescription}>
+                Versão: 1.2.0
+              </Text>
+              <Text style={styles.featureDescription}>
+                Este aplicativo utiliza tecnologia de inteligência artificial para ajudar na criação e análise de currículos.
+              </Text>
+            </View>
+          </View>
+          
+          {/* Espaço adicional no final do scroll */}
+          <View style={{ height: 30 }} />
+        </ScrollView>
       </View>
     </SafeAreaView>
   );
@@ -3326,6 +3362,192 @@ const RootNavigator = () => {
 
 // Estilos
 const styles = StyleSheet.create({
+
+  aboutContainer: {
+    flex: 1,
+    padding: 20,
+  },
+  aboutSection: {
+    backgroundColor: Colors.white,
+    borderRadius: 10,
+    padding: 20,
+    marginBottom: 20,
+    ...Platform.select({
+      ios: {
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 2 },
+        shadowOpacity: 0.1,
+        shadowRadius: 4,
+      },
+      android: {
+        elevation: 2,
+      },
+    }),
+  },
+
+  typingDot: {
+    width: 8,
+    height: 8,
+    borderRadius: 4,
+    backgroundColor: Colors.primary,
+    marginHorizontal: 2,
+  },
+
+  chatContainer: {
+    flex: 1,
+    backgroundColor: '#f5f7fa', // Fundo mais claro e agradável
+  },
+  chatHeader: {
+    backgroundColor: Colors.primary,
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    padding: 16,
+    elevation: 3,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 3,
+  },
+  chatHeaderTitle: {
+    color: Colors.white,
+    fontSize: 18,
+    fontWeight: 'bold',
+  },
+  chatContent: {
+    flex: 1,
+    backgroundColor: '#f5f7fa',
+  },
+  
+  messageContainer: {
+    maxWidth: '80%',
+    padding: 12,
+    borderRadius: 18,
+    marginBottom: 12,
+    ...Platform.select({
+      ios: {
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 1 },
+        shadowOpacity: 0.1,
+        shadowRadius: 2,
+      },
+      android: {
+        elevation: 1,
+      },
+    }),
+  },
+  botMessageContainer: {
+    backgroundColor: Colors.white,
+    alignSelf: 'flex-start',
+    borderTopLeftRadius: 5,
+    borderLeftWidth: 3,
+    borderLeftColor: Colors.primary,
+  },
+  userMessageContainer: {
+    backgroundColor: Colors.primary,
+    alignSelf: 'flex-end',
+    borderTopRightRadius: 5,
+  },
+  messageText: {
+    fontSize: 16,
+    lineHeight: 22,
+  },
+  botMessageText: {
+    color: '#333333', // Cor mais escura para melhor contraste
+  },
+  userMessageText: {
+    color: '#ffffff', // Branco
+    textShadowColor: 'rgba(0, 0, 0, 0.15)',
+    textShadowOffset: { width: 0, height: 1 },
+    textShadowRadius: 1,
+  },
+  messageTime: {
+    fontSize: 11,
+    opacity: 0.7,
+    alignSelf: 'flex-end',
+    marginTop: 6,
+  },
+  
+  // Melhorar a área de digitação
+  inputContainer: {
+    flexDirection: 'row',
+    padding: 12,
+    backgroundColor: Colors.white,
+    borderTopWidth: 1,
+    borderTopColor: '#e5e5e5',
+    alignItems: 'center',
+  },
+  chatInput: {
+    flex: 1,
+    backgroundColor: '#f5f5f5',
+    borderRadius: 20,
+    paddingHorizontal: 15,
+    paddingVertical: 12,
+    marginRight: 10,
+    fontSize: 16,
+    borderWidth: 1,
+    borderColor: '#e0e0e0',
+  },
+  sendButton: {
+    backgroundColor: Colors.primary,
+    borderRadius: 24,
+    width: 48,
+    height: 48,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  sendButtonText: {
+    color: Colors.white,
+    fontWeight: 'bold',
+    fontSize: 18,
+  },
+  
+  // Opções de chat melhoradas
+  optionsContainer: {
+    padding: 12,
+    flexDirection: 'row',
+    backgroundColor: 'rgba(255,255,255,0.9)',
+    borderTopWidth: 1,
+    borderTopColor: '#e0e0e0',
+  },
+  optionButton: {
+    backgroundColor: Colors.white,
+    borderWidth: 1,
+    borderColor: Colors.primary,
+    borderRadius: 20,
+    paddingVertical: 10,
+    paddingHorizontal: 14,
+    marginRight: 10,
+    elevation: 1,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.1,
+    shadowRadius: 1,
+  },
+  optionText: {
+    color: Colors.primary,
+    fontSize: 14,
+    fontWeight: '500',
+  },
+  
+  // Indicador de digitação
+  typingContainer: {
+    padding: 10,
+    backgroundColor: 'rgba(255, 255, 255, 0.9)',
+    borderRadius: 16,
+    alignSelf: 'flex-start',
+    marginHorizontal: 15,
+    marginBottom: 10,
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  typingText: {
+    color: Colors.primary,
+    fontSize: 14,
+    marginLeft: 8,
+  },
+
+
   // Geral
   container: {
     flex: 1,
@@ -3460,9 +3682,6 @@ const styles = StyleSheet.create({
     padding: 30,
     paddingTop: 40,
   },
-  inputContainer: {
-    marginBottom: 20,
-  },
   inputLabel: {
     fontSize: 14,
     color: Colors.lightText,
@@ -3571,18 +3790,7 @@ const styles = StyleSheet.create({
     marginBottom: 15,
   },
   
-  // Chatbot
-  chatContainer: {
-    flex: 1,
-    backgroundColor: Colors.light,
-  },
-  chatHeader: {
-    backgroundColor: Colors.dark,
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    padding: 15,
-  },
+  
   chatBackButton: {
     width: 30,
     height: 30,
@@ -3607,10 +3815,6 @@ const styles = StyleSheet.create({
   previewToggleText: {
     color: Colors.white,
     fontSize: 12,
-  },
-  chatContent: {
-    flex: 1,
-    backgroundColor: '#f5f5f5',
   },
   messagesContainer: {
     padding: 15,
@@ -3638,102 +3842,6 @@ const styles = StyleSheet.create({
     color: Colors.dark,
     fontSize: 14,
   },
-  typingContainer: {
-    padding: 10,
-    backgroundColor: 'rgba(255, 255, 255, 0.7)',
-    borderRadius: 20,
-    alignSelf: 'flex-start',
-    marginHorizontal: 15,
-    marginBottom: 10,
-  },
-  typingText: {
-    color: Colors.lightText,
-    fontSize: 12,
-  },
-  chatInput: {
-    flex: 1,
-    backgroundColor: '#f5f5f5',
-    borderRadius: 20,
-    paddingHorizontal: 15,
-    paddingVertical: 10,
-    marginRight: 10,
-  },
-  sendButton: {
-    backgroundColor: Colors.primary,
-    borderRadius: 20,
-    paddingHorizontal: 15,
-    justifyContent: 'center',
-  },
-  sendButtonText: {
-    color: Colors.white,
-    fontWeight: 'bold',
-  },
-  
-  // Mensagens do Chat
-  messageContainer: {
-    maxWidth: '80%',
-    padding: 12,
-    borderRadius: 18,
-    marginBottom: 10,
-    ...Platform.select({
-      ios: {
-        shadowColor: '#000',
-        shadowOffset: { width: 0, height: 1 },
-        shadowOpacity: 0.1,
-        shadowRadius: 2,
-      },
-      android: {
-        elevation: 1,
-      },
-    }),
-  },
-  botMessageContainer: {
-    backgroundColor: Colors.white,
-    alignSelf: 'flex-start',
-    borderTopLeftRadius: 5,
-    borderLeftWidth: 3,
-    borderLeftColor: Colors.primary,
-  },
-  userMessageContainer: {
-    backgroundColor: Colors.primary,
-    alignSelf: 'flex-end',
-    borderTopRightRadius: 5,
-  },
-  messageText: {
-    fontSize: 16,
-  },
-  botMessageText: {
-    color: Colors.dark,
-  },
-  userMessageText: {
-    color: Colors.white,
-  },
-  messageTime: {
-    fontSize: 10,
-    color: 'rgba(0, 0, 0, 0.5)',
-    alignSelf: 'flex-end',
-    marginTop: 5,
-  },
-  
-  // Opções do Chat
-  optionsContainer: {
-    padding: 10,
-    flexDirection: 'row',
-  },
-  optionButton: {
-    backgroundColor: Colors.white,
-    borderWidth: 1,
-    borderColor: Colors.primary,
-    borderRadius: 20,
-    paddingVertical: 8,
-    paddingHorizontal: 12,
-    marginRight: 8,
-  },
-  optionText: {
-    color: Colors.primary,
-    fontSize: 14,
-  },
-  
   // Prévia do Currículo
   previewScroll: {
     flex: 1,
@@ -4297,6 +4405,10 @@ const styles = StyleSheet.create({
     color: Colors.white,
     fontWeight: 'bold',
     fontSize: 16,
+  },
+  homeScrollContent: {
+    paddingBottom: 30,
+    flexGrow: 1,
   },
   shareAnalysisButton: {
   backgroundColor: Colors.secondary,
