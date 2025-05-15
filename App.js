@@ -3279,7 +3279,7 @@ const CurriculosAnaliseScreen = ({ navigation }) => {
   );
 };
 
-// // Tela de Análise do CV com IA
+// Tela de Análise do CV com IA - Versão melhorada
 // Tela de Análise do CV com IA - Versão melhorada
 const AnaliseCVScreen = ({ route, navigation }) => {
   const { curriculoData } = route.params;
@@ -3292,6 +3292,8 @@ const AnaliseCVScreen = ({ route, navigation }) => {
   const [preferOffline, setPreferOffline] = useState(false);
   const [selectedIA, setSelectedIA] = useState('GEMINI');
   const [iaOptions, setIaOptions] = useState([]);
+  const [detalhado, setDetalhado] = useState(false); // Estado para controlar análise detalhada
+  const [showCharts, setShowCharts] = useState(false); // Estado para mostrar/esconder gráficos
   
   // Alteração: Adicionar um ID de currículo atual para controle
   const [currentCurriculoId, setCurrentCurriculoId] = useState(null);
@@ -3310,7 +3312,7 @@ const AnaliseCVScreen = ({ route, navigation }) => {
   
   useEffect(() => {
     fetchAnalise();
-  }, [activeTab, preferOffline, selectedIA]);
+  }, [activeTab, preferOffline, selectedIA, detalhado]); // Adicionei 'detalhado' como dependência
   
   const carregarIAsConfiguradas = async () => {
     try {
@@ -3341,7 +3343,89 @@ const AnaliseCVScreen = ({ route, navigation }) => {
     }
   };
   
-  // Alteração: Melhorar a função fetchAnalise para aceitar parâmetro forceRefresh
+  // Função para gerar dados de gráficos com base no currículo
+  const gerarDadosGraficos = () => {
+    if (!curriculoData || !curriculoData.data) {
+      return null;
+    }
+    
+    // Dados do currículo
+    const cv = curriculoData.data;
+    
+    // Gerar dados para o gráfico de habilidades
+    const gerarDadosHabilidades = () => {
+      // Conjunto para armazenar habilidades únicas
+      const habilidadesSet = new Set();
+      
+      // Extrair habilidades de projetos
+      if (cv.projetos && cv.projetos.length > 0) {
+        cv.projetos.forEach(projeto => {
+          if (projeto.habilidades) {
+            projeto.habilidades.split(',').forEach(hab => {
+              habilidadesSet.add(hab.trim());
+            });
+          }
+        });
+      }
+      
+      // Converter para array de objetos para o gráfico
+      const habilidadesArray = Array.from(habilidadesSet).map(habilidade => ({
+        nome: habilidade,
+        valor: Math.floor(Math.random() * 5) + 5 // Valor aleatório entre 5-10 (demo)
+      }));
+      
+      return habilidadesArray.slice(0, 8); // Limitar a 8 habilidades para o gráfico
+    };
+    
+    // Gerar dados para o gráfico de experiência
+    const gerarDadosExperiencia = () => {
+      if (!cv.experiencias || cv.experiencias.length === 0) {
+        return [];
+      }
+      
+      return cv.experiencias.map(exp => {
+        // Calcular duração aproximada em meses
+        let inicio = exp.data_inicio ? new Date(exp.data_inicio) : new Date();
+        let fim = exp.data_fim && exp.data_fim.toLowerCase() !== 'atual' 
+          ? new Date(exp.data_fim) 
+          : new Date();
+        
+        // Se as datas não são objetos Date válidos, usar valores padrão
+        if (isNaN(inicio.getTime())) inicio = new Date('2020-01-01');
+        if (isNaN(fim.getTime())) fim = new Date();
+        
+        const diferencaMeses = (fim.getFullYear() - inicio.getFullYear()) * 12 +
+                              (fim.getMonth() - inicio.getMonth());
+        
+        return {
+          empresa: exp.empresa || 'Empresa',
+          cargo: exp.cargo || 'Cargo',
+          duracao: Math.max(1, diferencaMeses || 6) // Pelo menos 1 mês
+        };
+      });
+    };
+    
+    // Gerar dados para pontuação por área
+    const gerarDadosPontuacao = () => {
+      const pontuacoes = {
+        'Experiência': cv.experiencias && cv.experiencias.length > 0 ? Math.min(10, cv.experiencias.length * 2) : 3,
+        'Formação': cv.formacoes_academicas && cv.formacoes_academicas.length > 0 ? Math.min(10, cv.formacoes_academicas.length * 3) : 4,
+        'Projetos': cv.projetos && cv.projetos.length > 0 ? Math.min(10, cv.projetos.length * 2.5) : 2,
+        'Cursos': cv.cursos && cv.cursos.length > 0 ? Math.min(10, cv.cursos.length * 2) : 3,
+        'Idiomas': cv.idiomas && cv.idiomas.length > 0 ? Math.min(10, cv.idiomas.length * 3) : 5
+      };
+      
+      return Object.entries(pontuacoes).map(([area, valor]) => ({ area, valor }));
+    };
+    
+    return {
+      habilidades: gerarDadosHabilidades(),
+      experiencia: gerarDadosExperiencia(),
+      pontuacao: gerarDadosPontuacao()
+    };
+  };
+  
+  // Alteração: Melhorar a função fetchAnalise para incluir modo detalhado e aceitar parâmetro forceRefresh
   const fetchAnalise = async (forceRefresh = false) => {
     // Não recarrega se já estiver carregando, a menos que seja forçado
     if (loading && !forceRefresh) return;
@@ -3364,11 +3448,20 @@ const AnaliseCVScreen = ({ route, navigation }) => {
         throw new Error("Dados do currículo inválidos");
       }
       
+      // Configurar objeto com parâmetros adicionais para análise detalhada
+      const opcoesAnalise = {
+        analiseDetalhada: detalhado,  // Nova opção para controlar nível de detalhe
+        tipoAnalise: activeTab,
+        maxTokens: detalhado ? 1500 : 800  // Aumenta o limite de tokens para análises detalhadas
+      };
+      
+      // Passar as opções adicionais para a função de análise
       const resultado = await analisarCurriculoComIA(
         curriculoData.data, 
         activeTab, 
         tipoIA,
-        preferOffline
+        preferOffline,
+        opcoesAnalise  // Novo parâmetro com opções adicionais
       );
       
       if (resultado.offline || tipoIA === 'OFFLINE') {
@@ -3391,6 +3484,17 @@ const AnaliseCVScreen = ({ route, navigation }) => {
   
   const toggleOfflineMode = () => {
     setPreferOffline(!preferOffline);
+  };
+  
+  // Toggle para modo detalhado
+  const toggleModoDetalhado = () => {
+    setDetalhado(!detalhado);
+    // A análise será atualizada automaticamente pelo useEffect
+  };
+  
+  // Toggle para mostrar/esconder gráficos
+  const toggleShowCharts = () => {
+    setShowCharts(!showCharts);
   };
   
   // Render do seletor de IA
@@ -3454,6 +3558,62 @@ const AnaliseCVScreen = ({ route, navigation }) => {
           </TouchableOpacity>
         ))}
       </ScrollView>
+      
+      {/* Nova linha com opções adicionais */}
+      <View style={{
+        flexDirection: 'row',
+        justifyContent: 'space-between',
+        marginTop: 10,
+      }}>
+        {/* Toggle para modo detalhado */}
+        <TouchableOpacity
+          style={{
+            flexDirection: 'row',
+            alignItems: 'center',
+            backgroundColor: detalhado ? Colors.primary : 'transparent',
+            borderWidth: 1,
+            borderColor: Colors.primary,
+            borderRadius: 5,
+            paddingHorizontal: 10,
+            paddingVertical: 6,
+          }}
+          onPress={toggleModoDetalhado}
+        >
+          <Text
+            style={{
+              color: detalhado ? Colors.white : Colors.primary,
+              fontSize: 14,
+            }}
+          >
+            {detalhado ? 'Análise Detalhada ✓' : 'Análise Simples'}
+          </Text>
+        </TouchableOpacity>
+        
+        {/* Botão para visualização de gráficos */}
+        <TouchableOpacity
+          style={{
+            flexDirection: 'row',
+            alignItems: 'center',
+            backgroundColor: showCharts ? Colors.info : 'transparent',
+            borderWidth: 1,
+            borderColor: Colors.info,
+            borderRadius: 5,
+            paddingHorizontal: 10,
+            paddingVertical: 6,
+          }}
+          onPress={toggleShowCharts}
+        >
+          <Text
+            style={{
+              color: showCharts ? Colors.white : Colors.info,
+              fontSize: 14,
+            }}
+          >
+            {showCharts ? 'Esconder Gráficos' : 'Visualizar Gráficos'}
+          </Text>
+        </TouchableOpacity>
+      </View>
+      
       {providerInfo && (
         <Text style={styles.providerInfo}>
           Análise fornecida por: {providerInfo}
@@ -3461,6 +3621,179 @@ const AnaliseCVScreen = ({ route, navigation }) => {
       )}
     </View>
   );
+  
+  // Renderização dos gráficos
+  const renderCharts = () => {
+    const dadosGraficos = gerarDadosGraficos();
+    
+    if (!dadosGraficos) {
+      return (
+        <View style={{ padding: 15, alignItems: 'center' }}>
+          <Text>Não foi possível gerar gráficos com os dados atuais.</Text>
+        </View>
+      );
+    }
+    
+    return (
+      <View style={{ 
+        backgroundColor: '#f9f9f9', 
+        marginHorizontal: 15, 
+        marginBottom: 20,
+        borderRadius: 10,
+        padding: 15,
+        elevation: 2,
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 1 },
+        shadowOpacity: 0.1,
+        shadowRadius: 2,
+      }}>
+        <Text style={{ 
+          fontSize: 18, 
+          fontWeight: 'bold', 
+          marginBottom: 15,
+          color: Colors.dark,
+          textAlign: 'center',
+        }}>
+          Visualização Gráfica do Currículo
+        </Text>
+        
+        {/* Gráfico de Pontuação por Área */}
+        <View style={{ marginBottom: 20 }}>
+          <Text style={{ 
+            fontSize: 16, 
+            fontWeight: 'bold', 
+            marginBottom: 10,
+            color: Colors.dark,
+          }}>
+            Pontuação por Área
+          </Text>
+          
+          {/* Renderização do gráfico de barras horizontal */}
+          {dadosGraficos.pontuacao.map((item, index) => (
+            <View key={index} style={{ marginBottom: 8 }}>
+              <View style={{ flexDirection: 'row', justifyContent: 'space-between' }}>
+                <Text>{item.area}</Text>
+                <Text>{item.valor.toFixed(1)}/10</Text>
+              </View>
+              <View style={{ 
+                height: 10, 
+                backgroundColor: Colors.mediumGray, 
+                borderRadius: 5,
+                marginTop: 5,
+              }}>
+                <View style={{ 
+                  width: `${item.valor * 10}%`, 
+                  height: '100%', 
+                  backgroundColor: getBarColor(item.valor),
+                  borderRadius: 5,
+                }} />
+              </View>
+            </View>
+          ))}
+        </View>
+        
+        {/* Gráfico de Habilidades */}
+        {dadosGraficos.habilidades.length > 0 && (
+          <View style={{ marginBottom: 20 }}>
+            <Text style={{ 
+              fontSize: 16, 
+              fontWeight: 'bold', 
+              marginBottom: 10,
+              color: Colors.dark,
+            }}>
+              Principais Habilidades
+            </Text>
+            
+            <View style={{ flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'space-between' }}>
+              {dadosGraficos.habilidades.map((item, index) => (
+                <View key={index} style={{ 
+                  width: '48%', 
+                  backgroundColor: Colors.white,
+                  padding: 10,
+                  borderRadius: 5,
+                  marginBottom: 10,
+                  borderLeftWidth: 3,
+                  borderLeftColor: Colors.primary,
+                  elevation: 1,
+                  shadowColor: '#000',
+                  shadowOffset: { width: 0, height: 1 },
+                  shadowOpacity: 0.1,
+                  shadowRadius: 1,
+                }}>
+                  <Text style={{ fontWeight: 'bold' }}>{item.nome}</Text>
+                  <View style={{ flexDirection: 'row', marginTop: 5 }}>
+                    {Array(10).fill(0).map((_, i) => (
+                      <View 
+                        key={i} 
+                        style={{ 
+                          width: 8, 
+                          height: 8, 
+                          borderRadius: 4,
+                          backgroundColor: i < item.valor ? Colors.primary : Colors.mediumGray,
+                          marginRight: 2,
+                        }} 
+                      />
+                    ))}
+                  </View>
+                </View>
+              ))}
+            </View>
+          </View>
+        )}
+        
+        {/* Gráfico de Experiência Profissional */}
+        {dadosGraficos.experiencia.length > 0 && (
+          <View>
+            <Text style={{ 
+              fontSize: 16, 
+              fontWeight: 'bold', 
+              marginBottom: 10,
+              color: Colors.dark,
+            }}>
+              Experiência Profissional
+            </Text>
+            
+            {dadosGraficos.experiencia.map((item, index) => (
+              <View key={index} style={{ marginBottom: 10 }}>
+                <Text style={{ fontWeight: 'bold' }}>{item.cargo} - {item.empresa}</Text>
+                <View style={{ 
+                  flexDirection: 'row', 
+                  alignItems: 'center',
+                  marginTop: 5,
+                }}>
+                  <View style={{ 
+                    width: `${Math.min(100, item.duracao * 2)}%`,
+                    maxWidth: '80%', 
+                    height: 20, 
+                    backgroundColor: Colors.primary,
+                    borderRadius: 5,
+                    justifyContent: 'center',
+                    paddingHorizontal: 5,
+                  }}>
+                    <Text style={{ 
+                      color: Colors.white, 
+                      fontSize: 12,
+                      textAlign: 'center',
+                    }}>
+                      {item.duracao} {item.duracao === 1 ? 'mês' : 'meses'}
+                    </Text>
+                  </View>
+                </View>
+              </View>
+            ))}
+          </View>
+        )}
+      </View>
+    );
+  };
+  
+  // Função para determinar a cor da barra com base no valor
+  const getBarColor = (valor) => {
+    if (valor >= 8) return Colors.success;
+    if (valor >= 5) return Colors.primary;
+    if (valor >= 3) return Colors.warning;
+    return Colors.danger;
+  };
   
   return (
     <SafeAreaView style={styles.container}>
@@ -3594,10 +3927,33 @@ const AnaliseCVScreen = ({ route, navigation }) => {
         </View>
       )}
       
+      {detalhado && !usingOfflineMode && (
+        <View style={{
+          backgroundColor: '#e1f5fe',
+          padding: 10,
+          borderRadius: 5,
+          marginHorizontal: 15,
+          marginBottom: 10,
+          borderLeftWidth: 3,
+          borderLeftColor: Colors.info,
+        }}>
+          <Text style={{ color: '#01579b', fontSize: 14 }}>
+            Modo detalhado ativado - Análise mais completa e aprofundada
+          </Text>
+        </View>
+      )}
+      
+      {/* Visualização de gráficos */}
+      {showCharts && !loading && !error && renderCharts()}
+      
       {loading ? (
         <View style={styles.loadingAnalysisContainer}>
           <ActivityIndicator size="large" color={Colors.primary} />
-          <Text style={styles.loadingAnalysisText}>Analisando seu currículo...</Text>
+          <Text style={styles.loadingAnalysisText}>
+            {detalhado 
+              ? 'Realizando análise detalhada do currículo...' 
+              : 'Analisando seu currículo...'}
+          </Text>
         </View>
       ) : error ? (
         <View style={styles.errorContainer}>
