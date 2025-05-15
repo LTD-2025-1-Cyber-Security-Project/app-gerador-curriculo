@@ -1096,36 +1096,44 @@ const ChatMessage = ({ message, isUser, time }) => (
   </View>
 );
 
+// Substitua todo o componente ChatOptions por esta versão completa:
+
 const ChatOptions = ({ options, onSelect }) => {
   if (!options || options.length === 0) return null;
   
-  // Verificar se são opções de área (comparando com os valores específicos)
-  const isAreaOptions = options.includes('Tecnologia da Informação') || 
-                       options.includes('Saúde') ||
-                       options.includes('Educação');
+  // Identificar se são opções longas
+  const hasLongOptions = options.some(option => option.length > 10);
+  
+  // Verificar se são opções de áreas específicas
+  const isAreaStep = options.includes('Tecnologia da Informação') || 
+                     options.includes('Administração');
   
   return (
     <ScrollView 
       horizontal 
       showsHorizontalScrollIndicator={false}
-      contentContainerStyle={[
-        styles.optionsContainer,
-        isAreaOptions && styles.areaOptionsContainer // Estilo adicional para área
-      ]}
+      contentContainerStyle={styles.optionsContainer}
     >
       {options.map((option, index) => (
         <TouchableOpacity
           key={index}
           style={[
             styles.optionButton,
-            isAreaOptions && styles.areaOptionButton // Estilo adicional para área
+            hasLongOptions && styles.longOptionButton,
+            isAreaStep && styles.areaOptionButton
           ]}
           onPress={() => onSelect(option)}
         >
-          <Text style={[
-            styles.optionText,
-            isAreaOptions && styles.areaOptionText // Estilo adicional para área
-          ]}>{option}</Text>
+          <Text 
+            style={[
+              styles.optionText,
+              hasLongOptions && styles.longOptionText
+            ]}
+            adjustsFontSizeToFit={true}
+            numberOfLines={2}
+          >
+            {option}
+          </Text>
         </TouchableOpacity>
       ))}
     </ScrollView>
@@ -3965,22 +3973,33 @@ const styles = StyleSheet.create({
     backgroundColor: Colors.white,
     borderWidth: 1,
     borderColor: Colors.primary,
-    borderRadius: 16, // Reduzido de 20
-    paddingVertical: 8, // Reduzido de 10
-    paddingHorizontal: 12, // Reduzido de 14
-    marginRight: 8, // Reduzido de 10
+    borderRadius: 12,
+    paddingVertical: 12, // Aumentado de 10 para 12
+    paddingHorizontal: 16, // Aumentado de 14 para 16
+    marginRight: 10,
+    marginBottom: 5,
+    minWidth: 110, // Aumentado de 100 para 110
+    justifyContent: 'center',
     elevation: 1,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 1 },
     shadowOpacity: 0.1,
     shadowRadius: 1,
   },
+  longOptionButton: {
+    minWidth: 155, // Aumentado de 140 para 155
+    paddingHorizontal: 18, // Aumentado de 16 para 18
+    height: 'auto',
+  },
   optionText: {
     color: Colors.primary,
-    fontSize: 14,
-    fontWeight: '500',
+    fontSize: 16, // Aumentado de 14 para 16
+    fontWeight: '600', // Aumentado de 500 para 600 (mais negrito)
+    textAlign: 'center',
   },
-  
+  longOptionText: {
+    fontSize: 15, // Aumentado de 13 para 15
+  },
   // Indicador de digitação
   typingContainer: {
     padding: 10,
@@ -5034,22 +5053,20 @@ const styles = StyleSheet.create({
     marginBottom: 5,
     lineHeight: 20,
   },
-
   areaOptionsContainer: {
     paddingVertical: 15, // Mais espaço para opções de área
     flexWrap: 'wrap', // Permitir quebra de linha se necessário
     justifyContent: 'center',
   },
   areaOptionButton: {
-    marginBottom: 8, // Garantir espaço entre linhas
-    backgroundColor: 'rgba(0, 188, 212, 0.1)', // Fundo mais visível
-    borderWidth: 1,
-    borderColor: Colors.primary,
+    minWidth: 175, // Aumentado de 160 para 175
+    paddingHorizontal: 20, // Aumentado de 18 para 20
+    marginHorizontal: 5,
+    height: 'auto',
   },
   areaOptionText: {
     fontWeight: 'bold', // Texto mais destacado
   },
-
 });
 
 // Componente principal
