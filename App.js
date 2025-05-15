@@ -3279,7 +3279,8 @@ const CurriculosAnaliseScreen = ({ navigation }) => {
   );
 };
 
-// Tela de Análise do CV com IA
+// // Tela de Análise do CV com IA
+// Tela de Análise do CV com IA - Versão melhorada
 const AnaliseCVScreen = ({ route, navigation }) => {
   const { curriculoData } = route.params;
   const [activeTab, setActiveTab] = useState('pontuacao');
@@ -3292,9 +3293,20 @@ const AnaliseCVScreen = ({ route, navigation }) => {
   const [selectedIA, setSelectedIA] = useState('GEMINI');
   const [iaOptions, setIaOptions] = useState([]);
   
+  // Alteração: Adicionar um ID de currículo atual para controle
+  const [currentCurriculoId, setCurrentCurriculoId] = useState(null);
+  
   useEffect(() => {
     carregarIAsConfiguradas();
   }, []);
+  
+  // Alteração: Atualizar o ID do currículo atual quando mudar
+  useEffect(() => {
+    if (curriculoData && curriculoData.id !== currentCurriculoId) {
+      setCurrentCurriculoId(curriculoData.id);
+      fetchAnalise(true); // Forçar nova análise quando currículo mudar
+    }
+  }, [curriculoData]);
   
   useEffect(() => {
     fetchAnalise();
@@ -3304,27 +3316,24 @@ const AnaliseCVScreen = ({ route, navigation }) => {
     try {
       // Carregar IA padrão
       const defaultIA = await AsyncStorage.getItem('ia_padrao');
-      if (defaultIA && IA_APIS[defaultIA]) {
+      if (defaultIA && IA_APIS[defaultIA] && defaultIA !== 'OPENAI') {
         setSelectedIA(defaultIA);
       }
       
       // Verificar quais IAs estão configuradas
       const options = [];
       for (const [key, value] of Object.entries(IA_APIS)) {
-        const apiKey = await getIAAPIKey(key);
-        if (!value.chaveNecessaria || apiKey) {
-          options.push({
-            id: key,
-            nome: value.nome
-          });
+        // Alteração: Excluir OPENAI (ChatGPT) das opções
+        if (key !== 'OPENAI') {
+          const apiKey = await getIAAPIKey(key);
+          if (!value.chaveNecessaria || apiKey) {
+            options.push({
+              id: key,
+              nome: value.nome
+            });
+          }
         }
       }
-      
-      // Sempre incluir o modo offline
-      // options.push({
-      //   id: 'OFFLINE',
-      //   nome: 'Modo Offline'
-      // });
       
       setIaOptions(options);
     } catch (error) {
@@ -3332,14 +3341,29 @@ const AnaliseCVScreen = ({ route, navigation }) => {
     }
   };
   
-  const fetchAnalise = async () => {
+  // Alteração: Melhorar a função fetchAnalise para aceitar parâmetro forceRefresh
+  const fetchAnalise = async (forceRefresh = false) => {
+    // Não recarrega se já estiver carregando, a menos que seja forçado
+    if (loading && !forceRefresh) return;
+    
     setLoading(true);
     setError(null);
     setUsingOfflineMode(false);
     setProviderInfo(null);
     
+    // Limpar resultado anterior se for um currículo diferente ou forçar refresh
+    if (forceRefresh) {
+      setAnaliseResultado(null);
+    }
+    
     try {
       const tipoIA = selectedIA === 'OFFLINE' ? 'OFFLINE' : selectedIA;
+      
+      // Verificar se curriculoData existe e tem dados
+      if (!curriculoData || !curriculoData.data) {
+        throw new Error("Dados do currículo inválidos");
+      }
+      
       const resultado = await analisarCurriculoComIA(
         curriculoData.data, 
         activeTab, 
@@ -3359,7 +3383,7 @@ const AnaliseCVScreen = ({ route, navigation }) => {
       }
     } catch (error) {
       console.error('Erro ao buscar análise:', error);
-      setError('Ocorreu um erro ao analisar o currículo');
+      setError('Ocorreu um erro ao analisar o currículo. ' + error.message);
     } finally {
       setLoading(false);
     }
@@ -3372,7 +3396,39 @@ const AnaliseCVScreen = ({ route, navigation }) => {
   // Render do seletor de IA
   const renderIASelector = () => (
     <View style={styles.iaSelectorContainer}>
-      <Text style={styles.iaSelectorLabel}>Analisar com:</Text>
+      <View style={{
+        flexDirection: 'row',
+        justifyContent: 'space-between',
+        alignItems: 'center',
+        marginBottom: 8,
+      }}>
+        <Text style={styles.iaSelectorLabel}>Analisar com:</Text>
+        
+        {/* Alteração: Adicionar botão de atualizar */}
+        <TouchableOpacity 
+          style={{
+            backgroundColor: Colors.secondary,
+            paddingVertical: 6,
+            paddingHorizontal: 12,
+            borderRadius: 5,
+            flexDirection: 'row',
+            alignItems: 'center',
+          }}
+          onPress={() => fetchAnalise(true)}
+          disabled={loading}
+        >
+          {loading ? (
+            <ActivityIndicator size="small" color={Colors.white} />
+          ) : (
+            <Text style={{
+              color: Colors.white,
+              fontSize: 14,
+              fontWeight: '500',
+            }}>Atualizar</Text>
+          )}
+        </TouchableOpacity>
+      </View>
+      
       <ScrollView 
         horizontal 
         showsHorizontalScrollIndicator={false}
@@ -3548,7 +3604,7 @@ const AnaliseCVScreen = ({ route, navigation }) => {
           <Text style={styles.errorText}>{error}</Text>
           <TouchableOpacity
             style={styles.retryButton}
-            onPress={() => fetchAnalise()}
+            onPress={() => fetchAnalise(true)}
           >
             <Text style={styles.retryButtonText}>Tentar Novamente</Text>
           </TouchableOpacity>
