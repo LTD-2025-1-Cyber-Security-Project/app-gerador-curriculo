@@ -1943,11 +1943,167 @@ const formatDate = (dateString) => {
 };
 
 // Componente para configuração de IAs
+// const ConfiguracoesIAScreen = ({ navigation }) => {
+//   const [iasSalvas, setIasSalvas] = useState({});
+//   const [iaAtual, setIaAtual] = useState('GEMINI');
+//   const [apiKey, setApiKey] = useState('');
+//   const [isSaving, setIsSaving] = useState(false);
+  
+//   useEffect(() => {
+//     carregarConfiguracoes();
+//   }, []);
+  
+//   const carregarConfiguracoes = async () => {
+//     try {
+//       // Carregar IA padrão
+//       const defaultIA = await AsyncStorage.getItem('ia_padrao');
+//       if (defaultIA) setIaAtual(defaultIA);
+      
+//       // Carregar status das IAs
+//       const iasStatus = {};
+//       for (const [key, value] of Object.entries(IA_APIS)) {
+//         const apiKey = await getIAAPIKey(key);
+//         iasStatus[key] = {
+//           configurada: value.chaveNecessaria ? !!apiKey : true,
+//           apiKey: apiKey
+//         };
+//       }
+      
+//       setIasSalvas(iasStatus);
+      
+//       // Carregar a API key da IA selecionada
+//       if (defaultIA) {
+//         const currentKey = await getIAAPIKey(defaultIA);
+//         setApiKey(currentKey);
+//       }
+//     } catch (error) {
+//       console.error('Erro ao carregar configurações:', error);
+//       Alert.alert('Erro', 'Não foi possível carregar as configurações das IAs.');
+//     }
+//   };
+  
+//   const salvarConfiguracao = async () => {
+//     setIsSaving(true);
+//     try {
+//       // Salvar a IA padrão
+//       await AsyncStorage.setItem('ia_padrao', iaAtual);
+      
+//       // Salvar a API key da IA selecionada
+//       await salvarIAAPIKey(iaAtual, apiKey);
+      
+//       // Atualizar o estado
+//       const novasIasSalvas = { ...iasSalvas };
+//       novasIasSalvas[iaAtual] = {
+//         configurada: IA_APIS[iaAtual].chaveNecessaria ? !!apiKey : true,
+//         apiKey: apiKey
+//       };
+//       setIasSalvas(novasIasSalvas);
+      
+//       Alert.alert('Sucesso', `Configuração de ${IA_APIS[iaAtual].nome} salva com sucesso!`);
+//     } catch (error) {
+//       console.error('Erro ao salvar configuração:', error);
+//       Alert.alert('Erro', 'Não foi possível salvar a configuração.');
+//     } finally {
+//       setIsSaving(false);
+//     }
+//   };
+  
+//   const selecionarIA = async (tipoIA) => {
+//     setIaAtual(tipoIA);
+//     const key = await getIAAPIKey(tipoIA);
+//     setApiKey(key || '');
+//   };
+  
+//   return (
+//     <SafeAreaView style={styles.container}>
+//       <StatusBar barStyle="light-content" backgroundColor={Colors.dark} />
+      
+//       <View style={styles.header}>
+//         <TouchableOpacity
+//           style={styles.backButton}
+//           onPress={() => navigation.goBack()}
+//         >
+//           <Text style={styles.backButtonText}>‹</Text>
+//         </TouchableOpacity>
+//         <Text style={styles.headerTitle}>Configurar IAs</Text>
+//       </View>
+      
+//       <ScrollView style={styles.configContent}>
+//         <Text style={styles.configTitle}>Selecione uma IA para configurar:</Text>
+        
+//         <View style={styles.iasList}>
+//           {Object.entries(IA_APIS).map(([key, value]) => (
+//             <TouchableOpacity
+//               key={key}
+//               style={[
+//                 styles.iaItem,
+//                 iaAtual === key && styles.iaItemSelected
+//               ]}
+//               onPress={() => selecionarIA(key)}
+//             >
+//               <Text style={[
+//                 styles.iaItemText,
+//                 iaAtual === key && styles.iaItemTextSelected
+//               ]}>
+//                 {value.nome}
+//               </Text>
+//               {iasSalvas[key]?.configurada && (
+//                 <View style={styles.configuredBadge}>
+//                   <Text style={styles.configuredBadgeText}>✓</Text>
+//                 </View>
+//               )}
+//             </TouchableOpacity>
+//           ))}
+//         </View>
+        
+//         {IA_APIS[iaAtual]?.chaveNecessaria ? (
+//           <View style={styles.apiKeyContainer}>
+//             <Text style={styles.apiKeyLabel}>
+//               API Key para {IA_APIS[iaAtual]?.nome}:
+//             </Text>
+//             <TextInput
+//               style={styles.apiKeyInput}
+//               value={apiKey}
+//               onChangeText={setApiKey}
+//               placeholder="Insira sua API Key aqui"
+//               secureTextEntry={true}
+//             />
+//             <Text style={styles.apiKeyHelper}>
+//               Você pode obter sua API Key em: {getApiKeySourceForIA(iaAtual)}
+//             </Text>
+//           </View>
+//         ) : (
+//           <View style={styles.noApiKeyContainer}>
+//             <Text style={styles.noApiKeyText}>
+//               {IA_APIS[iaAtual]?.nome} não necessita de API Key.
+//             </Text>
+//           </View>
+//         )}
+        
+//         <TouchableOpacity
+//           style={[
+//             styles.saveButton,
+//             (isSaving) && styles.saveButtonDisabled
+//           ]}
+//           onPress={salvarConfiguracao}
+//           disabled={isSaving}
+//         >
+//           {isSaving ? (
+//             <ActivityIndicator size="small" color={Colors.white} />
+//           ) : (
+//             <Text style={styles.saveButtonText}>Salvar Configuração</Text>
+//           )}
+//         </TouchableOpacity>
+//       </ScrollView>
+//     </SafeAreaView>
+//   );
+// };
 const ConfiguracoesIAScreen = ({ navigation }) => {
   const [iasSalvas, setIasSalvas] = useState({});
   const [iaAtual, setIaAtual] = useState('GEMINI');
   const [apiKey, setApiKey] = useState('');
   const [isSaving, setIsSaving] = useState(false);
+  const [showApiKey, setShowApiKey] = useState(false);
   
   useEffect(() => {
     carregarConfiguracoes();
@@ -2014,6 +2170,35 @@ const ConfiguracoesIAScreen = ({ navigation }) => {
     setApiKey(key || '');
   };
   
+  const obterUrlAjuda = (tipoIA) => {
+    switch(tipoIA) {
+      case 'GEMINI':
+        return 'https://ai.google.dev/tutorials/setup';
+      case 'OPENAI':
+        return 'https://platform.openai.com/api-keys';
+      case 'CLAUDE':
+        return 'https://console.anthropic.com/settings/keys';
+      case 'PERPLEXITY':
+        return 'https://www.perplexity.ai/settings/api';
+      default:
+        return null;
+    }
+  };
+  
+  const abrirUrlAjuda = (tipoIA) => {
+    const url = obterUrlAjuda(tipoIA);
+    if (url) {
+      Alert.alert(
+        "Abrir site externo",
+        `Deseja abrir o site de ${IA_APIS[tipoIA].nome} para obter sua API key?`,
+        [
+          { text: "Cancelar", style: "cancel" },
+          { text: "Abrir", onPress: () => { /* Implementar abertura de URL */ } }
+        ]
+      );
+    }
+  };
+  
   return (
     <SafeAreaView style={styles.container}>
       <StatusBar barStyle="light-content" backgroundColor={Colors.dark} />
@@ -2029,47 +2214,84 @@ const ConfiguracoesIAScreen = ({ navigation }) => {
       </View>
       
       <ScrollView style={styles.configContent}>
+        <View style={styles.configCard}>
+          <Text style={styles.configIntroTitle}>Configure suas IAs</Text>
+          <Text style={styles.configIntroText}>
+            Adicione suas chaves de API para utilizar diferentes modelos de IA 
+            na análise de currículos. Uma chave API é necessária para cada serviço.
+          </Text>
+        </View>
+        
         <Text style={styles.configTitle}>Selecione uma IA para configurar:</Text>
         
-        <View style={styles.iasList}>
+        <ScrollView 
+          horizontal 
+          showsHorizontalScrollIndicator={false}
+          contentContainerStyle={styles.iaCardsContainer}
+        >
           {Object.entries(IA_APIS).map(([key, value]) => (
             <TouchableOpacity
               key={key}
               style={[
-                styles.iaItem,
-                iaAtual === key && styles.iaItemSelected
+                styles.iaCard,
+                iaAtual === key && styles.iaCardSelected
               ]}
               onPress={() => selecionarIA(key)}
             >
-              <Text style={[
-                styles.iaItemText,
-                iaAtual === key && styles.iaItemTextSelected
-              ]}>
-                {value.nome}
+              <View style={styles.iaCardHeader}>
+                <Text style={[
+                  styles.iaCardTitle,
+                  iaAtual === key && styles.iaCardTitleSelected
+                ]}>
+                  {value.nome}
+                </Text>
+                {iasSalvas[key]?.configurada && (
+                  <View style={styles.configuredBadge}>
+                    <Text style={styles.configuredBadgeText}>✓</Text>
+                  </View>
+                )}
+              </View>
+              <Text style={styles.iaCardDescription}>
+                {value.chaveNecessaria ? "Requer API Key" : "Não requer API Key"}
               </Text>
-              {iasSalvas[key]?.configurada && (
-                <View style={styles.configuredBadge}>
-                  <Text style={styles.configuredBadgeText}>✓</Text>
-                </View>
-              )}
             </TouchableOpacity>
           ))}
-        </View>
+        </ScrollView>
         
         {IA_APIS[iaAtual]?.chaveNecessaria ? (
           <View style={styles.apiKeyContainer}>
-            <Text style={styles.apiKeyLabel}>
-              API Key para {IA_APIS[iaAtual]?.nome}:
-            </Text>
-            <TextInput
-              style={styles.apiKeyInput}
-              value={apiKey}
-              onChangeText={setApiKey}
-              placeholder="Insira sua API Key aqui"
-              secureTextEntry={true}
-            />
+            <View style={styles.apiKeyHeader}>
+              <Text style={styles.apiKeyLabel}>
+                API Key para {IA_APIS[iaAtual]?.nome}:
+              </Text>
+              <TouchableOpacity
+                onPress={() => abrirUrlAjuda(iaAtual)}
+                style={styles.helpButton}
+              >
+                <Text style={styles.helpButtonText}>Como obter?</Text>
+              </TouchableOpacity>
+            </View>
+            
+            <View style={styles.apiKeyInputContainer}>
+              <TextInput
+                style={styles.apiKeyInput}
+                value={apiKey}
+                onChangeText={setApiKey}
+                placeholder="Insira sua API Key aqui"
+                secureTextEntry={!showApiKey}
+              />
+              <TouchableOpacity 
+                style={styles.toggleVisibilityButton}
+                onPress={() => setShowApiKey(!showApiKey)}
+              >
+                <Text style={styles.toggleVisibilityText}>
+                  {showApiKey ? "Ocultar" : "Mostrar"}
+                </Text>
+              </TouchableOpacity>
+            </View>
+            
             <Text style={styles.apiKeyHelper}>
-              Você pode obter sua API Key em: {getApiKeySourceForIA(iaAtual)}
+              A API Key é necessária para usar os recursos de {IA_APIS[iaAtual]?.nome}.
             </Text>
           </View>
         ) : (
@@ -2094,6 +2316,13 @@ const ConfiguracoesIAScreen = ({ navigation }) => {
             <Text style={styles.saveButtonText}>Salvar Configuração</Text>
           )}
         </TouchableOpacity>
+        
+        <View style={styles.tipsContainer}>
+          <Text style={styles.tipsTitle}>Dicas:</Text>
+          <Text style={styles.tipItem}>• O Google Gemini já vem com uma chave padrão</Text>
+          <Text style={styles.tipItem}>• Para obter resultados melhores, configure sua própria API key</Text>
+          <Text style={styles.tipItem}>• O modo offline não requer API key</Text>
+        </View>
       </ScrollView>
     </SafeAreaView>
   );
@@ -2387,7 +2616,7 @@ const HomeScreen = ({ navigation }) => {
           
           <View style={styles.featureSection}>
             <Text style={styles.featureSectionTitle}>Configurações</Text>
-            <TouchableOpacity
+            {/* <TouchableOpacity
               style={[styles.featureCard, styles.compactCard]}
               onPress={() => {
                 console.log('Navegando para ConfiguracoesIA');
@@ -2409,6 +2638,23 @@ const HomeScreen = ({ navigation }) => {
               <Text style={styles.featureDescription}>
                 Escolha qual IA usar para análise e configure suas chaves de API.
               </Text>
+            </TouchableOpacity> */}
+            <TouchableOpacity
+              style={[styles.featureCard, styles.compactCard]}
+              onPress={() => navigation.navigate('ConfiguracoesIA')}
+            >
+              <View style={styles.cardIconContainer}>
+                <Text style={styles.cardIcon}>🔑</Text>
+              </View>
+              <Text style={styles.featureTitle}>Configurar IAs</Text>
+              <Text style={styles.featureDescription}>
+                Escolha qual IA usar para análise e configure suas chaves de API.
+              </Text>
+              <View style={styles.configHintContainer}>
+                <Text style={styles.configHintText}>
+                  Adicione suas chaves API para desbloquear recursos avançados
+                </Text>
+              </View>
             </TouchableOpacity>
           </View>
           
@@ -4621,6 +4867,153 @@ const styles = StyleSheet.create({
     fontSize: 12,
     fontWeight: '500',
   },
+
+  cardIconContainer: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: 'rgba(0, 188, 212, 0.1)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginBottom: 10,
+  },
+  cardIcon: {
+    fontSize: 20,
+  },
+  configHintContainer: {
+    backgroundColor: 'rgba(0, 188, 212, 0.08)',
+    borderRadius: 4,
+    padding: 8,
+    marginTop: 10,
+  },
+  configHintText: {
+    fontSize: 12,
+    color: Colors.primary,
+  },
+
+  // Estilos para a tela de configuração
+  configCard: {
+    backgroundColor: Colors.white,
+    borderRadius: 10,
+    padding: 16,
+    marginBottom: 20,
+    ...Platform.select({
+      ios: {
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 2 },
+        shadowOpacity: 0.1,
+        shadowRadius: 4,
+      },
+      android: {
+        elevation: 2,
+      },
+    }),
+  },
+  configIntroTitle: {
+    fontSize: 18,
+    fontWeight: 'bold',
+    color: Colors.dark,
+    marginBottom: 10,
+  },
+  configIntroText: {
+    fontSize: 14,
+    color: Colors.lightText,
+    lineHeight: 20,
+  },
+  iaCardsContainer: {
+    paddingVertical: 10,
+    paddingHorizontal: 5,
+  },
+  iaCard: {
+    width: 140,
+    backgroundColor: Colors.white,
+    borderRadius: 12,
+    padding:
+    12,
+    marginRight: 12,
+    ...Platform.select({
+      ios: {
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 2 },
+        shadowOpacity: 0.1,
+        shadowRadius: 3,
+      },
+      android: {
+        elevation: 2,
+      },
+    }),
+  },
+  iaCardSelected: {
+    borderWidth: 2,
+    borderColor: Colors.primary,
+  },
+  iaCardHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 8,
+  },
+  iaCardTitle: {
+    fontSize: 14,
+    fontWeight: 'bold',
+    color: Colors.dark,
+  },
+  iaCardTitleSelected: {
+    color: Colors.primary,
+  },
+  iaCardDescription: {
+    fontSize: 12,
+    color: Colors.lightText,
+  },
+  apiKeyHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 8,
+  },
+  helpButton: {
+    backgroundColor: 'rgba(0, 188, 212, 0.1)',
+    paddingVertical: 4,
+    paddingHorizontal: 8,
+    borderRadius: 4,
+  },
+  helpButtonText: {
+    fontSize: 12,
+    color: Colors.primary,
+  },
+  apiKeyInputContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  toggleVisibilityButton: {
+    position: 'absolute',
+    right: 10,
+    padding: 8,
+  },
+  toggleVisibilityText: {
+    fontSize: 12,
+    color: Colors.primary,
+  },
+  tipsContainer: {
+    backgroundColor: 'rgba(255, 193, 7, 0.1)',
+    borderRadius: 8,
+    padding: 16,
+    marginTop: 20,
+    marginBottom: 30,
+  },
+  tipsTitle: {
+    fontSize: 16,
+    fontWeight: 'bold',
+    color: Colors.dark,
+    marginBottom: 8,
+  },
+  tipItem: {
+    fontSize: 14,
+    color: Colors.dark,
+    marginBottom: 5,
+    lineHeight: 20,
+  },
+
 });
 
 // Componente principal
