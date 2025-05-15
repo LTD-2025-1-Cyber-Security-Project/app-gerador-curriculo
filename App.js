@@ -1099,19 +1099,33 @@ const ChatMessage = ({ message, isUser, time }) => (
 const ChatOptions = ({ options, onSelect }) => {
   if (!options || options.length === 0) return null;
   
+  // Verificar se são opções de área (comparando com os valores específicos)
+  const isAreaOptions = options.includes('Tecnologia da Informação') || 
+                       options.includes('Saúde') ||
+                       options.includes('Educação');
+  
   return (
     <ScrollView 
       horizontal 
       showsHorizontalScrollIndicator={false}
-      contentContainerStyle={styles.optionsContainer}
+      contentContainerStyle={[
+        styles.optionsContainer,
+        isAreaOptions && styles.areaOptionsContainer // Estilo adicional para área
+      ]}
     >
       {options.map((option, index) => (
         <TouchableOpacity
           key={index}
-          style={styles.optionButton}
+          style={[
+            styles.optionButton,
+            isAreaOptions && styles.areaOptionButton // Estilo adicional para área
+          ]}
           onPress={() => onSelect(option)}
         >
-          <Text style={styles.optionText}>{option}</Text>
+          <Text style={[
+            styles.optionText,
+            isAreaOptions && styles.areaOptionText // Estilo adicional para área
+          ]}>{option}</Text>
         </TouchableOpacity>
       ))}
     </ScrollView>
@@ -2725,10 +2739,12 @@ const ChatbotScreen = ({ navigation }) => {
       setMessages(prevMessages => [...prevMessages, newMessage]);
       setIsTyping(false);
       
-      // Rolar para o final da lista
-      if (flatListRef.current) {
-        flatListRef.current.scrollToEnd({ animated: true });
-      }
+      // Rolar para o final da lista com timeout para garantir que funcione
+      setTimeout(() => {
+        if (flatListRef.current) {
+          flatListRef.current.scrollToEnd({ animated: true });
+        }
+      }, 100);
     }, 1000);
   };
   
@@ -2772,10 +2788,12 @@ const ChatbotScreen = ({ navigation }) => {
         });
     }
     
-    // Rolar para o final da lista
-    if (flatListRef.current) {
-      flatListRef.current.scrollToEnd({ animated: true });
-    }
+    // Rolar para o final da lista - com timeout para garantir que funcione
+    setTimeout(() => {
+      if (flatListRef.current) {
+        flatListRef.current.scrollToEnd({ animated: true });
+      }
+    }, 100);
   };
   
   const handleOptionSelect = (option) => {
@@ -2823,6 +2841,8 @@ const ChatbotScreen = ({ navigation }) => {
               />
             )}
             contentContainerStyle={styles.messagesContainer}
+            onContentSizeChange={() => flatListRef.current?.scrollToEnd({ animated: true })}
+            onLayout={() => flatListRef.current?.scrollToEnd({ animated: true })}
           />
         )}
         
@@ -2837,10 +2857,11 @@ const ChatbotScreen = ({ navigation }) => {
         )}
       </View>
       
-      <KeyboardAvoidingView
-        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-        keyboardVerticalOffset={Platform.OS === 'ios' ? 90 : 70}
-      >
+        <KeyboardAvoidingView
+          behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+          keyboardVerticalOffset={Platform.OS === 'ios' ? 10 : 0} // Reduzido de 90/70
+          style={{ width: '100%' }} // Adicionado para garantir largura total
+        >
         <View style={styles.inputContainer}>
           <TextInput
             style={styles.chatInput}
@@ -3237,10 +3258,10 @@ const AnaliseCVScreen = ({ route, navigation }) => {
       }
       
       // Sempre incluir o modo offline
-      options.push({
-        id: 'OFFLINE',
-        nome: 'Modo Offline'
-      });
+      // options.push({
+      //   id: 'OFFLINE',
+      //   nome: 'Modo Offline'
+      // });
       
       setIaOptions(options);
     } catch (error) {
@@ -3920,18 +3941,18 @@ const styles = StyleSheet.create({
   },
   sendButton: {
     backgroundColor: Colors.primary,
-    borderRadius: 24,
-    width: 48,
-    height: 48,
+    borderRadius: 20,
+    paddingVertical: 10,
+    paddingHorizontal: 15, // Aumentado para acomodar o texto
     justifyContent: 'center',
     alignItems: 'center',
+    minWidth: 70, // Garantir largura mínima para o texto
   },
   sendButtonText: {
     color: Colors.white,
     fontWeight: 'bold',
-    fontSize: 18,
+    fontSize: 14, // Reduzido de 18
   },
-  
   // Opções de chat melhoradas
   optionsContainer: {
     padding: 12,
@@ -3944,10 +3965,10 @@ const styles = StyleSheet.create({
     backgroundColor: Colors.white,
     borderWidth: 1,
     borderColor: Colors.primary,
-    borderRadius: 20,
-    paddingVertical: 10,
-    paddingHorizontal: 14,
-    marginRight: 10,
+    borderRadius: 16, // Reduzido de 20
+    paddingVertical: 8, // Reduzido de 10
+    paddingHorizontal: 12, // Reduzido de 14
+    marginRight: 8, // Reduzido de 10
     elevation: 1,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 1 },
@@ -5012,6 +5033,21 @@ const styles = StyleSheet.create({
     color: Colors.dark,
     marginBottom: 5,
     lineHeight: 20,
+  },
+
+  areaOptionsContainer: {
+    paddingVertical: 15, // Mais espaço para opções de área
+    flexWrap: 'wrap', // Permitir quebra de linha se necessário
+    justifyContent: 'center',
+  },
+  areaOptionButton: {
+    marginBottom: 8, // Garantir espaço entre linhas
+    backgroundColor: 'rgba(0, 188, 212, 0.1)', // Fundo mais visível
+    borderWidth: 1,
+    borderColor: Colors.primary,
+  },
+  areaOptionText: {
+    fontWeight: 'bold', // Texto mais destacado
   },
 
 });
