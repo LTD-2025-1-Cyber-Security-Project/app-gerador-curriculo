@@ -2415,7 +2415,10 @@ const HomeScreen = ({ navigation }) => {
           {/* Seção Sobre */}
           <View style={styles.featureSection}>
             <Text style={styles.featureSectionTitle}>Sobre o App</Text>
-            <View style={[styles.featureCard, styles.compactCard]}>
+            <TouchableOpacity
+              style={[styles.featureCard, styles.compactCard]}
+              onPress={() => navigation.navigate('SobreApp')}
+            >
               <Text style={styles.featureTitle}>CurriculoBot Premium</Text>
               <Text style={styles.featureDescription}>
                 Versão: 1.2.0
@@ -2423,7 +2426,10 @@ const HomeScreen = ({ navigation }) => {
               <Text style={styles.featureDescription}>
                 Este aplicativo utiliza tecnologia de inteligência artificial para ajudar na criação e análise de currículos.
               </Text>
-            </View>
+              <View style={styles.moreInfoButton}>
+                <Text style={styles.moreInfoButtonText}>Ver mais informações</Text>
+              </View>
+            </TouchableOpacity>
           </View>
           
           {/* Espaço adicional no final do scroll */}
@@ -3499,6 +3505,7 @@ const SobreAppScreen = ({ navigation }) => {
   );
 };
 
+// Modificar o AppNavigator para adicionar a rota "SobreApp"
 const AppNavigator = () => (
   <AppStack.Navigator
     screenOptions={{
@@ -3512,6 +3519,7 @@ const AppNavigator = () => (
     <AppStack.Screen name="CurriculosAnalise" component={CurriculosAnaliseScreen} />
     <AppStack.Screen name="AnaliseCV" component={AnaliseCVScreen} />
     <AppStack.Screen name="ConfiguracoesIA" component={ConfiguracoesIAScreen} />
+    <AppStack.Screen name="SobreApp" component={SobreAppScreen} />
   </AppStack.Navigator>
 );
 
@@ -4597,6 +4605,21 @@ const styles = StyleSheet.create({
     color: Colors.white,
     fontWeight: 'bold',
     fontSize: 16,
+  },
+
+  // Adicione estes estilos no objeto styles
+  moreInfoButton: {
+    backgroundColor: 'rgba(0, 188, 212, 0.1)',
+    paddingVertical: 8,
+    paddingHorizontal: 12,
+    borderRadius: 5,
+    alignSelf: 'flex-start',
+    marginTop: 8,
+  },
+  moreInfoButtonText: {
+    color: Colors.primary,
+    fontSize: 12,
+    fontWeight: '500',
   },
 });
 
