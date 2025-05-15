@@ -968,18 +968,23 @@ const ConfiguracoesAvancadasScreen = ({ navigation }) => {
 };
 
 const ConfiguracoesScreen = ({ navigation }) => {
-  const { user, logout } = useAuth();
+  const { user, logout, updateUser } = useAuth();
   const [loading, setLoading] = useState(false);
   const [editingProfile, setEditingProfile] = useState(false);
   const [profileData, setProfileData] = useState({
     nome: user?.nome || '',
     email: user?.email || '',
-    foto: user?.foto || null,
     telefone: user?.telefone || '',
     linkedin: user?.linkedin || '',
     github: user?.github || '',
     website: user?.website || ''
   });
+  
+  // Determinar a cor do avatar com base no índice salvo ou usar padrão
+  const avatarColors = ['#3498db', '#2ecc71', '#e74c3c', '#f39c12', '#9b59b6', '#1abc9c', '#d35400', '#c0392b'];
+  const avatarColor = user?.avatarColorIndex !== undefined 
+    ? avatarColors[user.avatarColorIndex] 
+    : avatarColors[0];
   
   const salvarPerfil = async () => {
     try {
@@ -993,21 +998,26 @@ const ConfiguracoesScreen = ({ navigation }) => {
       const index = usuarios.findIndex(u => u.id === user.id);
       
       if (index !== -1) {
-        // Atualizar dados
-        usuarios[index] = {
+        // Manter foto e cor do avatar
+        const updatedUser = {
           ...usuarios[index],
           ...profileData,
+          foto: user.foto,
+          avatarColorIndex: user.avatarColorIndex,
           dataAtualizacao: new Date().toISOString()
         };
         
         // Salvar de volta no AsyncStorage
+        usuarios[index] = updatedUser;
         await AsyncStorage.setItem('usuarios', JSON.stringify(usuarios));
         
         // Atualizar usuário atual
-        await AsyncStorage.setItem('currentUser', JSON.stringify(usuarios[index]));
+        await AsyncStorage.setItem('currentUser', JSON.stringify(updatedUser));
         
-        // Recarregar session do usuário (necessário implementar no contexto Auth)
-        // updateUser(usuarios[index]);
+        // Atualizar contexto de autenticação se a função estiver disponível
+        if (updateUser) {
+          updateUser(updatedUser);
+        }
         
         Alert.alert('Sucesso', 'Perfil atualizado com sucesso!');
         setEditingProfile(false);
@@ -1023,11 +1033,7 @@ const ConfiguracoesScreen = ({ navigation }) => {
   };
   
   const handleSelecionarFoto = () => {
-    Alert.alert(
-      'Foto de Perfil',
-      'Funcionalidade a ser implementada. Você poderá selecionar uma foto da galeria ou tirar uma nova foto.',
-      [{ text: 'OK' }]
-    );
+    navigation.navigate('PerfilFoto', { returnTo: 'ConfigMain' });
   };
   
   const confirmLogout = () => {
@@ -1069,6 +1075,46 @@ const ConfiguracoesScreen = ({ navigation }) => {
     } finally {
       setLoading(false);
     }
+  };
+  
+  // Função para exportar dados
+  const exportarDados = () => {
+    Alert.alert(
+      'Exportar Dados',
+      'Esta função permitirá exportar todos os seus dados, incluindo currículos e configurações.',
+      [
+        { text: 'Cancelar', style: 'cancel' },
+        { 
+          text: 'Continuar', 
+          onPress: () => {
+            Alert.alert(
+              'Simulação',
+              'Em um aplicativo real, seus dados seriam exportados para um arquivo que você poderia salvar. Esta é apenas uma simulação dessa funcionalidade.',
+              [{ text: 'Entendi' }]
+            );
+          }
+        }
+      ]
+    );
+  };
+  
+  // Função para mudar o tema (simulação)
+  const mudarTema = () => {
+    Alert.alert(
+      'Mudar Tema',
+      'Em um aplicativo completo, você poderia escolher entre tema claro, escuro ou usar o padrão do sistema.',
+      [{ text: 'OK' }]
+    );
+  };
+  
+  // Função para alterar senha
+  const alterarSenha = () => {
+    // Implementação simulada de alteração de senha
+    Alert.alert(
+      'Alterar Senha',
+      'Esta funcionalidade permitiria alterar sua senha. Em um aplicativo real, você precisaria fornecer sua senha atual e confirmar a nova senha.',
+      [{ text: 'Entendi' }]
+    );
   };
   
   return (
@@ -1127,21 +1173,28 @@ const ConfiguracoesScreen = ({ navigation }) => {
                 width: 100,
                 height: 100,
                 borderRadius: 50,
-                backgroundColor: Colors.lightGray,
+                backgroundColor: user?.foto ? 'transparent' : avatarColor,
                 justifyContent: 'center',
                 alignItems: 'center',
                 marginBottom: 10,
+                borderWidth: 2,
+                borderColor: Colors.primary,
+                padding: 2,
               }}
               onPress={handleSelecionarFoto}
               disabled={!editingProfile}
             >
-              {profileData.foto ? (
+              {user?.foto ? (
                 <Image
-                  source={{ uri: profileData.foto }}
-                  style={{ width: 100, height: 100, borderRadius: 50 }}
+                  source={{ uri: user.foto }}
+                  style={{ width: 95, height: 95, borderRadius: 48 }}
                 />
               ) : (
-                <Text style={{ fontSize: 30, color: Colors.primary }}>
+                <Text style={{ 
+                  fontSize: 36, 
+                  color: Colors.white,
+                  fontWeight: 'bold',
+                }}>
                   {user?.nome?.charAt(0) || 'U'}
                 </Text>
               )}
@@ -1157,8 +1210,10 @@ const ConfiguracoesScreen = ({ navigation }) => {
                   height: 30,
                   justifyContent: 'center',
                   alignItems: 'center',
+                  borderWidth: 2,
+                  borderColor: Colors.white,
                 }}>
-                  <Text style={{ color: Colors.white, fontSize: 20 }}>+</Text>
+                  <Text style={{ color: Colors.white, fontSize: 16 }}>📷</Text>
                 </View>
               )}
             </TouchableOpacity>
@@ -1216,6 +1271,8 @@ const ConfiguracoesScreen = ({ navigation }) => {
                   value={profileData.linkedin}
                   onChangeText={(text) => setProfileData(prev => ({ ...prev, linkedin: text }))}
                   placeholder="URL do seu LinkedIn"
+                  autoCapitalize="none"
+                  keyboardType="url"
                 />
               </View>
               
@@ -1231,6 +1288,8 @@ const ConfiguracoesScreen = ({ navigation }) => {
                   value={profileData.github}
                   onChangeText={(text) => setProfileData(prev => ({ ...prev, github: text }))}
                   placeholder="URL do seu GitHub"
+                  autoCapitalize="none"
+                  keyboardType="url"
                 />
               </View>
               
@@ -1246,6 +1305,8 @@ const ConfiguracoesScreen = ({ navigation }) => {
                   value={profileData.website}
                   onChangeText={(text) => setProfileData(prev => ({ ...prev, website: text }))}
                   placeholder="URL do seu site pessoal"
+                  autoCapitalize="none"
+                  keyboardType="url"
                 />
               </View>
               
@@ -1284,12 +1345,117 @@ const ConfiguracoesScreen = ({ navigation }) => {
                 <Text>{user?.telefone || 'Não informado'}</Text>
               </View>
               
+              {user?.linkedin && (
+                <View style={{ marginBottom: 10 }}>
+                  <Text style={{ fontWeight: 'bold' }}>LinkedIn:</Text>
+                  <Text style={{ color: Colors.primary }}>{user.linkedin}</Text>
+                </View>
+              )}
+              
+              {user?.github && (
+                <View style={{ marginBottom: 10 }}>
+                  <Text style={{ fontWeight: 'bold' }}>GitHub:</Text>
+                  <Text style={{ color: Colors.primary }}>{user.github}</Text>
+                </View>
+              )}
+              
+              {user?.website && (
+                <View style={{ marginBottom: 10 }}>
+                  <Text style={{ fontWeight: 'bold' }}>Website:</Text>
+                  <Text style={{ color: Colors.primary }}>{user.website}</Text>
+                </View>
+              )}
+              
               <View style={{ marginBottom: 10 }}>
                 <Text style={{ fontWeight: 'bold' }}>Membro desde:</Text>
                 <Text>{user?.dataCadastro ? new Date(user.dataCadastro).toLocaleDateString() : 'Não informado'}</Text>
               </View>
             </View>
           )}
+        </View>
+        
+        {/* Seção de Segurança e Privacidade */}
+        <View style={{
+          backgroundColor: Colors.white,
+          borderRadius: 10,
+          padding: 20,
+          marginBottom: 20,
+          ...Platform.select({
+            ios: {
+              shadowColor: '#000',
+              shadowOffset: { width: 0, height: 2 },
+              shadowOpacity: 0.1,
+              shadowRadius: 4,
+            },
+            android: {
+              elevation: 2,
+            },
+          }),
+        }}>
+          <Text style={{
+            fontSize: 18,
+            fontWeight: 'bold',
+            color: Colors.dark,
+            marginBottom: 15,
+          }}>
+            Segurança e Privacidade
+          </Text>
+          
+          <TouchableOpacity
+            style={{
+              flexDirection: 'row',
+              alignItems: 'center',
+              paddingVertical: 12,
+              borderBottomWidth: 1,
+              borderBottomColor: Colors.mediumGray,
+            }}
+            onPress={alterarSenha}
+          >
+            <View style={{
+              width: 40,
+              height: 40,
+              borderRadius: 20,
+              backgroundColor: Colors.secondary,
+              justifyContent: 'center',
+              alignItems: 'center',
+              marginRight: 15,
+            }}>
+              <Text style={{ color: Colors.white, fontSize: 16 }}>🔒</Text>
+            </View>
+            <View style={{ flex: 1 }}>
+              <Text style={{ fontSize: 16, fontWeight: '500' }}>Alterar Senha</Text>
+              <Text style={{ color: Colors.lightText, fontSize: 14 }}>Atualize sua senha de acesso</Text>
+            </View>
+            <Text style={{ color: Colors.primary, fontSize: 24 }}>›</Text>
+          </TouchableOpacity>
+          
+          <TouchableOpacity
+            style={{
+              flexDirection: 'row',
+              alignItems: 'center',
+              paddingVertical: 12,
+              borderBottomWidth: 1,
+              borderBottomColor: Colors.mediumGray,
+            }}
+            onPress={exportarDados}
+          >
+            <View style={{
+              width: 40,
+              height: 40,
+              borderRadius: 20,
+              backgroundColor: '#3498db',
+              justifyContent: 'center',
+              alignItems: 'center',
+              marginRight: 15,
+            }}>
+              <Text style={{ color: Colors.white, fontSize: 16 }}>📦</Text>
+            </View>
+            <View style={{ flex: 1 }}>
+              <Text style={{ fontSize: 16, fontWeight: '500' }}>Exportar Meus Dados</Text>
+              <Text style={{ color: Colors.lightText, fontSize: 14 }}>Faça backup de seus currículos e configurações</Text>
+            </View>
+            <Text style={{ color: Colors.primary, fontSize: 24 }}>›</Text>
+          </TouchableOpacity>
         </View>
         
         {/* Seção de Configurações Gerais */}
@@ -1343,6 +1509,34 @@ const ConfiguracoesScreen = ({ navigation }) => {
             <View style={{ flex: 1 }}>
               <Text style={{ fontSize: 16, fontWeight: '500' }}>Configurações de IA</Text>
               <Text style={{ color: Colors.lightText, fontSize: 14 }}>Gerenciar chaves de API</Text>
+            </View>
+            <Text style={{ color: Colors.primary, fontSize: 24 }}>›</Text>
+          </TouchableOpacity>
+          
+          <TouchableOpacity
+            style={{
+              flexDirection: 'row',
+              alignItems: 'center',
+              paddingVertical: 12,
+              borderBottomWidth: 1,
+              borderBottomColor: Colors.mediumGray,
+            }}
+            onPress={mudarTema}
+          >
+            <View style={{
+              width: 40,
+              height: 40,
+              borderRadius: 20,
+              backgroundColor: '#9b59b6',
+              justifyContent: 'center',
+              alignItems: 'center',
+              marginRight: 15,
+            }}>
+              <Text style={{ color: Colors.white, fontSize: 16 }}>🎨</Text>
+            </View>
+            <View style={{ flex: 1 }}>
+              <Text style={{ fontSize: 16, fontWeight: '500' }}>Tema do Aplicativo</Text>
+              <Text style={{ color: Colors.lightText, fontSize: 14 }}>Alterar aparência (claro/escuro)</Text>
             </View>
             <Text style={{ color: Colors.primary, fontSize: 24 }}>›</Text>
           </TouchableOpacity>
@@ -1429,6 +1623,27 @@ const ConfiguracoesScreen = ({ navigation }) => {
             <Text style={{ color: Colors.primary, fontSize: 24 }}>›</Text>
           </TouchableOpacity>
         </View>
+        
+        {/* Versão do aplicativo */}
+        <View style={{ 
+          alignItems: 'center', 
+          justifyContent: 'center', 
+          paddingVertical: 20,
+          marginBottom: 30
+        }}>
+          <Text style={{ 
+            color: Colors.lightText, 
+            fontSize: 14 
+          }}>
+            CurriculoBot Premium
+          </Text>
+          <Text style={{ 
+            color: Colors.lightText, 
+            fontSize: 12 
+          }}>
+            Versão 1.2.0
+          </Text>
+        </View>
       </ScrollView>
     </SafeAreaView>
   );
@@ -1509,6 +1724,8 @@ const HomeStackScreen = () => (
     <HomeStack.Screen name="SelecionarCurriculo" component={SelecionarCurriculoScreen} />
     <HomeStack.Screen name="BuscaVagas" component={BuscaVagasScreen} />
     <HomeStack.Screen name="SobreApp" component={SobreAppScreen} />
+    {/* Opcionalmente adicionar esta rota para navegação direta em cenários específicos */}
+    <HomeStack.Screen name="ConfiguracoesIA" component={ConfiguracoesIAScreen} />
   </HomeStack.Navigator>
 );
 
@@ -1524,12 +1741,12 @@ const DashboardStackScreen = () => (
   </DashboardStack.Navigator>
 );
 
-// Stack para Configurações
 const ConfigStack = createStackNavigator();
 const ConfigStackScreen = () => (
   <ConfigStack.Navigator screenOptions={{ headerShown: false }}>
     <ConfigStack.Screen name="ConfigMain" component={ConfiguracoesScreen} />
     <ConfigStack.Screen name="ConfiguracoesIA" component={ConfiguracoesIAScreen} />
+    <ConfigStack.Screen name="PerfilFoto" component={PerfilFotoScreen} />
     <ConfigStack.Screen name="Chatbot" component={ChatbotScreen} />
     <ConfigStack.Screen name="SobreApp" component={SobreAppScreen} />
   </ConfigStack.Navigator>
@@ -5578,17 +5795,22 @@ const RegisterScreen = ({ navigation }) => {
   );
 };
 
+// Modificação no HomeScreen - Ajuste na função de navegação para configuração de IAs
 const HomeScreen = ({ navigation }) => {
   const { user, logout } = useAuth();
   const [curriculos, setCurriculos] = useState([]);
   const [loadingCurriculos, setLoadingCurriculos] = useState(true);
+  const [temProgressoSalvo, setTemProgressoSalvo] = useState(false);
+  const [ultimoProgressoData, setUltimoProgressoData] = useState(null);
 
   useEffect(() => {
     carregarCurriculos();
+    verificarProgressoSalvo();
 
     // Atualizar quando a tela ganhar foco
     const unsubscribe = navigation.addListener('focus', () => {
       carregarCurriculos();
+      verificarProgressoSalvo();
     });
 
     return unsubscribe;
@@ -5605,8 +5827,66 @@ const HomeScreen = ({ navigation }) => {
     }
   };
 
+  const verificarProgressoSalvo = async () => {
+    try {
+      const progresso = await recuperarProgressoCurriculo(user.id);
+      if (progresso && progresso.timestamp) {
+        // Verificar se o progresso tem menos de 24 horas
+        const dataProgresso = new Date(progresso.timestamp);
+        const agora = new Date();
+        const diferencaHoras = (agora - dataProgresso) / (1000 * 60 * 60);
+        
+        if (diferencaHoras < 24) {
+          setTemProgressoSalvo(true);
+          setUltimoProgressoData(dataProgresso);
+        } else {
+          setTemProgressoSalvo(false);
+          // Limpar progresso antigo (mais de 24h)
+          await limparProgressoCurriculo(user.id);
+        }
+      } else {
+        setTemProgressoSalvo(false);
+      }
+    } catch (error) {
+      console.error('Erro ao verificar progresso salvo:', error);
+      setTemProgressoSalvo(false);
+    }
+  };
+
+  // Função para formatar tempo relativo (ex: "2 horas atrás")
+  const formatarTempoRelativo = (data) => {
+    if (!data) return '';
+    
+    const agora = new Date();
+    const diff = agora - data; // diferença em milissegundos
+    
+    // Converter para minutos
+    const minutos = Math.floor(diff / (1000 * 60));
+    
+    if (minutos < 1) return 'agora mesmo';
+    if (minutos < 60) return `${minutos} ${minutos === 1 ? 'minuto' : 'minutos'} atrás`;
+    
+    // Converter para horas
+    const horas = Math.floor(minutos / 60);
+    if (horas < 24) return `${horas} ${horas === 1 ? 'hora' : 'horas'} atrás`;
+    
+    // Converter para dias
+    const dias = Math.floor(horas / 24);
+    return `${dias} ${dias === 1 ? 'dia' : 'dias'} atrás`;
+  };
+
+  // Função para navegar para a tela de configuração de IAs
+  const navegarParaConfiguracoesIA = () => {
+    // Usa navegação entre tabs - navega primeiro para a tab Config, depois para a tela ConfiguracoesIA
+    navigation.navigate('Config', { screen: 'ConfiguracoesIA' });
+  };
+
+  // Função para continuar o currículo em progresso
+  const continuarCurriculo = () => {
+    navigation.navigate('Chatbot', { continuarProgresso: true });
+  };
+
   // Função para navegar para a busca de vagas com o currículo mais recente
-  // Na HomeScreen, modifique a função navegarParaBuscaVagas
   const navegarParaBuscaVagas = () => {
     if (curriculos.length === 0) {
       Alert.alert(
@@ -5623,7 +5903,6 @@ const HomeScreen = ({ navigation }) => {
       return;
     }
 
-    // Navegar para a tela de seleção de currículo em vez de diretamente para a busca
     navigation.navigate('SelecionarCurriculo');
   };
 
@@ -5652,7 +5931,40 @@ const HomeScreen = ({ navigation }) => {
         >
           <Text style={styles.welcomeText}>Olá, {user?.nome || 'visitante'}!</Text>
 
-          {/* NOVO: Card de Busca de Vagas */}
+          {/* NOVA FUNCIONALIDADE: Card de Currículo em Progresso */}
+          {temProgressoSalvo && (
+            <View style={styles.curriculoProgressoCard}>
+              <View style={styles.curriculoProgressoHeader}>
+                <View style={styles.curriculoProgressoIcon}>
+                  <Text style={{ fontSize: 20, color: Colors.white }}>📝</Text>
+                </View>
+                <View style={{ flex: 1 }}>
+                  <Text style={styles.curriculoProgressoTitulo}>
+                    Currículo em Andamento
+                  </Text>
+                  <Text style={styles.curriculoProgressoSubtitulo}>
+                    Última edição: {formatarTempoRelativo(ultimoProgressoData)}
+                  </Text>
+                </View>
+              </View>
+              
+              <Text style={styles.curriculoProgressoTexto}>
+                Você tem um currículo em andamento. Deseja continuar de onde parou?
+              </Text>
+              
+              <TouchableOpacity
+                style={styles.curriculoProgressoBotao}
+                onPress={continuarCurriculo}
+                activeOpacity={0.7}
+              >
+                <Text style={styles.curriculoProgressoBotaoTexto}>
+                  Continuar Currículo
+                </Text>
+              </TouchableOpacity>
+            </View>
+          )}
+
+          {/* Card de Busca de Vagas */}
           <View style={styles.featureSection}>
             <Text style={styles.featureSectionTitle}>Oportunidades Personalizadas</Text>
             <TouchableOpacity
@@ -5662,6 +5974,7 @@ const HomeScreen = ({ navigation }) => {
                 borderLeftColor: Colors.success,
               }]}
               onPress={navegarParaBuscaVagas}
+              activeOpacity={0.7} // Feedback visual mais claro
             >
               <View style={{
                 flexDirection: 'row',
@@ -5718,6 +6031,7 @@ const HomeScreen = ({ navigation }) => {
               <TouchableOpacity
                 style={styles.primaryButton}
                 onPress={() => navigation.navigate('Chatbot')}
+                activeOpacity={0.7}
               >
                 <Text style={styles.primaryButtonText}>Começar Agora</Text>
               </TouchableOpacity>
@@ -5734,6 +6048,7 @@ const HomeScreen = ({ navigation }) => {
               <TouchableOpacity
                 style={styles.secondaryButton}
                 onPress={() => navigation.navigate('CurriculosAnalise')}
+                activeOpacity={0.7}
               >
                 <Text style={styles.secondaryButtonText}>Analisar Currículo</Text>
               </TouchableOpacity>
@@ -5745,6 +6060,7 @@ const HomeScreen = ({ navigation }) => {
             <TouchableOpacity
               style={[styles.featureCard, styles.compactCard]}
               onPress={() => navigation.navigate('MeusCurriculos')}
+              activeOpacity={0.7}
             >
               <Text style={styles.featureTitle}>Gerenciar Currículos</Text>
               <Text style={styles.featureDescription}>
@@ -5756,8 +6072,14 @@ const HomeScreen = ({ navigation }) => {
           <View style={styles.featureSection}>
             <Text style={styles.featureSectionTitle}>Configurações</Text>
             <TouchableOpacity
-              style={[styles.featureCard, styles.compactCard]}
-              onPress={() => navigation.navigate('ConfiguracoesIA')}
+              style={[
+                styles.featureCard, 
+                styles.compactCard,
+                { borderLeftWidth: 3, borderLeftColor: Colors.primary } // Destaque visual
+              ]}
+              onPress={navegarParaConfiguracoesIA}
+              activeOpacity={0.6} // Feedback mais claro ao pressionar
+              hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }} // Área de toque aumentada
             >
               <View style={styles.cardIconContainer}>
                 <Text style={styles.cardIcon}>🔑</Text>
@@ -5766,8 +6088,14 @@ const HomeScreen = ({ navigation }) => {
               <Text style={styles.featureDescription}>
                 Escolha qual IA usar para análise e configure suas chaves de API.
               </Text>
-              <View style={styles.configHintContainer}>
-                <Text style={styles.configHintText}>
+              <View style={[
+                styles.configHintContainer,
+                { backgroundColor: 'rgba(0, 188, 212, 0.15)' } // Cor mais visível
+              ]}>
+                <Text style={[
+                  styles.configHintText,
+                  { fontWeight: '500' } // Texto mais destacado
+                ]}>
                   Adicione suas chaves API para desbloquear recursos avançados
                 </Text>
               </View>
@@ -5780,6 +6108,7 @@ const HomeScreen = ({ navigation }) => {
             <TouchableOpacity
               style={[styles.featureCard, styles.compactCard]}
               onPress={() => navigation.navigate('SobreApp')}
+              activeOpacity={0.7}
             >
               <Text style={styles.featureTitle}>CurriculoBot Premium</Text>
               <Text style={styles.featureDescription}>
@@ -5802,7 +6131,45 @@ const HomeScreen = ({ navigation }) => {
   );
 };
 
-const ChatbotScreen = ({ navigation }) => {
+// Adicione estas funções no mesmo escopo que as outras funções auxiliares (junto com getUniqueId, formatDate, etc.)
+const salvarProgressoCurriculo = async (userId, data) => {
+  try {
+    // Salvar o estado atual do chatbot
+    await AsyncStorage.setItem(`curriculo_em_progresso_${userId}`, JSON.stringify({
+      timestamp: new Date().toISOString(),
+      data: data
+    }));
+    console.log('Progresso do currículo salvo com sucesso');
+  } catch (error) {
+    console.error('Erro ao salvar progresso do currículo:', error);
+  }
+};
+
+const recuperarProgressoCurriculo = async (userId) => {
+  try {
+    const progresso = await AsyncStorage.getItem(`curriculo_em_progresso_${userId}`);
+    if (progresso) {
+      return JSON.parse(progresso);
+    }
+    return null;
+  } catch (error) {
+    console.error('Erro ao recuperar progresso do currículo:', error);
+    return null;
+  }
+};
+
+const limparProgressoCurriculo = async (userId) => {
+  try {
+    await AsyncStorage.removeItem(`curriculo_em_progresso_${userId}`);
+    console.log('Progresso do currículo limpo com sucesso');
+  } catch (error) {
+    console.error('Erro ao limpar progresso do currículo:', error);
+  }
+};
+
+// Agora, vamos modificar o ChatbotScreen para salvar o progresso quando sair da tela
+const ChatbotScreen = ({ navigation, route }) => {
+  // Estados do componente
   const [messages, setMessages] = useState([]);
   const [currentMessage, setCurrentMessage] = useState('');
   const [options, setOptions] = useState(['Começar']);
@@ -5810,12 +6177,14 @@ const ChatbotScreen = ({ navigation }) => {
   const [currentStep, setCurrentStep] = useState('boas_vindas');
   const [cvData, setCvData] = useState(null);
   const [showPreview, setShowPreview] = useState(false);
+  const [initializing, setInitializing] = useState(true);
 
   const { user } = useAuth();
   const flatListRef = useRef();
 
-  // Inicializar com mensagem de boas-vindas
-  useEffect(() => {
+  // Função para inicializar o chat com mensagem de boas-vindas
+  const inicializarChat = () => {
+    console.log('Inicializando chat com mensagem de boas-vindas');
     const welcomeMessage = {
       id: getUniqueId(),
       text: "Olá! Sou o CurriculoBot, seu assistente para criar um currículo profissional. Digite 'começar' quando estiver pronto!",
@@ -5824,12 +6193,113 @@ const ChatbotScreen = ({ navigation }) => {
     };
 
     setMessages([welcomeMessage]);
+    setCurrentStep('boas_vindas');
+    setCvData(null);
+    setOptions(['Começar']);
+  };
+
+  // Verificar se estamos retomando um currículo em progresso
+  useEffect(() => {
+    const carregarDados = async () => {
+      try {
+        console.log('Carregando dados iniciais do chat');
+        
+        // Flag para verificar se devemos restaurar ou inicializar
+        let restaurado = false;
+        
+        // Verificar se estamos restaurando de um progresso salvo
+        if (route.params?.continuarProgresso) {
+          console.log('Tentando restaurar progresso...');
+          const progresso = await recuperarProgressoCurriculo(user.id);
+          
+          if (progresso && progresso.data) {
+            // Verificar se o progresso é válido (menos de 24h)
+            const dataProgresso = new Date(progresso.timestamp);
+            const agora = new Date();
+            const diferencaHoras = (agora - dataProgresso) / (1000 * 60 * 60);
+            
+            if (diferencaHoras < 24 && progresso.data.messages && progresso.data.messages.length > 0) {
+              console.log('Restaurando progresso de', dataProgresso);
+              
+              // Restaurar o estado do chat
+              setCvData(progresso.data.cvData || null);
+              setCurrentStep(progresso.data.currentStep || 'boas_vindas');
+              setOptions(progresso.data.options || ['Começar']);
+              setMessages(progresso.data.messages || []);
+              
+              restaurado = true;
+              
+              // Notificar o usuário que o progresso foi restaurado
+              setTimeout(() => {
+                Alert.alert(
+                  "Progresso Restaurado",
+                  "Seu currículo em andamento foi restaurado com sucesso!"
+                );
+              }, 500);
+            } else {
+              console.log('Progresso muito antigo ou inválido:', diferencaHoras, 'horas');
+            }
+          } else {
+            console.log('Nenhum progresso encontrado para restaurar');
+          }
+        }
+        
+        // Se não conseguimos restaurar, inicializar normalmente
+        if (!restaurado) {
+          console.log('Inicializando chat normalmente');
+          inicializarChat();
+        }
+      } catch (error) {
+        console.error('Erro ao carregar dados iniciais:', error);
+        // Em caso de erro, garantir que o chat seja inicializado
+        inicializarChat();
+      } finally {
+        // Sempre marcar a inicialização como concluída
+        setInitializing(false);
+      }
+    };
+    
+    carregarDados();
   }, []);
 
+  // Efeito para rolar para o final da lista quando mensagens mudarem
+  useEffect(() => {
+    if (messages.length > 0 && flatListRef.current && !initializing) {
+      setTimeout(() => {
+        flatListRef.current.scrollToEnd({ animated: true });
+      }, 100);
+    }
+  }, [messages, initializing]);
+
+  // Salvar progresso quando sair da tela
+  useEffect(() => {
+    return () => {
+      // Só salvar se houver progresso significativo (além da mensagem inicial) e não estiver concluído
+      if (messages.length > 1 && currentStep !== 'boas_vindas' && currentStep !== 'concluido' && cvData) {
+        console.log('Salvando progresso ao sair da tela');
+        salvarProgressoCurriculo(user.id, {
+          cvData,
+          currentStep,
+          options,
+          messages,
+        });
+      }
+    };
+  }, [messages, currentStep, cvData, options, user.id]);
+
+  // Limpar o progresso salvo quando finalizar o currículo
+  useEffect(() => {
+    if (currentStep === 'concluido' && cvData) {
+      console.log('Currículo concluído, limpando progresso salvo');
+      limparProgressoCurriculo(user.id);
+    }
+  }, [currentStep, cvData, user.id]);
+
+  // Adicionar mensagem do bot
   const addBotMessage = (text) => {
     setIsTyping(true);
 
-    // Simular tempo de digitação do bot
+    // Simular tempo de digitação do bot (mais curto para melhor responsividade)
     setTimeout(() => {
       const newMessage = {
         id: getUniqueId(),
@@ -5841,15 +6311,14 @@ const ChatbotScreen = ({ navigation }) => {
       setMessages(prevMessages => [...prevMessages, newMessage]);
       setIsTyping(false);
 
-      // Rolar para o final da lista com timeout para garantir que funcione
-      setTimeout(() => {
-        if (flatListRef.current) {
-          flatListRef.current.scrollToEnd({ animated: true });
-        }
-      }, 100);
-    }, 1000);
+      // Rolar para o final da lista
+      if (flatListRef.current) {
+        setTimeout(() => flatListRef.current.scrollToEnd({ animated: true }), 100);
+      }
+    }, 700);
   };
 
+  // Lidar com envio de mensagem
   const handleSendMessage = () => {
     if (currentMessage.trim() === '') return;
 
@@ -5861,19 +6330,18 @@ const ChatbotScreen = ({ navigation }) => {
       time: getCurrentTime()
     };
 
+    // Atualizar mensagens
     setMessages(prevMessages => [...prevMessages, userMessage]);
 
-    // Processar a mensagem
+    // Processar a mensagem para obter a resposta
     const { response, nextStep, options: newOptions, cvData: newCvData, isFinished } =
       processMessage(currentMessage, currentStep, cvData);
 
-    // Atualizar estado
+    // Atualizar estados
     setCvData(newCvData);
     setCurrentStep(nextStep);
     setOptions(newOptions || []);
-
-    // Limpar campo de entrada
-    setCurrentMessage('');
+    setCurrentMessage(''); // Limpar campo de entrada
 
     // Adicionar resposta do bot
     addBotMessage(response);
@@ -5883,6 +6351,8 @@ const ChatbotScreen = ({ navigation }) => {
       salvarCurriculo(newCvData, user.id)
         .then(id => {
           console.log('Currículo salvo com ID:', id);
+          // Limpar o progresso salvo ao finalizar
+          limparProgressoCurriculo(user.id);
         })
         .catch(error => {
           console.error('Erro ao salvar currículo:', error);
@@ -5890,19 +6360,49 @@ const ChatbotScreen = ({ navigation }) => {
         });
     }
 
-    // Rolar para o final da lista - com timeout para garantir que funcione
-    setTimeout(() => {
-      if (flatListRef.current) {
-        flatListRef.current.scrollToEnd({ animated: true });
-      }
-    }, 100);
+    // Rolar para o final da lista
+    if (flatListRef.current) {
+      setTimeout(() => flatListRef.current.scrollToEnd({ animated: true }), 100);
+    }
   };
 
+  // Selecionar uma opção pré-definida
   const handleOptionSelect = (option) => {
     setCurrentMessage(option);
     handleSendMessage();
   };
 
+  // Exibir indicador de carregamento enquanto inicializa
+  if (initializing) {
+    return (
+      <SafeAreaView style={styles.chatContainer}>
+        <StatusBar barStyle="light-content" backgroundColor={Colors.dark} />
+        <View style={styles.chatHeader}>
+          <TouchableOpacity
+            style={styles.chatBackButton}
+            onPress={() => navigation.goBack()}
+          >
+            <Text style={styles.chatBackButtonText}>‹</Text>
+          </TouchableOpacity>
+          <Text style={styles.chatHeaderTitle}>CurriculoBot</Text>
+          <View style={{ width: 80 }} />
+        </View>
+        <View style={{
+          flex: 1,
+          justifyContent: 'center',
+          alignItems: 'center',
+          backgroundColor: '#f5f7fa'
+        }}>
+          <ActivityIndicator size="large" color={Colors.primary} />
+          <Text style={{ marginTop: 20, color: Colors.dark }}>
+            Preparando o assistente...
+          </Text>
+        </View>
+      </SafeAreaView>
+    );
+  }
+
+  // Renderizar chatbot
   return (
     <SafeAreaView style={styles.chatContainer}>
       <StatusBar barStyle="light-content" backgroundColor={Colors.dark} />
@@ -5910,7 +6410,24 @@ const ChatbotScreen = ({ navigation }) => {
       <View style={styles.chatHeader}>
         <TouchableOpacity
           style={styles.chatBackButton}
-          onPress={() => navigation.goBack()}
+          onPress={() => {
+            // Se há progresso significativo, confirmar antes de voltar
+            if (messages.length > 1 && currentStep !== 'boas_vindas' && currentStep !== 'concluido') {
+              Alert.alert(
+                "Sair da criação?",
+                "Seu progresso será salvo e você poderá continuar depois. Deseja sair?",
+                [
+                  { text: "Cancelar", style: "cancel" },
+                  { 
+                    text: "Sair", 
+                    onPress: () => navigation.goBack()
+                  }
+                ]
+              );
+            } else {
+              navigation.goBack();
+            }
+          }}
         >
           <Text style={styles.chatBackButtonText}>‹</Text>
         </TouchableOpacity>
@@ -5931,31 +6448,47 @@ const ChatbotScreen = ({ navigation }) => {
             <CurriculumPreview data={cvData} />
           </ScrollView>
         ) : (
-          <FlatList
-            ref={flatListRef}
-            data={messages}
-            keyExtractor={(item) => item.id}
-            renderItem={({ item }) => (
-              <ChatMessage
-                message={item.text}
-                isUser={item.isUser}
-                time={item.time}
-              />
+          <>
+            <FlatList
+              ref={flatListRef}
+              data={messages}
+              keyExtractor={(item) => item.id}
+              renderItem={({ item }) => (
+                <ChatMessage
+                  message={item.text}
+                  isUser={item.isUser}
+                  time={item.time}
+                />
+              )}
+              contentContainerStyle={styles.messagesContainer}
+              onContentSizeChange={() => {
+                if (flatListRef.current) {
+                  flatListRef.current.scrollToEnd({ animated: true });
+                }
+              }}
+              onLayout={() => {
+                if (flatListRef.current) {
+                  flatListRef.current.scrollToEnd({ animated: false });
+                }
+              }}
+              ListFooterComponent={
+                isTyping ? (
+                  <View style={styles.typingContainer}>
+                    <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+                      <View style={[styles.typingDot, { opacity: 0.7 }]} />
+                      <View style={[styles.typingDot, { opacity: 0.8, marginHorizontal: 4 }]} />
+                      <View style={[styles.typingDot, { opacity: 0.9 }]} />
+                    </View>
+                    <Text style={styles.typingText}>Bot está digitando...</Text>
+                  </View>
+                ) : null
+              }
+            />
+
+            {options && options.length > 0 && (
+              <ChatOptions options={options} onSelect={handleOptionSelect} />
             )}
-            contentContainerStyle={styles.messagesContainer}
-            onContentSizeChange={() => flatListRef.current?.scrollToEnd({ animated: true })}
-            onLayout={() => flatListRef.current?.scrollToEnd({ animated: true })}
-          />
-        )}
-
-        {!showPreview && options && options.length > 0 && (
-          <ChatOptions options={options} onSelect={handleOptionSelect} />
-        )}
-
-        {!showPreview && isTyping && (
-          <View style={styles.typingContainer}>
-            <Text style={styles.typingText}>Bot está digitando...</Text>
-          </View>
+          </>
         )}
       </View>
 
@@ -5972,11 +6505,16 @@ const ChatbotScreen = ({ navigation }) => {
             onChangeText={setCurrentMessage}
             onSubmitEditing={handleSendMessage}
             returnKeyType="send"
-            multiline={true} // Permitir múltiplas linhas
-            numberOfLines={3} // Suporte até 3 linhas
+            multiline={true}
+            numberOfLines={3}
           />
           <TouchableOpacity
-            style={styles.improvedSendButton}
+            style={[
+              styles.improvedSendButton,
+              {
+                opacity: currentMessage.trim() === '' ? 0.5 : 1,
+              }
+            ]}
             onPress={handleSendMessage}
             disabled={currentMessage.trim() === ''}
           >
@@ -6393,6 +6931,414 @@ const PreviewCVScreen = ({ route, navigation }) => {
           <Text style={styles.previewActionButtonText}>Analisar com IA</Text>
         </TouchableOpacity>
       </View>
+    </SafeAreaView>
+  );
+};
+
+// Componente para gerenciar a foto de perfil
+const PerfilFotoScreen = ({ navigation, route }) => {
+  const { user, updateUser } = useAuth();
+  const [selectedImage, setSelectedImage] = useState(user?.foto || null);
+  const [loading, setLoading] = useState(false);
+  const [showImageOptions, setShowImageOptions] = useState(false);
+  
+  // Cores predefinidas para avatares caso não haja foto
+  const colorOptions = [
+    '#3498db', '#2ecc71', '#e74c3c', '#f39c12', 
+    '#9b59b6', '#1abc9c', '#d35400', '#c0392b'
+  ];
+  
+  // Imagens de exemplo para simular a galeria
+  const exampleImages = [
+    { id: 'img1', uri: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=200&h=200&fit=crop' },
+    { id: 'img2', uri: 'https://images.unsplash.com/photo-1506794778202-cad84cf45f1d?w=200&h=200&fit=crop' },
+    { id: 'img3', uri: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=200&h=200&fit=crop' },
+    { id: 'img4', uri: 'https://images.unsplash.com/photo-1438761681033-6461ffad8d80?w=200&h=200&fit=crop' },
+    { id: 'img5', uri: 'https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=200&h=200&fit=crop' },
+    { id: 'img6', uri: 'https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=200&h=200&fit=crop' },
+    { id: 'img7', uri: 'https://randomuser.me/api/portraits/men/1.jpg' },
+    { id: 'img8', uri: 'https://randomuser.me/api/portraits/women/1.jpg' },
+    { id: 'img9', uri: 'https://randomuser.me/api/portraits/men/32.jpg' },
+    { id: 'img10', uri: 'https://randomuser.me/api/portraits/women/44.jpg' },
+    { id: 'img11', uri: 'https://randomuser.me/api/portraits/men/85.jpg' },
+    { id: 'img12', uri: 'https://randomuser.me/api/portraits/women/63.jpg' },
+  ];
+  
+  // Estado para controlar o avatar de cor selecionado (caso não use foto)
+  const [selectedColorIndex, setSelectedColorIndex] = useState(
+    user?.avatarColorIndex !== undefined ? user.avatarColorIndex : Math.floor(Math.random() * colorOptions.length)
+  );
+  
+  // Função para salvar a foto do perfil
+  const saveProfileImage = async () => {
+    try {
+      setLoading(true);
+      
+      // Buscar dados atuais do usuário
+      const usuariosStr = await AsyncStorage.getItem('usuarios');
+      const usuarios = JSON.parse(usuariosStr) || [];
+      
+      // Encontrar índice do usuário atual
+      const userIndex = usuarios.findIndex(u => u.id === user.id);
+      if (userIndex === -1) {
+        throw new Error('Usuário não encontrado');
+      }
+      
+      // Atualizar usuário com a nova foto e índice de cor do avatar
+      const updatedUser = {
+        ...usuarios[userIndex],
+        foto: selectedImage,
+        avatarColorIndex: selectedColorIndex,
+        dataAtualizacao: new Date().toISOString()
+      };
+      
+      usuarios[userIndex] = updatedUser;
+      
+      // Salvar usuários atualizados
+      await AsyncStorage.setItem('usuarios', JSON.stringify(usuarios));
+      
+      // Atualizar usuário atual
+      await AsyncStorage.setItem('currentUser', JSON.stringify(updatedUser));
+      
+      // Se o contexto de autenticação tiver uma função para atualizar o usuário, use-a
+      if (updateUser) {
+        updateUser(updatedUser);
+      }
+      
+      Alert.alert('Sucesso', 'Foto de perfil atualizada com sucesso!');
+      
+      // Navegar de volta se veio de uma rota específica
+      if (route.params?.returnTo) {
+        navigation.navigate(route.params.returnTo);
+      } else {
+        navigation.goBack();
+      }
+      
+    } catch (error) {
+      console.error('Erro ao salvar foto de perfil:', error);
+      Alert.alert('Erro', 'Não foi possível salvar a foto de perfil.');
+    } finally {
+      setLoading(false);
+    }
+  };
+  
+  // Função para simular a captura de foto com a câmera
+  const handleTakePhoto = () => {
+    setShowImageOptions(false);
+    
+    // Simular o processo de tirar uma foto
+    setLoading(true);
+    setTimeout(() => {
+      // Seleciona uma imagem aleatória da galeria para simular uma foto
+      const randomIndex = Math.floor(Math.random() * exampleImages.length);
+      setSelectedImage(exampleImages[randomIndex].uri);
+      setLoading(false);
+      
+      Alert.alert('Foto Capturada', 'A foto foi capturada com sucesso! (Simulação)');
+    }, 1500);
+  };
+  
+  // Função para remover a foto de perfil
+  const handleRemovePhoto = () => {
+    Alert.alert(
+      'Remover Foto',
+      'Tem certeza que deseja remover sua foto de perfil?',
+      [
+        { text: 'Cancelar', style: 'cancel' },
+        { 
+          text: 'Remover', 
+          style: 'destructive',
+          onPress: () => {
+            setSelectedImage(null);
+            setShowImageOptions(false);
+          }
+        }
+      ]
+    );
+  };
+  
+  // Renderiza o avatar com iniciais caso não haja foto
+  const renderInitialsAvatar = () => {
+    const initials = user?.nome ? user.nome.charAt(0).toUpperCase() : 'U';
+    const backgroundColor = colorOptions[selectedColorIndex];
+    
+    return (
+      <View style={{
+        width: 150,
+        height: 150,
+        borderRadius: 75,
+        backgroundColor,
+        justifyContent: 'center',
+        alignItems: 'center',
+      }}>
+        <Text style={{
+          fontSize: 60,
+          color: Colors.white,
+          fontWeight: 'bold',
+        }}>
+          {initials}
+        </Text>
+      </View>
+    );
+  };
+  
+  return (
+    <SafeAreaView style={styles.container}>
+      <StatusBar barStyle="light-content" backgroundColor={Colors.dark} />
+      
+      <View style={styles.header}>
+        <TouchableOpacity
+          style={styles.backButton}
+          onPress={() => navigation.goBack()}
+        >
+          <Text style={styles.backButtonText}>‹</Text>
+        </TouchableOpacity>
+        <Text style={styles.headerTitle}>Foto de Perfil</Text>
+      </View>
+      
+      <ScrollView style={{ flex: 1 }}>
+        <View style={{
+          padding: 20,
+          alignItems: 'center',
+        }}>
+          {/* Avatar ou foto do perfil */}
+          <TouchableOpacity
+            style={{
+              marginVertical: 20,
+              borderWidth: 3,
+              borderColor: Colors.primary,
+              borderRadius: 75,
+              padding: 3,
+            }}
+            onPress={() => setShowImageOptions(true)}
+            disabled={loading}
+          >
+            {selectedImage ? (
+              <Image
+                source={{ uri: selectedImage }}
+                style={{
+                  width: 150,
+                  height: 150,
+                  borderRadius: 75,
+                }}
+              />
+            ) : (
+              renderInitialsAvatar()
+            )}
+            
+            {/* Ícone de câmera sobreposto */}
+            <View style={{
+              position: 'absolute',
+              bottom: 0,
+              right: 0,
+              backgroundColor: Colors.primary,
+              borderRadius: 20,
+              width: 40,
+              height: 40,
+              justifyContent: 'center',
+              alignItems: 'center',
+              borderWidth: 2,
+              borderColor: Colors.white,
+            }}>
+              <Text style={{ fontSize: 18, color: Colors.white }}>📷</Text>
+            </View>
+          </TouchableOpacity>
+          
+          <Text style={{
+            fontSize: 20,
+            fontWeight: 'bold',
+            marginVertical: 10,
+          }}>
+            {user?.nome || 'Usuário'}
+          </Text>
+          
+          <Text style={{
+            fontSize: 16,
+            color: Colors.lightText,
+            marginBottom: 20,
+            textAlign: 'center',
+          }}>
+            Selecione ou tire uma foto para seu perfil, ou escolha uma cor para o avatar com suas iniciais.
+          </Text>
+          
+          {/* Seletor de cores para o avatar */}
+          {!selectedImage && (
+            <View style={{ marginVertical: 20 }}>
+              <Text style={{
+                fontSize: 16,
+                fontWeight: 'bold',
+                marginBottom: 10,
+                textAlign: 'center',
+              }}>
+                Escolha uma cor para seu avatar
+              </Text>
+              
+              <View style={{
+                flexDirection: 'row',
+                flexWrap: 'wrap',
+                justifyContent: 'center',
+              }}>
+                {colorOptions.map((color, index) => (
+                  <TouchableOpacity
+                    key={index}
+                    style={{
+                      width: 40,
+                      height: 40,
+                      borderRadius: 20,
+                      backgroundColor: color,
+                      margin: 5,
+                      justifyContent: 'center',
+                      alignItems: 'center',
+                      borderWidth: selectedColorIndex === index ? 3 : 0,
+                      borderColor: Colors.white,
+                      elevation: selectedColorIndex === index ? 5 : 0,
+                      shadowColor: '#000',
+                      shadowOffset: { width: 0, height: 2 },
+                      shadowOpacity: selectedColorIndex === index ? 0.3 : 0,
+                      shadowRadius: selectedColorIndex === index ? 4 : 0,
+                    }}
+                    onPress={() => setSelectedColorIndex(index)}
+                  >
+                    {selectedColorIndex === index && (
+                      <Text style={{ color: Colors.white, fontWeight: 'bold' }}>✓</Text>
+                    )}
+                  </TouchableOpacity>
+                ))}
+              </View>
+            </View>
+          )}
+          
+          {/* Galeria de fotos de exemplo */}
+          {showImageOptions && (
+            <View style={{ marginTop: 20, width: '100%' }}>
+              <View style={{
+                flexDirection: 'row',
+                justifyContent: 'space-between',
+                alignItems: 'center',
+                marginBottom: 15,
+                paddingHorizontal: 10,
+              }}>
+                <Text style={{
+                  fontSize: 18,
+                  fontWeight: 'bold',
+                }}>
+                  Escolha uma Foto
+                </Text>
+                
+                <TouchableOpacity
+                  onPress={() => setShowImageOptions(false)}
+                >
+                  <Text style={{
+                    fontSize: 22,
+                    color: Colors.lightText,
+                    paddingHorizontal: 5,
+                  }}>
+                    ×
+                  </Text>
+                </TouchableOpacity>
+              </View>
+              
+              <View style={{
+                flexDirection: 'row',
+                justifyContent: 'space-around',
+                marginBottom: 20,
+              }}>
+                <TouchableOpacity
+                  style={{
+                    alignItems: 'center',
+                    backgroundColor: Colors.primary,
+                    padding: 12,
+                    borderRadius: 8,
+                    width: '45%',
+                  }}
+                  onPress={handleTakePhoto}
+                >
+                  <Text style={{ color: Colors.white }}>Tirar Foto</Text>
+                </TouchableOpacity>
+                
+                <TouchableOpacity
+                  style={{
+                    alignItems: 'center',
+                    backgroundColor: Colors.danger,
+                    padding: 12,
+                    borderRadius: 8,
+                    width: '45%',
+                  }}
+                  onPress={handleRemovePhoto}
+                >
+                  <Text style={{ color: Colors.white }}>Remover Foto</Text>
+                </TouchableOpacity>
+              </View>
+              
+              <Text style={{
+                fontSize: 16,
+                fontWeight: 'bold',
+                marginBottom: 10,
+                paddingHorizontal: 10,
+              }}>
+                Selecione da Galeria:
+              </Text>
+              
+              <View style={{
+                flexDirection: 'row',
+                flexWrap: 'wrap',
+                justifyContent: 'space-between',
+                paddingHorizontal: 5,
+              }}>
+                {exampleImages.map((img, index) => (
+                  <TouchableOpacity
+                    key={img.id}
+                    style={{
+                      width: '30%',
+                      aspectRatio: 1,
+                      marginBottom: 10,
+                      borderWidth: 2,
+                      borderColor: selectedImage === img.uri ? Colors.primary : 'transparent',
+                      borderRadius: 8,
+                    }}
+                    onPress={() => setSelectedImage(img.uri)}
+                  >
+                    <Image
+                      source={{ uri: img.uri }}
+                      style={{
+                        width: '100%',
+                        height: '100%',
+                        borderRadius: 6,
+                      }}
+                    />
+                  </TouchableOpacity>
+                ))}
+              </View>
+            </View>
+          )}
+          
+          <TouchableOpacity
+            style={{
+              backgroundColor: Colors.primary,
+              paddingVertical: 12,
+              paddingHorizontal: 30,
+              borderRadius: 8,
+              marginTop: 30,
+              width: '80%',
+              alignItems: 'center',
+            }}
+            onPress={saveProfileImage}
+            disabled={loading}
+          >
+            {loading ? (
+              <ActivityIndicator size="small" color={Colors.white} />
+            ) : (
+              <Text style={{
+                color: Colors.white,
+                fontWeight: 'bold',
+                fontSize: 16,
+              }}>
+                Salvar
+              </Text>
+            )}
+          </TouchableOpacity>
+        </View>
+      </ScrollView>
     </SafeAreaView>
   );
 };
@@ -9086,6 +10032,65 @@ const styles = StyleSheet.create({
     lineHeight: 20,
     textAlign: 'justify',
     paddingHorizontal: 2,
+  },
+
+  curriculoProgressoCard: {
+    backgroundColor: '#FFF3CD',
+    borderRadius: 10,
+    padding: 15,
+    marginBottom: 20,
+    borderLeftWidth: 4,
+    borderLeftColor: '#FFC107',
+    ...Platform.select({
+      ios: {
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 2 },
+        shadowOpacity: 0.1,
+        shadowRadius: 4,
+      },
+      android: {
+        elevation: 3,
+      },
+    }),
+  },
+  curriculoProgressoHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 10,
+  },
+  curriculoProgressoIcon: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: '#FFC107',
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginRight: 10,
+  },
+  curriculoProgressoTitulo: {
+    fontSize: 16,
+    fontWeight: 'bold',
+    color: '#856404',
+  },
+  curriculoProgressoSubtitulo: {
+    fontSize: 12,
+    color: '#856404',
+    opacity: 0.8,
+  },
+  curriculoProgressoTexto: {
+    color: '#856404',
+    marginBottom: 12,
+  },
+  curriculoProgressoBotao: {
+    backgroundColor: '#FFC107',
+    borderRadius: 8,
+    padding: 12,
+    alignItems: 'center',
+  },
+  curriculoProgressoBotaoTexto: {
+    color: '#000',
+    fontWeight: 'bold',
+    fontSize: 14,
   },
 
 });
