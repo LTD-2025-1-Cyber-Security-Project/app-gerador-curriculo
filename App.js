@@ -15,6 +15,7 @@ import {
   Share,
   ActivityIndicator,
   Linking,
+  Switch,
   Image
 } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
@@ -22,6 +23,8 @@ import Markdown from 'react-native-markdown-display';
 import { NavigationContainer } from '@react-navigation/native';
 import { createStackNavigator } from '@react-navigation/stack';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
+// import { Slider, Switch } from '@react-native-community/slider';
+import { Ionicons } from 'react-native-vector-icons/Ionicons';
 import axios from 'axios';
 
 // Adicione no início do arquivo, junto com os imports
@@ -112,6 +115,1482 @@ const IA_APIS = {
     offline: true
   }
 };
+
+const DashboardScreen = ({ navigation }) => {
+  const { user } = useAuth();
+  const [stats, setStats] = useState({
+    totalCurriculos: 0,
+    vagasEncontradas: 0,
+    ultimaAnalise: null,
+    pontuacaoMedia: 0
+  });
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    carregarDados();
+    
+    // Atualizar quando a tela ganhar foco
+    const unsubscribe = navigation.addListener('focus', () => {
+      carregarDados();
+    });
+    
+    return unsubscribe;
+  }, [navigation]);
+
+  const carregarDados = async () => {
+    try {
+      setLoading(true);
+      
+      // Carregar dados dos currículos
+      const cvs = await AsyncStorage.getItem(`curriculos_${user.id}`);
+      const curriculos = cvs ? JSON.parse(cvs) : [];
+      
+      // Carregar dados das vagas encontradas (do cache de busca)
+      const cacheKeys = await AsyncStorage.getAllKeys();
+      const vagasKeys = cacheKeys.filter(key => key.startsWith('vagas_'));
+      
+      // Carregar dados de análises
+      const analisesKeys = cacheKeys.filter(key => key.includes('analise_'));
+      
+      // Calcular estatísticas
+      let ultimaData = null;
+      let pontuacaoTotal = 0;
+      let contadorPontuacao = 0;
+      
+      // Encontrar a data mais recente de análise
+      for (const key of analisesKeys) {
+        try {
+          const analise = await AsyncStorage.getItem(key);
+          if (analise) {
+            const dados = JSON.parse(analise);
+            const dataAnalise = new Date(dados.timestamp);
+            
+            if (!ultimaData || dataAnalise > ultimaData) {
+              ultimaData = dataAnalise;
+            }
+            
+            // Extrair pontuação se possível
+            if (dados.resultado && dados.resultado.includes('/10')) {
+              const match = dados.resultado.match(/(\d+(\.\d+)?)\s*\/\s*10/);
+              if (match && match[1]) {
+                const pontuacao = parseFloat(match[1]);
+                if (!isNaN(pontuacao)) {
+                  pontuacaoTotal += pontuacao;
+                  contadorPontuacao++;
+                }
+              }
+            }
+          }
+        } catch (error) {
+          console.error('Erro ao processar análise:', error);
+        }
+      }
+      
+      // Atualizar estatísticas
+      setStats({
+        totalCurriculos: curriculos.length,
+        vagasEncontradas: vagasKeys.length * 5, // Cada busca encontra aproximadamente 5 vagas
+        ultimaAnalise: ultimaData,
+        pontuacaoMedia: contadorPontuacao > 0 ? pontuacaoTotal / contadorPontuacao : 0
+      });
+      
+    } catch (error) {
+      console.error('Erro ao carregar dados do dashboard:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const formatDate = (date) => {
+    if (!date) return 'Nunca';
+    return `${date.getDate().toString().padStart(2, '0')}/${(date.getMonth() + 1).toString().padStart(2, '0')}/${date.getFullYear()}`;
+  };
+
+  return (
+    <SafeAreaView style={styles.container}>
+      <StatusBar barStyle="light-content" backgroundColor={Colors.dark} />
+      
+      <View style={styles.header}>
+        <Text style={styles.headerTitle}>Dashboard</Text>
+      </View>
+      
+      {loading ? (
+        <View style={styles.loadingContainer}>
+          <ActivityIndicator size="large" color={Colors.primary} />
+          <Text style={{ marginTop: 10 }}>Carregando estatísticas...</Text>
+        </View>
+      ) : (
+        <ScrollView style={{ padding: 15 }}>
+          <View style={{
+            backgroundColor: Colors.white,
+            borderRadius: 10,
+            padding: 20,
+            marginBottom: 20,
+            ...Platform.select({
+              ios: {
+                shadowColor: '#000',
+                shadowOffset: { width: 0, height: 2 },
+                shadowOpacity: 0.1,
+                shadowRadius: 4,
+              },
+              android: {
+                elevation: 2,
+              },
+            }),
+          }}>
+            <Text style={{
+              fontSize: 18,
+              fontWeight: 'bold',
+              color: Colors.dark,
+              marginBottom: 15,
+            }}>
+              Estatísticas de {user.nome}
+            </Text>
+            
+            <View style={{ flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'space-between' }}>
+              {/* Card de Total de Currículos */}
+              <View style={{
+                width: '48%',
+                backgroundColor: '#e3f2fd',
+                borderRadius: 8,
+                padding: 15,
+                marginBottom: 15,
+              }}>
+                <Text style={{ fontSize: 24, fontWeight: 'bold', color: Colors.primary }}>
+                  {stats.totalCurriculos}
+                </Text>
+                <Text style={{ color: Colors.dark }}>
+                  Currículos Criados
+                </Text>
+              </View>
+              
+              {/* Card de Vagas Encontradas */}
+              <View style={{
+                width: '48%',
+                backgroundColor: '#e8f5e9',
+                borderRadius: 8,
+                padding: 15,
+                marginBottom: 15,
+              }}>
+                <Text style={{ fontSize: 24, fontWeight: 'bold', color: Colors.success }}>
+                  {stats.vagasEncontradas}
+                </Text>
+                <Text style={{ color: Colors.dark }}>
+                  Vagas Encontradas
+                </Text>
+              </View>
+              
+              {/* Card de Última Análise */}
+              <View style={{
+                width: '48%',
+                backgroundColor: '#fff3e0',
+                borderRadius: 8,
+                padding: 15,
+                marginBottom: 15,
+              }}>
+                <Text style={{ fontSize: 16, fontWeight: 'bold', color: '#ff9800' }}>
+                  {formatDate(stats.ultimaAnalise)}
+                </Text>
+                <Text style={{ color: Colors.dark }}>
+                  Última Análise
+                </Text>
+              </View>
+              
+              {/* Card de Pontuação Média */}
+              <View style={{
+                width: '48%',
+                backgroundColor: '#f3e5f5',
+                borderRadius: 8,
+                padding: 15,
+                marginBottom: 15,
+              }}>
+                <Text style={{ fontSize: 24, fontWeight: 'bold', color: '#9c27b0' }}>
+                  {stats.pontuacaoMedia.toFixed(1)}
+                </Text>
+                <Text style={{ color: Colors.dark }}>
+                  Pontuação Média
+                </Text>
+              </View>
+            </View>
+          </View>
+          
+          {/* Ações Rápidas */}
+          <View style={{
+            backgroundColor: Colors.white,
+            borderRadius: 10,
+            padding: 20,
+            marginBottom: 20,
+            ...Platform.select({
+              ios: {
+                shadowColor: '#000',
+                shadowOffset: { width: 0, height: 2 },
+                shadowOpacity: 0.1,
+                shadowRadius: 4,
+              },
+              android: {
+                elevation: 2,
+              },
+            }),
+          }}>
+            <Text style={{
+              fontSize: 18,
+              fontWeight: 'bold',
+              color: Colors.dark,
+              marginBottom: 15,
+            }}>
+              Ações Rápidas
+            </Text>
+            
+            <View style={{ flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'space-between' }}>
+              <TouchableOpacity
+                style={{
+                  width: '48%',
+                  backgroundColor: Colors.primary,
+                  borderRadius: 8,
+                  padding: 15,
+                  marginBottom: 10,
+                  alignItems: 'center',
+                }}
+                onPress={() => navigation.navigate('Chatbot')}
+              >
+                <Text style={{ color: Colors.white, fontWeight: 'bold' }}>
+                  Novo Currículo
+                </Text>
+              </TouchableOpacity>
+              
+              <TouchableOpacity
+                style={{
+                  width: '48%',
+                  backgroundColor: Colors.secondary,
+                  borderRadius: 8,
+                  padding: 15,
+                  marginBottom: 10,
+                  alignItems: 'center',
+                }}
+                onPress={() => navigation.navigate('CurriculosAnalise')}
+              >
+                <Text style={{ color: Colors.white, fontWeight: 'bold' }}>
+                  Analisar CV
+                </Text>
+              </TouchableOpacity>
+              
+              <TouchableOpacity
+                style={{
+                  width: '48%',
+                  backgroundColor: Colors.success,
+                  borderRadius: 8,
+                  padding: 15,
+                  marginBottom: 10,
+                  alignItems: 'center',
+                }}
+                onPress={() => navigation.navigate('SelecionarCurriculo')}
+              >
+                <Text style={{ color: Colors.white, fontWeight: 'bold' }}>
+                  Buscar Vagas
+                </Text>
+              </TouchableOpacity>
+              
+              <TouchableOpacity
+                style={{
+                  width: '48%',
+                  backgroundColor: '#ff9800',
+                  borderRadius: 8,
+                  padding: 15,
+                  marginBottom: 10,
+                  alignItems: 'center',
+                }}
+                onPress={() => navigation.navigate('MeusCurriculos')}
+              >
+                <Text style={{ color: Colors.white, fontWeight: 'bold' }}>
+                  Meus Currículos
+                </Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        </ScrollView>
+      )}
+    </SafeAreaView>
+  );
+};
+
+const ConfiguracoesAvancadasScreen = ({ navigation }) => {
+  const [iaConfigs, setIaConfigs] = useState({});
+  const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
+  const [activeIA, setActiveIA] = useState('GEMINI');
+  
+  useEffect(() => {
+    carregarConfiguracoes();
+  }, []);
+  
+  const carregarConfiguracoes = async () => {
+    try {
+      setLoading(true);
+      
+      // Carregar configurações de todas as IAs
+      const configs = {};
+      
+      for (const [key, value] of Object.entries(IA_APIS)) {
+        const apiKey = await getIAAPIKey(key);
+        
+        configs[key] = {
+          nome: value.nome,
+          apiKey: apiKey,
+          isDefault: false,
+          modelo: 'Padrão',
+          temperatura: 0.7,
+          maxTokens: 800,
+        };
+      }
+      
+      // Carregar IA padrão
+      const defaultIA = await AsyncStorage.getItem('ia_padrao');
+      if (defaultIA && configs[defaultIA]) {
+        configs[defaultIA].isDefault = true;
+        setActiveIA(defaultIA);
+      }
+      
+      // Carregar configurações avançadas (se existirem)
+      const advancedConfigs = await AsyncStorage.getItem('ia_advanced_configs');
+      if (advancedConfigs) {
+        const parsedConfigs = JSON.parse(advancedConfigs);
+        
+        // Mesclar com as configurações básicas
+        for (const [key, value] of Object.entries(parsedConfigs)) {
+          if (configs[key]) {
+            configs[key] = { ...configs[key], ...value };
+          }
+        }
+      }
+      
+      setIaConfigs(configs);
+      
+    } catch (error) {
+      console.error('Erro ao carregar configurações avançadas:', error);
+      Alert.alert('Erro', 'Não foi possível carregar as configurações.');
+    } finally {
+      setLoading(false);
+    }
+  };
+  
+  const saveAdvancedConfig = async () => {
+    try {
+      setSaving(true);
+      
+      // Salvar API key
+      await salvarIAAPIKey(activeIA, iaConfigs[activeIA].apiKey);
+      
+      // Salvar como IA padrão se marcado
+      if (iaConfigs[activeIA].isDefault) {
+        await AsyncStorage.setItem('ia_padrao', activeIA);
+        
+        // Atualizar outras IAs para não serem padrão
+        const updatedConfigs = { ...iaConfigs };
+        for (const key of Object.keys(updatedConfigs)) {
+          if (key !== activeIA) {
+            updatedConfigs[key].isDefault = false;
+          }
+        }
+        setIaConfigs(updatedConfigs);
+      }
+      
+      // Salvar configurações avançadas
+      const advancedConfigs = {};
+      for (const [key, value] of Object.entries(iaConfigs)) {
+        advancedConfigs[key] = {
+          modelo: value.modelo,
+          temperatura: value.temperatura,
+          maxTokens: value.maxTokens,
+        };
+      }
+      
+      await AsyncStorage.setItem('ia_advanced_configs', JSON.stringify(advancedConfigs));
+      
+      Alert.alert('Sucesso', 'Configurações salvas com sucesso!');
+      
+    } catch (error) {
+      console.error('Erro ao salvar configurações avançadas:', error);
+      Alert.alert('Erro', 'Não foi possível salvar as configurações.');
+    } finally {
+      setSaving(false);
+    }
+  };
+  
+  const handleInputChange = (field, value) => {
+    setIaConfigs(prev => ({
+      ...prev,
+      [activeIA]: {
+        ...prev[activeIA],
+        [field]: value
+      }
+    }));
+  };
+  
+  // Componente de Slider personalizado sem dependências externas
+  const CustomSlider = ({ value, onValueChange, minimumValue, maximumValue, step }) => {
+    // Valores possíveis com base no step
+    const values = [];
+    for (let i = minimumValue; i <= maximumValue; i += step) {
+      values.push(parseFloat(i.toFixed(1))); // Arredondar para 1 casa decimal
+    }
+    
+    return (
+      <ScrollView
+        horizontal
+        showsHorizontalScrollIndicator={false}
+        contentContainerStyle={{
+          alignItems: 'center',
+          paddingVertical: 10,
+        }}
+      >
+        {values.map((val) => (
+          <TouchableOpacity
+            key={val}
+            style={{
+              width: 30,
+              height: 30,
+              borderRadius: 15,
+              backgroundColor: val <= value ? Colors.primary : Colors.lightGray,
+              justifyContent: 'center',
+              alignItems: 'center',
+              marginHorizontal: 2,
+            }}
+            onPress={() => onValueChange(val)}
+          >
+            <Text style={{
+              fontSize: 10,
+              color: val <= value ? Colors.white : Colors.dark,
+            }}>
+              {val}
+            </Text>
+          </TouchableOpacity>
+        ))}
+      </ScrollView>
+    );
+  };
+  
+  const renderModeloOptions = () => {
+    // Opções de modelo com base na IA selecionada
+    const options = {
+      'GEMINI': ['gemini-1.5-flash', 'gemini-1.5-pro', 'gemini-pro', 'gemini-pro-vision', 'gemini-2.0-pro', 'gemini-2.0-flash'],
+      'CLAUDE': ['claude-3-sonnet-20240229', 'claude-3-opus-20240229', 'claude-3.5-sonnet', 'claude-3.7-sonnet'],
+      'PERPLEXITY': ['llama-3-8b-instruct', 'llama-3-70b-instruct', 'sonar-small-online', 'sonar-medium-online'],
+      'DEEPSEEK': ['deepseek-chat', 'deepseek-coder'],
+      'BLACKBOX': ['blackbox-default'],
+      'GROK': ['grok-1', 'grok-2'],
+      'OFFLINE': ['local-only']
+    };
+    
+    const modelosDisponiveis = options[activeIA] || ['default'];
+    
+    return (
+      <View style={{ marginBottom: 15 }}>
+        <Text style={{
+          fontSize: 16,
+          fontWeight: '500',
+          marginBottom: 8,
+          color: Colors.dark,
+        }}>
+          Modelo:
+        </Text>
+        
+        <ScrollView
+          horizontal
+          showsHorizontalScrollIndicator={false}
+          style={{ marginBottom: 10 }}
+        >
+          {modelosDisponiveis.map((modelo, index) => (
+            <TouchableOpacity
+              key={index}
+              style={{
+                backgroundColor: iaConfigs[activeIA]?.modelo === modelo ? Colors.primary : Colors.lightGray,
+                paddingVertical: 8,
+                paddingHorizontal: 12,
+                borderRadius: 6,
+                marginRight: 8,
+              }}
+              onPress={() => handleInputChange('modelo', modelo)}
+            >
+              <Text style={{
+                color: iaConfigs[activeIA]?.modelo === modelo ? Colors.white : Colors.dark,
+              }}>
+                {modelo}
+              </Text>
+            </TouchableOpacity>
+          ))}
+        </ScrollView>
+      </View>
+    );
+  };
+  
+  // Função para obter API key (simulação da função existente no código principal)
+  const getIAAPIKey = async (tipoIA) => {
+    try {
+      const savedKey = await AsyncStorage.getItem(`ia_api_key_${tipoIA}`);
+      if (savedKey) return savedKey;
+      return IA_APIS[tipoIA]?.chaveDefault || '';
+    } catch (error) {
+      console.error('Erro ao obter chave da API:', error);
+      return IA_APIS[tipoIA]?.chaveDefault || '';
+    }
+  };
+  
+  // Função para salvar API key (simulação da função existente no código principal)
+  const salvarIAAPIKey = async (tipoIA, apiKey) => {
+    try {
+      await AsyncStorage.setItem(`ia_api_key_${tipoIA}`, apiKey);
+      return true;
+    } catch (error) {
+      console.error('Erro ao salvar chave da API:', error);
+      return false;
+    }
+  };
+  
+  return (
+    <SafeAreaView style={styles.container}>
+      <StatusBar barStyle="light-content" backgroundColor={Colors.dark} />
+      
+      <View style={styles.header}>
+        <Text style={styles.headerTitle}>Configurações Avançadas</Text>
+      </View>
+      
+      {loading ? (
+        <View style={styles.loadingContainer}>
+          <ActivityIndicator size="large" color={Colors.primary} />
+          <Text style={{ marginTop: 10 }}>Carregando configurações...</Text>
+        </View>
+      ) : (
+        <ScrollView style={{ padding: 15 }}>
+          <View style={{
+            backgroundColor: Colors.white,
+            borderRadius: 10,
+            padding: 20,
+            marginBottom: 20,
+            ...Platform.select({
+              ios: {
+                shadowColor: '#000',
+                shadowOffset: { width: 0, height: 2 },
+                shadowOpacity: 0.1,
+                shadowRadius: 4,
+              },
+              android: {
+                elevation: 2,
+              },
+            }),
+          }}>
+            <Text style={{
+              fontSize: 18,
+              fontWeight: 'bold',
+              color: Colors.dark,
+              marginBottom: 15,
+            }}>
+              Configurações Avançadas de IAs
+            </Text>
+            
+            <View style={{ marginBottom: 20 }}>
+              <Text style={{
+                fontSize: 16,
+                fontWeight: '500',
+                marginBottom: 8,
+                color: Colors.dark,
+              }}>
+                Selecione a IA:
+              </Text>
+              
+              <ScrollView
+                horizontal
+                showsHorizontalScrollIndicator={false}
+                style={{ marginBottom: 10 }}
+              >
+                {Object.entries(iaConfigs).map(([key, value]) => (
+                  <TouchableOpacity
+                    key={key}
+                    style={{
+                      backgroundColor: activeIA === key ? Colors.primary : Colors.lightGray,
+                      paddingVertical: 10,
+                      paddingHorizontal: 15,
+                      borderRadius: 8,
+                      marginRight: 10,
+                      flexDirection: 'row',
+                      alignItems: 'center',
+                    }}
+                    onPress={() => setActiveIA(key)}
+                  >
+                    <Text style={{
+                      color: activeIA === key ? Colors.white : Colors.dark,
+                      fontWeight: activeIA === key ? 'bold' : 'normal',
+                    }}>
+                      {value.nome}
+                    </Text>
+                    {value.isDefault && (
+                      <View style={{
+                        backgroundColor: activeIA === key ? Colors.white : Colors.primary,
+                        borderRadius: 10,
+                        paddingHorizontal: 6,
+                        paddingVertical: 2,
+                        marginLeft: 5,
+                      }}>
+                        <Text style={{
+                          fontSize: 10,
+                          color: activeIA === key ? Colors.primary : Colors.white,
+                        }}>
+                          Padrão
+                        </Text>
+                      </View>
+                    )}
+                  </TouchableOpacity>
+                ))}
+              </ScrollView>
+            </View>
+            
+            {/* Configurações da IA selecionada */}
+            {activeIA && iaConfigs[activeIA] && (
+              <>
+                <View style={{ marginBottom: 15 }}>
+                  <Text style={{
+                    fontSize: 16,
+                    fontWeight: '500',
+                    marginBottom: 8,
+                    color: Colors.dark,
+                  }}>
+                    API Key:
+                  </Text>
+                  <TextInput
+                    style={{
+                      backgroundColor: Colors.lightGray,
+                      borderRadius: 8,
+                      padding: 12,
+                      fontSize: 16,
+                    }}
+                    value={iaConfigs[activeIA].apiKey}
+                    onChangeText={(text) => handleInputChange('apiKey', text)}
+                    placeholder="Insira sua API Key aqui"
+                    secureTextEntry={true}
+                  />
+                  {IA_APIS[activeIA]?.chaveDefault && !iaConfigs[activeIA].apiKey && (
+                    <Text style={{
+                      fontSize: 12,
+                      color: Colors.info,
+                      marginTop: 5,
+                    }}>
+                      API Key padrão disponível, mas você pode adicionar sua própria
+                    </Text>
+                  )}
+                </View>
+                
+                {/* Opções de modelo */}
+                {renderModeloOptions()}
+                
+                <View style={{ marginBottom: 15 }}>
+                  <Text style={{
+                    fontSize: 16,
+                    fontWeight: '500',
+                    marginBottom: 8,
+                    color: Colors.dark,
+                  }}>
+                    Temperatura: {iaConfigs[activeIA].temperatura.toFixed(1)}
+                  </Text>
+                  <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+                    <Text>0.1</Text>
+                    <View style={{ flex: 1, marginHorizontal: 10 }}>
+                      <CustomSlider
+                        minimumValue={0.1}
+                        maximumValue={1.0}
+                        step={0.1}
+                        value={iaConfigs[activeIA].temperatura}
+                        onValueChange={(value) => handleInputChange('temperatura', value)}
+                      />
+                    </View>
+                    <Text>1.0</Text>
+                  </View>
+                  <Text style={{ fontSize: 12, color: Colors.lightText, marginTop: 5 }}>
+                    Valores mais baixos = respostas mais precisas. Valores mais altos = respostas mais criativas.
+                  </Text>
+                </View>
+                
+                <View style={{ marginBottom: 15 }}>
+                  <Text style={{
+                    fontSize: 16,
+                    fontWeight: '500',
+                    marginBottom: 8,
+                    color: Colors.dark,
+                  }}>
+                    Máximo de tokens: {iaConfigs[activeIA].maxTokens}
+                  </Text>
+                  <ScrollView 
+                    horizontal 
+                    showsHorizontalScrollIndicator={false}
+                    contentContainerStyle={{ paddingVertical: 10 }}
+                  >
+                    {[200, 500, 800, 1000, 1500, 2000, 4000].map(value => (
+                      <TouchableOpacity
+                        key={value}
+                        style={{
+                          paddingVertical: 8,
+                          paddingHorizontal: 12,
+                          marginRight: 8,
+                          backgroundColor: iaConfigs[activeIA].maxTokens === value ? Colors.primary : Colors.lightGray,
+                          borderRadius: 8,
+                        }}
+                        onPress={() => handleInputChange('maxTokens', value)}
+                      >
+                        <Text style={{
+                          color: iaConfigs[activeIA].maxTokens === value ? Colors.white : Colors.dark,
+                        }}>
+                          {value}
+                        </Text>
+                      </TouchableOpacity>
+                    ))}
+                  </ScrollView>
+                  <Text style={{ fontSize: 12, color: Colors.lightText, marginTop: 5 }}>
+                    Controla a extensão máxima da resposta. Valores mais altos permitem respostas mais longas.
+                  </Text>
+                </View>
+                
+                <View style={{
+                  flexDirection: 'row',
+                  alignItems: 'center',
+                  marginBottom: 20,
+                }}>
+                  <Switch
+                    value={iaConfigs[activeIA].isDefault}
+                    onValueChange={(value) => handleInputChange('isDefault', value)}
+                    trackColor={{ false: Colors.lightGray, true: Colors.primary }}
+                    thumbColor={Colors.white}
+                  />
+                  <Text style={{ marginLeft: 10 }}>
+                    Definir como IA padrão
+                  </Text>
+                </View>
+                
+                <TouchableOpacity
+                  style={{
+                    backgroundColor: Colors.primary,
+                    borderRadius: 8,
+                    padding: 15,
+                    alignItems: 'center',
+                  }}
+                  onPress={saveAdvancedConfig}
+                  disabled={saving}
+                >
+                  {saving ? (
+                    <ActivityIndicator size="small" color={Colors.white} />
+                  ) : (
+                    <Text style={{
+                      color: Colors.white,
+                      fontWeight: 'bold',
+                      fontSize: 16,
+                    }}>
+                      Salvar Configurações
+                    </Text>
+                  )}
+                </TouchableOpacity>
+                
+                {/* Notas explicativas */}
+                <View style={{
+                  marginTop: 20,
+                  padding: 15,
+                  backgroundColor: '#f9f9f9',
+                  borderRadius: 8,
+                  borderLeftWidth: 3,
+                  borderLeftColor: Colors.info,
+                }}>
+                  <Text style={{ fontSize: 14, fontWeight: 'bold', marginBottom: 8, color: Colors.info }}>
+                    Notas sobre configurações avançadas:
+                  </Text>
+                  <Text style={{ fontSize: 12, color: Colors.dark, marginBottom: 5 }}>
+                    • Temperatura: controla a aleatoriedade das respostas. Valores mais baixos (ex: 0.1) geram respostas mais previsíveis e focadas, enquanto valores mais altos (ex: 1.0) geram respostas mais variadas e criativas.
+                  </Text>
+                  <Text style={{ fontSize: 12, color: Colors.dark, marginBottom: 5 }}>
+                    • Tokens: unidades básicas de texto. Mais tokens = respostas mais longas, mas também mais consumo de API. Um token equivale a aproximadamente 4 caracteres em inglês ou 2-3 em português.
+                  </Text>
+                  <Text style={{ fontSize: 12, color: Colors.dark }}>
+                    • Modelo: diferentes modelos oferecem diferentes capacidades e velocidades. Modelos mais novos geralmente têm melhor desempenho mas podem consumir mais tokens.
+                  </Text>
+                </View>
+              </>
+            )}
+          </View>
+          
+          {/* Histórico de uso */}
+          <View style={{
+            backgroundColor: Colors.white,
+            borderRadius: 10,
+            padding: 20,
+            marginBottom: 20,
+            ...Platform.select({
+              ios: {
+                shadowColor: '#000',
+                shadowOffset: { width: 0, height: 2 },
+                shadowOpacity: 0.1,
+                shadowRadius: 4,
+              },
+              android: {
+                elevation: 2,
+              },
+            }),
+          }}>
+            <Text style={{
+              fontSize: 18,
+              fontWeight: 'bold',
+              color: Colors.dark,
+              marginBottom: 15,
+            }}>
+              Uso de API
+            </Text>
+            
+            <Text style={{ marginBottom: 10 }}>
+              Analise de currículos: 12 chamadas
+            </Text>
+            <Text style={{ marginBottom: 10 }}>
+              Busca de vagas: 5 chamadas
+            </Text>
+            <Text style={{ marginBottom: 15 }}>
+              Total de tokens: ~24.000
+            </Text>
+            
+            <TouchableOpacity
+              style={{
+                backgroundColor: Colors.lightGray,
+                borderRadius: 8,
+                padding: 12,
+                alignItems: 'center',
+              }}
+              onPress={() => Alert.alert('Em Desenvolvimento', 'Esta funcionalidade será implementada em versões futuras.')}
+            >
+              <Text style={{ color: Colors.dark }}>Ver Detalhes de Uso</Text>
+            </TouchableOpacity>
+          </View>
+        </ScrollView>
+      )}
+    </SafeAreaView>
+  );
+};
+
+const ConfiguracoesScreen = ({ navigation }) => {
+  const { user, logout } = useAuth();
+  const [loading, setLoading] = useState(false);
+  const [editingProfile, setEditingProfile] = useState(false);
+  const [profileData, setProfileData] = useState({
+    nome: user?.nome || '',
+    email: user?.email || '',
+    foto: user?.foto || null,
+    telefone: user?.telefone || '',
+    linkedin: user?.linkedin || '',
+    github: user?.github || '',
+    website: user?.website || ''
+  });
+  
+  const salvarPerfil = async () => {
+    try {
+      setLoading(true);
+      
+      // Obter lista de usuários
+      const usuariosStr = await AsyncStorage.getItem('usuarios');
+      const usuarios = JSON.parse(usuariosStr) || [];
+      
+      // Encontrar e atualizar o usuário atual
+      const index = usuarios.findIndex(u => u.id === user.id);
+      
+      if (index !== -1) {
+        // Atualizar dados
+        usuarios[index] = {
+          ...usuarios[index],
+          ...profileData,
+          dataAtualizacao: new Date().toISOString()
+        };
+        
+        // Salvar de volta no AsyncStorage
+        await AsyncStorage.setItem('usuarios', JSON.stringify(usuarios));
+        
+        // Atualizar usuário atual
+        await AsyncStorage.setItem('currentUser', JSON.stringify(usuarios[index]));
+        
+        // Recarregar session do usuário (necessário implementar no contexto Auth)
+        // updateUser(usuarios[index]);
+        
+        Alert.alert('Sucesso', 'Perfil atualizado com sucesso!');
+        setEditingProfile(false);
+      } else {
+        Alert.alert('Erro', 'Usuário não encontrado. Tente fazer login novamente.');
+      }
+    } catch (error) {
+      console.error('Erro ao salvar perfil:', error);
+      Alert.alert('Erro', 'Não foi possível salvar as alterações.');
+    } finally {
+      setLoading(false);
+    }
+  };
+  
+  const handleSelecionarFoto = () => {
+    Alert.alert(
+      'Foto de Perfil',
+      'Funcionalidade a ser implementada. Você poderá selecionar uma foto da galeria ou tirar uma nova foto.',
+      [{ text: 'OK' }]
+    );
+  };
+  
+  const confirmLogout = () => {
+    Alert.alert(
+      'Sair',
+      'Tem certeza que deseja sair da sua conta?',
+      [
+        { text: 'Cancelar', style: 'cancel' },
+        { text: 'Sair', style: 'destructive', onPress: logout }
+      ]
+    );
+  };
+  
+  const limparCache = async () => {
+    try {
+      setLoading(true);
+      
+      // Obter todas as chaves do AsyncStorage
+      const keys = await AsyncStorage.getAllKeys();
+      
+      // Filtrar as chaves de cache (vagas, análises, etc)
+      const cacheKeys = keys.filter(key => 
+        key.startsWith('vagas_') || 
+        key.includes('analise_') || 
+        key.startsWith('cache_')
+      );
+      
+      if (cacheKeys.length > 0) {
+        // Remover os itens de cache
+        await AsyncStorage.multiRemove(cacheKeys);
+        Alert.alert('Sucesso', `Cache limpo! ${cacheKeys.length} itens removidos.`);
+      } else {
+        Alert.alert('Informação', 'Não há cache para limpar.');
+      }
+      
+    } catch (error) {
+      console.error('Erro ao limpar cache:', error);
+      Alert.alert('Erro', 'Não foi possível limpar o cache.');
+    } finally {
+      setLoading(false);
+    }
+  };
+  
+  return (
+    <SafeAreaView style={styles.container}>
+      <StatusBar barStyle="light-content" backgroundColor={Colors.dark} />
+      
+      <View style={styles.header}>
+        <Text style={styles.headerTitle}>Configurações</Text>
+      </View>
+      
+      <ScrollView style={{ padding: 15 }}>
+        {/* Seção de Perfil */}
+        <View style={{
+          backgroundColor: Colors.white,
+          borderRadius: 10,
+          padding: 20,
+          marginBottom: 20,
+          ...Platform.select({
+            ios: {
+              shadowColor: '#000',
+              shadowOffset: { width: 0, height: 2 },
+              shadowOpacity: 0.1,
+              shadowRadius: 4,
+            },
+            android: {
+              elevation: 2,
+            },
+          }),
+        }}>
+          <View style={{ 
+            flexDirection: 'row', 
+            justifyContent: 'space-between', 
+            alignItems: 'center', 
+            marginBottom: 15 
+          }}>
+            <Text style={{
+              fontSize: 18,
+              fontWeight: 'bold',
+              color: Colors.dark,
+            }}>
+              Perfil
+            </Text>
+            
+            <TouchableOpacity
+              onPress={() => setEditingProfile(!editingProfile)}
+            >
+              <Text style={{ color: Colors.primary }}>
+                {editingProfile ? 'Cancelar' : 'Editar'}
+              </Text>
+            </TouchableOpacity>
+          </View>
+          
+          <View style={{ alignItems: 'center', marginBottom: 20 }}>
+            <TouchableOpacity
+              style={{
+                width: 100,
+                height: 100,
+                borderRadius: 50,
+                backgroundColor: Colors.lightGray,
+                justifyContent: 'center',
+                alignItems: 'center',
+                marginBottom: 10,
+              }}
+              onPress={handleSelecionarFoto}
+              disabled={!editingProfile}
+            >
+              {profileData.foto ? (
+                <Image
+                  source={{ uri: profileData.foto }}
+                  style={{ width: 100, height: 100, borderRadius: 50 }}
+                />
+              ) : (
+                <Text style={{ fontSize: 30, color: Colors.primary }}>
+                  {user?.nome?.charAt(0) || 'U'}
+                </Text>
+              )}
+              
+              {editingProfile && (
+                <View style={{
+                  position: 'absolute',
+                  bottom: 0,
+                  right: 0,
+                  backgroundColor: Colors.primary,
+                  borderRadius: 15,
+                  width: 30,
+                  height: 30,
+                  justifyContent: 'center',
+                  alignItems: 'center',
+                }}>
+                  <Text style={{ color: Colors.white, fontSize: 20 }}>+</Text>
+                </View>
+              )}
+            </TouchableOpacity>
+            
+            <Text style={{ fontSize: 18, fontWeight: 'bold' }}>
+              {user?.nome || 'Usuário'}
+            </Text>
+            <Text style={{ color: Colors.lightText }}>
+              {user?.email || 'email@exemplo.com'}
+            </Text>
+          </View>
+          
+          {editingProfile ? (
+            <>
+              <View style={{ marginBottom: 15 }}>
+                <Text style={{ marginBottom: 5, fontWeight: '500' }}>Nome:</Text>
+                <TextInput
+                  style={{
+                    backgroundColor: Colors.lightGray,
+                    borderRadius: 8,
+                    padding: 12,
+                    fontSize: 16,
+                  }}
+                  value={profileData.nome}
+                  onChangeText={(text) => setProfileData(prev => ({ ...prev, nome: text }))}
+                  placeholder="Seu nome"
+                />
+              </View>
+              
+              <View style={{ marginBottom: 15 }}>
+                <Text style={{ marginBottom: 5, fontWeight: '500' }}>Telefone:</Text>
+                <TextInput
+                  style={{
+                    backgroundColor: Colors.lightGray,
+                    borderRadius: 8,
+                    padding: 12,
+                    fontSize: 16,
+                  }}
+                  value={profileData.telefone}
+                  onChangeText={(text) => setProfileData(prev => ({ ...prev, telefone: text }))}
+                  placeholder="Seu telefone"
+                  keyboardType="phone-pad"
+                />
+              </View>
+              
+              <View style={{ marginBottom: 15 }}>
+                <Text style={{ marginBottom: 5, fontWeight: '500' }}>LinkedIn:</Text>
+                <TextInput
+                  style={{
+                    backgroundColor: Colors.lightGray,
+                    borderRadius: 8,
+                    padding: 12,
+                    fontSize: 16,
+                  }}
+                  value={profileData.linkedin}
+                  onChangeText={(text) => setProfileData(prev => ({ ...prev, linkedin: text }))}
+                  placeholder="URL do seu LinkedIn"
+                />
+              </View>
+              
+              <View style={{ marginBottom: 15 }}>
+                <Text style={{ marginBottom: 5, fontWeight: '500' }}>GitHub:</Text>
+                <TextInput
+                  style={{
+                    backgroundColor: Colors.lightGray,
+                    borderRadius: 8,
+                    padding: 12,
+                    fontSize: 16,
+                  }}
+                  value={profileData.github}
+                  onChangeText={(text) => setProfileData(prev => ({ ...prev, github: text }))}
+                  placeholder="URL do seu GitHub"
+                />
+              </View>
+              
+              <View style={{ marginBottom: 20 }}>
+                <Text style={{ marginBottom: 5, fontWeight: '500' }}>Website:</Text>
+                <TextInput
+                  style={{
+                    backgroundColor: Colors.lightGray,
+                    borderRadius: 8,
+                    padding: 12,
+                    fontSize: 16,
+                  }}
+                  value={profileData.website}
+                  onChangeText={(text) => setProfileData(prev => ({ ...prev, website: text }))}
+                  placeholder="URL do seu site pessoal"
+                />
+              </View>
+              
+              <TouchableOpacity
+                style={{
+                  backgroundColor: Colors.primary,
+                  borderRadius: 8,
+                  padding: 15,
+                  alignItems: 'center',
+                }}
+                onPress={salvarPerfil}
+                disabled={loading}
+              >
+                {loading ? (
+                  <ActivityIndicator size="small" color={Colors.white} />
+                ) : (
+                  <Text style={{
+                    color: Colors.white,
+                    fontWeight: 'bold',
+                    fontSize: 16,
+                  }}>
+                    Salvar Alterações
+                  </Text>
+                )}
+              </TouchableOpacity>
+            </>
+          ) : (
+            <View>
+              <View style={{ marginBottom: 10 }}>
+                <Text style={{ fontWeight: 'bold' }}>Email:</Text>
+                <Text>{user?.email || 'Não informado'}</Text>
+              </View>
+              
+              <View style={{ marginBottom: 10 }}>
+                <Text style={{ fontWeight: 'bold' }}>Telefone:</Text>
+                <Text>{user?.telefone || 'Não informado'}</Text>
+              </View>
+              
+              <View style={{ marginBottom: 10 }}>
+                <Text style={{ fontWeight: 'bold' }}>Membro desde:</Text>
+                <Text>{user?.dataCadastro ? new Date(user.dataCadastro).toLocaleDateString() : 'Não informado'}</Text>
+              </View>
+            </View>
+          )}
+        </View>
+        
+        {/* Seção de Configurações Gerais */}
+        <View style={{
+          backgroundColor: Colors.white,
+          borderRadius: 10,
+          padding: 20,
+          marginBottom: 20,
+          ...Platform.select({
+            ios: {
+              shadowColor: '#000',
+              shadowOffset: { width: 0, height: 2 },
+              shadowOpacity: 0.1,
+              shadowRadius: 4,
+            },
+            android: {
+              elevation: 2,
+            },
+          }),
+        }}>
+          <Text style={{
+            fontSize: 18,
+            fontWeight: 'bold',
+            color: Colors.dark,
+            marginBottom: 15,
+          }}>
+            Configurações Gerais
+          </Text>
+          
+          <TouchableOpacity
+            style={{
+              flexDirection: 'row',
+              alignItems: 'center',
+              paddingVertical: 12,
+              borderBottomWidth: 1,
+              borderBottomColor: Colors.mediumGray,
+            }}
+            onPress={() => navigation.navigate('ConfiguracoesIA')}
+          >
+            <View style={{
+              width: 40,
+              height: 40,
+              borderRadius: 20,
+              backgroundColor: Colors.primary,
+              justifyContent: 'center',
+              alignItems: 'center',
+              marginRight: 15,
+            }}>
+              <Text style={{ color: Colors.white, fontSize: 16 }}>🔑</Text>
+            </View>
+            <View style={{ flex: 1 }}>
+              <Text style={{ fontSize: 16, fontWeight: '500' }}>Configurações de IA</Text>
+              <Text style={{ color: Colors.lightText, fontSize: 14 }}>Gerenciar chaves de API</Text>
+            </View>
+            <Text style={{ color: Colors.primary, fontSize: 24 }}>›</Text>
+          </TouchableOpacity>
+          
+          <TouchableOpacity
+            style={{
+              flexDirection: 'row',
+              alignItems: 'center',
+              paddingVertical: 12,
+              borderBottomWidth: 1,
+              borderBottomColor: Colors.mediumGray,
+            }}
+            onPress={limparCache}
+          >
+            <View style={{
+              width: 40,
+              height: 40,
+              borderRadius: 20,
+              backgroundColor: Colors.warning,
+              justifyContent: 'center',
+              alignItems: 'center',
+              marginRight: 15,
+            }}>
+              <Text style={{ color: Colors.white, fontSize: 16 }}>🗑️</Text>
+            </View>
+            <View style={{ flex: 1 }}>
+              <Text style={{ fontSize: 16, fontWeight: '500' }}>Limpar Cache</Text>
+              <Text style={{ color: Colors.lightText, fontSize: 14 }}>Remover dados armazenados localmente</Text>
+            </View>
+            <Text style={{ color: Colors.primary, fontSize: 24 }}>›</Text>
+          </TouchableOpacity>
+          
+          <TouchableOpacity
+            style={{
+              flexDirection: 'row',
+              alignItems: 'center',
+              paddingVertical: 12,
+              borderBottomWidth: 1,
+              borderBottomColor: Colors.mediumGray,
+            }}
+            onPress={() => navigation.navigate('SobreApp')}
+          >
+            <View style={{
+              width: 40,
+              height: 40,
+              borderRadius: 20,
+              backgroundColor: Colors.info,
+              justifyContent: 'center',
+              alignItems: 'center',
+              marginRight: 15,
+            }}>
+              <Text style={{ color: Colors.white, fontSize: 16 }}>ℹ️</Text>
+            </View>
+            <View style={{ flex: 1 }}>
+              <Text style={{ fontSize: 16, fontWeight: '500' }}>Sobre o Aplicativo</Text>
+              <Text style={{ color: Colors.lightText, fontSize: 14 }}>Informações e termos de uso</Text>
+            </View>
+            <Text style={{ color: Colors.primary, fontSize: 24 }}>›</Text>
+          </TouchableOpacity>
+          
+          <TouchableOpacity
+            style={{
+              flexDirection: 'row',
+              alignItems: 'center',
+              paddingVertical: 12,
+            }}
+            onPress={confirmLogout}
+          >
+            <View style={{
+              width: 40,
+              height: 40,
+              borderRadius: 20,
+              backgroundColor: Colors.danger,
+              justifyContent: 'center',
+              alignItems: 'center',
+              marginRight: 15,
+            }}>
+              <Text style={{ color: Colors.white, fontSize: 16 }}>⤶</Text>
+            </View>
+            <View style={{ flex: 1 }}>
+              <Text style={{ fontSize: 16, fontWeight: '500' }}>Sair</Text>
+              <Text style={{ color: Colors.lightText, fontSize: 14 }}>Encerrar sessão</Text>
+            </View>
+            <Text style={{ color: Colors.primary, fontSize: 24 }}>›</Text>
+          </TouchableOpacity>
+        </View>
+      </ScrollView>
+    </SafeAreaView>
+  );
+};
+
+const Tab = createBottomTabNavigator();
+
+const HomeStack = createStackNavigator();
+
+// Função para renderizar ícones na Tab Bar sem depender de biblioteca externa
+const renderTabBarIcon = (route, focused, color, size) => {
+  // Usar emojis ou caracteres unicode em vez de ícones
+  if (route.name === 'Home') {
+    return <Text style={{fontSize: 24, color}}>🏠</Text>;
+  } else if (route.name === 'Dashboard') {
+    return <Text style={{fontSize: 24, color}}>📊</Text>;
+  } else if (route.name === 'ConfigAv') {
+    return <Text style={{fontSize: 24, color}}>🔧</Text>;
+  } else if (route.name === 'Config') {
+    return <Text style={{fontSize: 24, color}}>⚙️</Text>;
+  }
+  return null;
+};
+
+// Componente de Slider personalizado para substituir o @react-native-community/slider
+const CustomSlider = ({ value, onValueChange, minimumValue, maximumValue, step, style }) => {
+  const [localValue, setLocalValue] = useState(value);
+  
+  // Lista de valores possíveis baseados em step
+  const values = [];
+  for (let i = minimumValue; i <= maximumValue; i += step) {
+    values.push(i);
+  }
+  
+  // Quando o valor local muda, chamamos o callback
+  useEffect(() => {
+    if (localValue !== value) {
+      onValueChange && onValueChange(localValue);
+    }
+  }, [localValue]);
+  
+  return (
+    <View style={[{ flex: 1, height: 40, flexDirection: 'row', alignItems: 'center' }, style]}>
+      <ScrollView 
+        horizontal 
+        showsHorizontalScrollIndicator={false}
+        contentContainerStyle={{ paddingHorizontal: 10 }}
+      >
+        {values.map((val) => (
+          <TouchableOpacity 
+            key={val} 
+            style={{
+              padding: 8,
+              marginHorizontal: 2,
+              backgroundColor: val <= localValue ? Colors.primary : Colors.lightGray,
+              borderRadius: 4,
+            }}
+            onPress={() => setLocalValue(val)}
+          >
+            <Text style={{ color: val <= localValue ? Colors.white : Colors.dark, fontSize: 12 }}>
+              {val.toFixed(1)}
+            </Text>
+          </TouchableOpacity>
+        ))}
+      </ScrollView>
+    </View>
+  );
+};
+
+const HomeStackScreen = () => (
+  <HomeStack.Navigator screenOptions={{ headerShown: false }}>
+    <HomeStack.Screen name="HomeMain" component={HomeScreen} />
+    <HomeStack.Screen name="Chatbot" component={ChatbotScreen} />
+    <HomeStack.Screen name="MeusCurriculos" component={MeusCurriculosScreen} />
+    <HomeStack.Screen name="PreviewCV" component={PreviewCVScreen} />
+    <HomeStack.Screen name="CurriculosAnalise" component={CurriculosAnaliseScreen} />
+    <HomeStack.Screen name="AnaliseCV" component={AnaliseCVScreen} />
+    <HomeStack.Screen name="SelecionarCurriculo" component={SelecionarCurriculoScreen} />
+    <HomeStack.Screen name="BuscaVagas" component={BuscaVagasScreen} />
+    <HomeStack.Screen name="SobreApp" component={SobreAppScreen} />
+  </HomeStack.Navigator>
+);
+
+// Não precisa de Stack para o Dashboard pois ele não navega para outras telas
+const DashboardStack = createStackNavigator();
+const DashboardStackScreen = () => (
+  <DashboardStack.Navigator screenOptions={{ headerShown: false }}>
+    <DashboardStack.Screen name="DashboardMain" component={DashboardScreen} />
+    <DashboardStack.Screen name="Chatbot" component={ChatbotScreen} />
+    <DashboardStack.Screen name="MeusCurriculos" component={MeusCurriculosScreen} />
+    <DashboardStack.Screen name="CurriculosAnalise" component={CurriculosAnaliseScreen} />
+    <DashboardStack.Screen name="SelecionarCurriculo" component={SelecionarCurriculoScreen} />
+  </DashboardStack.Navigator>
+);
+
+// Stack para Configurações
+const ConfigStack = createStackNavigator();
+const ConfigStackScreen = () => (
+  <ConfigStack.Navigator screenOptions={{ headerShown: false }}>
+    <ConfigStack.Screen name="ConfigMain" component={ConfiguracoesScreen} />
+    <ConfigStack.Screen name="ConfiguracoesIA" component={ConfiguracoesIAScreen} />
+    <ConfigStack.Screen name="Chatbot" component={ChatbotScreen} />
+    <ConfigStack.Screen name="SobreApp" component={SobreAppScreen} />
+  </ConfigStack.Navigator>
+);
+
+// Stack para Configurações Avançadas
+const ConfigAvStack = createStackNavigator();
+const ConfigAvStackScreen = () => (
+  <ConfigAvStack.Navigator screenOptions={{ headerShown: false }}>
+    <ConfigAvStack.Screen name="ConfigAvMain" component={ConfiguracoesAvancadasScreen} />
+  </ConfigAvStack.Navigator>
+);
+
+// Tab Navigator para usuários autenticados
+const TabNavigator = () => (
+  <Tab.Navigator
+    screenOptions={({ route }) => ({
+      headerShown: false,
+      tabBarIcon: ({ focused, color, size }) => renderTabBarIcon(route, focused, color, size),
+      tabBarActiveTintColor: Colors.primary,
+      tabBarInactiveTintColor: Colors.lightText,
+      tabBarStyle: {
+        height: 60,
+        paddingBottom: 10,
+        paddingTop: 5,
+      },
+      tabBarLabelStyle: {
+        fontSize: 12,
+      },
+    })}
+  >
+    <Tab.Screen 
+      name="Home" 
+      component={HomeStackScreen} 
+      options={{ tabBarLabel: 'Início' }}
+    />
+    <Tab.Screen 
+      name="Dashboard" 
+      component={DashboardStackScreen} 
+      options={{ tabBarLabel: 'Dashboard' }}
+    />
+    <Tab.Screen 
+      name="ConfigAv" 
+      component={ConfigAvStackScreen} 
+      options={{ tabBarLabel: 'API Avançada' }}
+    />
+    <Tab.Screen 
+      name="Config" 
+      component={ConfigStackScreen} 
+      options={{ tabBarLabel: 'Configurações' }}
+    />
+  </Tab.Navigator>
+);
+
+// Modificar o AppNavigator para usar o TabNavigator
+const AppNavigator = () => (
+  <AppStack.Navigator screenOptions={{ headerShown: false }}>
+    <AppStack.Screen name="MainTabs" component={TabNavigator} />
+  </AppStack.Navigator>
+);
+
 
 // Funções para gerenciar API keys das IAs
 const getIAAPIKey = async (tipoIA) => {
@@ -5857,25 +7336,25 @@ const SobreAppScreen = ({ navigation }) => {
   };
 
 // Modificar o AppNavigator para adicionar a rota "SobreApp"
-const AppNavigator = () => (
-  <AppStack.Navigator
-    screenOptions={{
-      headerShown: false
-    }}
-  >
-    <AppStack.Screen name="Home" component={HomeScreen} />
-    <AppStack.Screen name="Chatbot" component={ChatbotScreen} />
-    <AppStack.Screen name="MeusCurriculos" component={MeusCurriculosScreen} />
-    <AppStack.Screen name="PreviewCV" component={PreviewCVScreen} />
-    <AppStack.Screen name="CurriculosAnalise" component={CurriculosAnaliseScreen} />
-    <AppStack.Screen name="AnaliseCV" component={AnaliseCVScreen} />
-    <AppStack.Screen name="ConfiguracoesIA" component={ConfiguracoesIAScreen} />
-    <AppStack.Screen name="SobreApp" component={SobreAppScreen} />
-    {/* Nova rota para seleção de currículo */}
-    <AppStack.Screen name="SelecionarCurriculo" component={SelecionarCurriculoScreen} />
-    <AppStack.Screen name="BuscaVagas" component={BuscaVagasScreen} />
-  </AppStack.Navigator>
-);
+// const AppNavigator = () => (
+//   <AppStack.Navigator
+//     screenOptions={{
+//       headerShown: false
+//     }}
+//   >
+//     <AppStack.Screen name="Home" component={HomeScreen} />
+//     <AppStack.Screen name="Chatbot" component={ChatbotScreen} />
+//     <AppStack.Screen name="MeusCurriculos" component={MeusCurriculosScreen} />
+//     <AppStack.Screen name="PreviewCV" component={PreviewCVScreen} />
+//     <AppStack.Screen name="CurriculosAnalise" component={CurriculosAnaliseScreen} />
+//     <AppStack.Screen name="AnaliseCV" component={AnaliseCVScreen} />
+//     <AppStack.Screen name="ConfiguracoesIA" component={ConfiguracoesIAScreen} />
+//     <AppStack.Screen name="SobreApp" component={SobreAppScreen} />
+//     {/* Nova rota para seleção de currículo */}
+//     <AppStack.Screen name="SelecionarCurriculo" component={SelecionarCurriculoScreen} />
+//     <AppStack.Screen name="BuscaVagas" component={BuscaVagasScreen} />
+//   </AppStack.Navigator>
+// );
 
 // Controlador de Rotas
 const RootStack = createStackNavigator();
