@@ -3918,7 +3918,7 @@ const ChatOptions = ({ options, onSelect }) => {
   );
 };
 
-const CurriculumPreview = ({ data, templateStyle = 'modern' }) => {
+const CurriculumPreview = ({ data }) => {
   if (!data || !data.informacoes_pessoais) {
     return (
       <View style={styles.emptyPreview}>
@@ -3929,238 +3929,63 @@ const CurriculumPreview = ({ data, templateStyle = 'modern' }) => {
     );
   }
 
-  // Definição de estilos baseados no template selecionado
-  const getTemplateStyles = () => {
-    switch (templateStyle) {
-      case 'classic':
-        return {
-          container: {
-            backgroundColor: Colors.white,
-            padding: 15,
-          },
-          header: {
-            borderBottomWidth: 2,
-            borderBottomColor: Colors.dark,
-            paddingBottom: 10,
-            marginBottom: 15,
-          },
-          name: {
-            fontSize: 24,
-            fontWeight: 'bold',
-            color: Colors.dark,
-            textAlign: 'center',
-          },
-          contact: {
-            color: Colors.dark,
-            textAlign: 'center',
-            marginBottom: 5,
-          },
-          sectionTitle: {
-            fontSize: 18,
-            fontWeight: 'bold',
-            color: Colors.dark,
-            marginBottom: 10,
-            borderBottomWidth: 1,
-            borderBottomColor: Colors.mediumGray,
-            paddingBottom: 5,
-          },
-          itemTitle: {
-            fontSize: 16,
-            fontWeight: 'bold',
-            color: Colors.dark,
-          },
-          accent: Colors.dark,
-          itemBorder: {
-            borderLeftWidth: 0,
-            paddingLeft: 0,
-          }
-        };
-      case 'creative':
-        return {
-          container: {
-            backgroundColor: '#f8f9fa',
-            padding: 15,
-          },
-          header: {
-            backgroundColor: Colors.primary,
-            padding: 15,
-            borderRadius: 10,
-            marginBottom: 15,
-          },
-          name: {
-            fontSize: 26,
-            fontWeight: 'bold',
-            color: Colors.white,
-          },
-          contact: {
-            color: Colors.white,
-            marginBottom: 5,
-          },
-          sectionTitle: {
-            fontSize: 18,
-            fontWeight: 'bold',
-            color: Colors.white,
-            backgroundColor: Colors.primary,
-            paddingVertical: 5,
-            paddingHorizontal: 10,
-            borderRadius: 5,
-            marginBottom: 10,
-          },
-          itemTitle: {
-            fontSize: 16,
-            fontWeight: 'bold',
-            color: Colors.primary,
-          },
-          accent: Colors.primary,
-          itemBorder: {
-            borderLeftWidth: 4,
-            borderLeftColor: Colors.primary,
-            paddingLeft: 10,
-          }
-        };
-      case 'professional':
-        return {
-          container: {
-            backgroundColor: Colors.white,
-            padding: 15,
-          },
-          header: {
-            borderLeftWidth: 4,
-            borderLeftColor: Colors.secondary,
-            paddingLeft: 10,
-            marginBottom: 15,
-          },
-          name: {
-            fontSize: 24,
-            fontWeight: 'bold',
-            color: Colors.secondary,
-          },
-          contact: {
-            color: Colors.dark,
-            marginBottom: 5,
-          },
-          sectionTitle: {
-            fontSize: 18,
-            fontWeight: 'bold',
-            color: Colors.secondary,
-            marginBottom: 10,
-            paddingBottom: 5,
-          },
-          itemTitle: {
-            fontSize: 16,
-            fontWeight: 'bold',
-            color: Colors.dark,
-          },
-          accent: Colors.secondary,
-          itemBorder: {
-            borderLeftWidth: 2,
-            borderLeftColor: Colors.secondary,
-            paddingLeft: 10,
-          }
-        };
-      default: // 'modern'
-        return {
-          container: {
-            backgroundColor: Colors.white,
-            padding: 15,
-          },
-          header: {
-            marginBottom: 15,
-          },
-          name: {
-            fontSize: 24,
-            fontWeight: 'bold',
-            color: Colors.primary,
-            marginBottom: 5,
-          },
-          contact: {
-            color: Colors.dark,
-            marginBottom: 5,
-          },
-          sectionTitle: {
-            fontSize: 18,
-            fontWeight: 'bold',
-            color: Colors.primary,
-            marginBottom: 10,
-            borderBottomWidth: 1,
-            borderBottomColor: Colors.primary,
-            paddingBottom: 5,
-          },
-          itemTitle: {
-            fontSize: 16,
-            fontWeight: 'bold',
-            color: Colors.dark,
-          },
-          accent: Colors.primary,
-          itemBorder: {
-            borderLeftWidth: 3,
-            borderLeftColor: Colors.primary,
-            paddingLeft: 10,
-          }
-        };
-    }
-  };
-
-  const ts = getTemplateStyles();
   const personalInfo = data.informacoes_pessoais;
   const fullName = `${personalInfo.nome || ''} ${personalInfo.sobrenome || ''}`.trim();
-  
+
   return (
-    <View style={[styles.previewContainer, ts.container]}>
-      <View style={ts.header}>
-        {fullName ? (
-          <Text style={ts.name}>{fullName}</Text>
-        ) : null}
-        
-        {personalInfo.email || personalInfo.endereco ? (
-          <Text style={ts.contact}>
-            {personalInfo.email}
-            {personalInfo.email && personalInfo.endereco ? ' | ' : ''}
-            {personalInfo.endereco}
-          </Text>
-        ) : null}
-        
-        {/* Links */}
-        {(personalInfo.site || personalInfo.linkedin || personalInfo.github) && (
-          <View style={styles.previewLinks}>
-            {personalInfo.site && (
-              <Text style={[styles.previewLink, {color: ts.accent}]}>{personalInfo.site}</Text>
-            )}
-            {personalInfo.linkedin && (
-              <Text style={[styles.previewLink, {color: ts.accent}]}>LinkedIn</Text>
-            )}
-            {personalInfo.github && (
-              <Text style={[styles.previewLink, {color: ts.accent}]}>GitHub</Text>
-            )}
-          </View>
-        )}
-      </View>
-      
-      {/* Resumo Profissional */}
+    <View style={styles.previewContainer}>
+      {fullName ? (
+        <Text style={styles.previewName}>{fullName}</Text>
+      ) : null}
+
+      {personalInfo.email || personalInfo.endereco ? (
+        <Text style={styles.previewContact}>
+          {personalInfo.email}
+          {personalInfo.email && personalInfo.endereco ? ' | ' : ''}
+          {personalInfo.endereco}
+        </Text>
+      ) : null}
+
+      {/* Links */}
+      {(personalInfo.site || personalInfo.linkedin || personalInfo.github) && (
+        <View style={styles.previewLinks}>
+          {personalInfo.site && (
+            <Text style={styles.previewLink}>{personalInfo.site}</Text>
+          )}
+          {personalInfo.linkedin && (
+            <Text style={styles.previewLink}>LinkedIn</Text>
+          )}
+          {personalInfo.github && (
+            <Text style={styles.previewLink}>GitHub</Text>
+          )}
+        </View>
+      )}
+
+      {/* Resumo Profissional - Nova seção */}
       {data.resumo_profissional ? (
         <View style={styles.previewSection}>
-          <Text style={[styles.previewSectionTitle, ts.sectionTitle]}>Resumo Profissional</Text>
+          <Text style={styles.previewSectionTitle}>Resumo Profissional</Text>
           <Text style={styles.previewResumeText}>{data.resumo_profissional}</Text>
         </View>
       ) : null}
-      
+
       {/* Formação Acadêmica */}
       {data.formacoes_academicas && data.formacoes_academicas.length > 0 && (
         <View style={styles.previewSection}>
-          <Text style={[styles.previewSectionTitle, ts.sectionTitle]}>Formação Acadêmica</Text>
+          <Text style={styles.previewSectionTitle}>Formação Acadêmica</Text>
           {data.formacoes_academicas.map((formacao, index) => (
-            <View key={index} style={[styles.previewItem, ts.itemBorder]}>
-              <Text style={[styles.previewItemTitle, ts.itemTitle]}>
+            <View key={index} style={styles.previewItem}>
+              <Text style={styles.previewItemTitle}>
                 {formacao.diploma} em {formacao.area_estudo}
               </Text>
               <Text style={styles.previewItemSubtitle}>{formacao.instituicao}</Text>
               {formacao.data_inicio ? (
                 <Text style={styles.previewItemDate}>
                   {formacao.data_inicio}
-                  {formacao.data_fim ? 
-                    formacao.data_fim.toLowerCase() === 'atual' ? 
-                      ' - Presente' : 
-                      ` - ${formacao.data_fim}` : 
+                  {formacao.data_fim ?
+                    formacao.data_fim.toLowerCase() === 'atual' ?
+                      ' - Presente' :
+                      ` - ${formacao.data_fim}` :
                     ''}
                 </Text>
               ) : null}
@@ -4168,22 +3993,22 @@ const CurriculumPreview = ({ data, templateStyle = 'modern' }) => {
           ))}
         </View>
       )}
-      
+
       {/* Experiência Profissional */}
       {data.experiencias && data.experiencias.length > 0 && (
         <View style={styles.previewSection}>
-          <Text style={[styles.previewSectionTitle, ts.sectionTitle]}>Experiência Profissional</Text>
+          <Text style={styles.previewSectionTitle}>Experiência Profissional</Text>
           {data.experiencias.map((exp, index) => (
-            <View key={index} style={[styles.previewItem, ts.itemBorder]}>
-              <Text style={[styles.previewItemTitle, ts.itemTitle]}>{exp.cargo}</Text>
+            <View key={index} style={styles.previewItem}>
+              <Text style={styles.previewItemTitle}>{exp.cargo}</Text>
               <Text style={styles.previewItemSubtitle}>{exp.empresa}</Text>
               {exp.data_inicio ? (
                 <Text style={styles.previewItemDate}>
                   {exp.data_inicio}
-                  {exp.data_fim ? 
-                    exp.data_fim.toLowerCase() === 'atual' ? 
-                      ' - Presente' : 
-                      ` - ${exp.data_fim}` : 
+                  {exp.data_fim ?
+                    exp.data_fim.toLowerCase() === 'atual' ?
+                      ' - Presente' :
+                      ` - ${exp.data_fim}` :
                     ''}
                 </Text>
               ) : null}
@@ -4198,10 +4023,10 @@ const CurriculumPreview = ({ data, templateStyle = 'modern' }) => {
       {/* Cursos */}
       {data.cursos && data.cursos.length > 0 && (
         <View style={styles.previewSection}>
-          <Text style={[styles.previewSectionTitle, ts.sectionTitle]}>Cursos e Certificados</Text>
+          <Text style={styles.previewSectionTitle}>Cursos e Certificados</Text>
           {data.cursos.map((curso, index) => (
-            <View key={index} style={[styles.previewItem, ts.itemBorder]}>
-              <Text style={[styles.previewItemTitle, ts.itemTitle]}>{curso.nome}</Text>
+            <View key={index} style={styles.previewItem}>
+              <Text style={styles.previewItemTitle}>{curso.nome}</Text>
               <Text style={styles.previewItemSubtitle}>{curso.instituicao}</Text>
               {curso.data_inicio || curso.data_fim ? (
                 <Text style={styles.previewItemDate}>
@@ -4221,13 +4046,13 @@ const CurriculumPreview = ({ data, templateStyle = 'modern' }) => {
       {/* Projetos */}
       {data.projetos && data.projetos.length > 0 && (
         <View style={styles.previewSection}>
-          <Text style={[styles.previewSectionTitle, ts.sectionTitle]}>Projetos</Text>
+          <Text style={styles.previewSectionTitle}>Projetos</Text>
           {data.projetos.map((projeto, index) => (
-            <View key={index} style={[styles.previewItem, ts.itemBorder]}>
-              <Text style={[styles.previewItemTitle, ts.itemTitle]}>{projeto.nome}</Text>
+            <View key={index} style={styles.previewItem}>
+              <Text style={styles.previewItemTitle}>{projeto.nome}</Text>
               {projeto.habilidades ? (
                 <Text style={styles.previewItemSubtitle}>
-                  <Text style={{fontWeight: 'bold'}}>Habilidades:</Text> {projeto.habilidades}
+                  <Text style={{ fontWeight: 'bold' }}>Habilidades:</Text> {projeto.habilidades}
                 </Text>
               ) : null}
               {projeto.descricao ? (
@@ -4241,26 +4066,13 @@ const CurriculumPreview = ({ data, templateStyle = 'modern' }) => {
       {/* Idiomas */}
       {data.idiomas && data.idiomas.length > 0 && (
         <View style={styles.previewSection}>
-          <Text style={[styles.previewSectionTitle, ts.sectionTitle]}>Idiomas</Text>
-          <View style={{flexDirection: 'row', flexWrap: 'wrap'}}>
-            {data.idiomas.map((idioma, index) => (
-              <View key={index} style={[
-                styles.previewItem, 
-                {
-                  backgroundColor: '#f8f9fa',
-                  paddingVertical: 8,
-                  paddingHorizontal: 12,
-                  marginRight: 10,
-                  marginBottom: 10,
-                  borderRadius: 5,
-                  borderLeftWidth: 3,
-                  borderLeftColor: ts.accent,
-                }
-              ]}>
-                <Text style={{fontWeight: 'bold'}}>{idioma.nome}: <Text style={{fontWeight: 'normal'}}>{idioma.nivel}</Text></Text>
-              </View>
-            ))}
-          </View>
+          <Text style={styles.previewSectionTitle}>Idiomas</Text>
+          {data.idiomas.map((idioma, index) => (
+            <View key={index} style={styles.previewItem}>
+              <Text style={styles.previewItemTitle}>{idioma.nome}</Text>
+              <Text style={styles.previewItemSubtitle}>Nível: {idioma.nivel}</Text>
+            </View>
+          ))}
         </View>
       )}
     </View>
@@ -6153,13 +5965,9 @@ const MeusCurriculosScreen = ({ navigation }) => {
   );
 };
 
-// Versão corrigida do PreviewCVScreen sem usar Modal
 const PreviewCVScreen = ({ route, navigation }) => {
   const { curriculoData } = route.params;
-  const [templateStyle, setTemplateStyle] = useState('modern');
-  const [showTemplateSelector, setShowTemplateSelector] = useState(false);
-  const [generatingPDF, setGeneratingPDF] = useState(false);
-  
+
   const handleShare = async () => {
     try {
       await Share.share({
@@ -6171,59 +5979,11 @@ const PreviewCVScreen = ({ route, navigation }) => {
       Alert.alert('Erro', 'Não foi possível compartilhar o currículo.');
     }
   };
-  
-  // Emular criação de PDF (já que não temos a biblioteca)
-  const handleExportPDF = async () => {
-    setGeneratingPDF(true);
-    
-    try {
-      // Simular processo de geração de PDF
-      await new Promise(resolve => setTimeout(resolve, 2000));
-      
-      // Exibir alerta com opções de ação
-      Alert.alert(
-        'PDF Gerado com Sucesso!',
-        'O que você gostaria de fazer com o PDF?',
-        [
-          {
-            text: 'Compartilhar',
-            onPress: () => handleShare(),
-          },
-          {
-            text: 'Salvar na Galeria',
-            onPress: () => {
-              Alert.alert(
-                'Salvando na Galeria...',
-                'Funcionalidade simulada. Em um app real, o PDF seria salvo na galeria.',
-                [{ text: 'OK' }]
-              );
-            },
-          },
-          {
-            text: 'Cancelar',
-            style: 'cancel',
-          },
-        ]
-      );
-    } catch (error) {
-      console.error('Erro ao gerar PDF:', error);
-      Alert.alert('Erro', 'Não foi possível gerar o PDF.');
-    } finally {
-      setGeneratingPDF(false);
-    }
-  };
-  
-  const templateOptions = [
-    { id: 'modern', name: 'Moderno', color: Colors.primary },
-    { id: 'classic', name: 'Clássico', color: Colors.dark },
-    { id: 'creative', name: 'Criativo', color: '#9c27b0' },
-    { id: 'professional', name: 'Profissional', color: Colors.secondary }
-  ];
-  
+
   return (
     <SafeAreaView style={styles.container}>
       <StatusBar barStyle="light-content" backgroundColor={Colors.dark} />
-      
+
       <View style={styles.header}>
         <TouchableOpacity
           style={styles.backButton}
@@ -6233,151 +5993,13 @@ const PreviewCVScreen = ({ route, navigation }) => {
         </TouchableOpacity>
         <Text style={styles.headerTitle}>Visualizar Currículo</Text>
       </View>
-      
-      {/* Barra de ferramentas */}
-      <View style={{
-        flexDirection: 'row',
-        backgroundColor: '#f0f0f0',
-        padding: 10,
-        borderBottomWidth: 1,
-        borderBottomColor: Colors.mediumGray,
-      }}>
-        <TouchableOpacity
-          style={{
-            flex: 1,
-            flexDirection: 'row',
-            alignItems: 'center',
-            justifyContent: 'center',
-            paddingVertical: 8,
-            borderRightWidth: 1,
-            borderRightColor: Colors.mediumGray,
-          }}
-          onPress={() => setShowTemplateSelector(!showTemplateSelector)}
-        >
-          <Text style={{ marginRight: 5 }}>Template: {templateOptions.find(t => t.id === templateStyle)?.name}</Text>
-          <Text>▼</Text>
-        </TouchableOpacity>
-        
-        <TouchableOpacity
-          style={{
-            flex: 1,
-            flexDirection: 'row',
-            alignItems: 'center',
-            justifyContent: 'center',
-            paddingVertical: 8,
-          }}
-          onPress={handleExportPDF}
-          disabled={generatingPDF}
-        >
-          {generatingPDF ? (
-            <ActivityIndicator size="small" color={Colors.primary} />
-          ) : (
-            <>
-              <Text style={{ marginRight: 5 }}>Exportar PDF</Text>
-              <Text>📄</Text>
-            </>
-          )}
-        </TouchableOpacity>
-      </View>
-      
-      {/* Template selector overlay (em vez de Modal) */}
-      {showTemplateSelector && (
-        <View style={{
-          position: 'absolute',
-          top: 0,
-          left: 0,
-          right: 0,
-          bottom: 0,
-          backgroundColor: 'rgba(0, 0, 0, 0.5)',
-          zIndex: 100,
-        }}>
-          <TouchableOpacity
-            style={{ flex: 1 }}
-            onPress={() => setShowTemplateSelector(false)}
-          />
-          
-          <View style={{
-            backgroundColor: Colors.white,
-            borderTopLeftRadius: 20,
-            borderTopRightRadius: 20,
-            padding: 20,
-          }}>
-            <View style={{
-              flexDirection: 'row',
-              justifyContent: 'space-between',
-              alignItems: 'center',
-              marginBottom: 15,
-            }}>
-              <Text style={{
-                fontSize: 18,
-                fontWeight: 'bold',
-                color: Colors.dark,
-              }}>
-                Escolher Template
-              </Text>
-              
-              <TouchableOpacity
-                onPress={() => setShowTemplateSelector(false)}
-              >
-                <Text style={{
-                  fontSize: 22,
-                  color: Colors.lightText,
-                  paddingHorizontal: 5,
-                }}>
-                  ×
-                </Text>
-              </TouchableOpacity>
-            </View>
-            
-            {templateOptions.map(template => (
-              <TouchableOpacity
-                key={template.id}
-                style={{
-                  flexDirection: 'row',
-                  alignItems: 'center',
-                  padding: 15,
-                  borderBottomWidth: 1,
-                  borderBottomColor: Colors.mediumGray,
-                  backgroundColor: templateStyle === template.id ? '#e3f2fd' : 'transparent',
-                }}
-                onPress={() => {
-                  setTemplateStyle(template.id);
-                  setShowTemplateSelector(false);
-                }}
-              >
-                <View style={{
-                  width: 24,
-                  height: 24,
-                  borderRadius: 12,
-                  backgroundColor: template.color,
-                  marginRight: 15,
-                }} />
-                
-                <View style={{ flex: 1 }}>
-                  <Text style={{
-                    fontSize: 16,
-                    fontWeight: templateStyle === template.id ? 'bold' : 'normal',
-                    color: Colors.dark,
-                  }}>
-                    {template.name}
-                  </Text>
-                </View>
-                
-                {templateStyle === template.id && (
-                  <Text style={{ fontSize: 18, color: Colors.primary }}>✓</Text>
-                )}
-              </TouchableOpacity>
-            ))}
-          </View>
-        </View>
-      )}
-      
+
       <ScrollView style={styles.previewScreenScroll}>
         <View style={styles.previewScreenCard}>
-          <CurriculumPreview data={curriculoData.data} templateStyle={templateStyle} />
+          <CurriculumPreview data={curriculoData.data} />
         </View>
       </ScrollView>
-      
+
       <View style={styles.previewActions}>
         <TouchableOpacity
           style={styles.previewActionButton}
@@ -6385,7 +6007,7 @@ const PreviewCVScreen = ({ route, navigation }) => {
         >
           <Text style={styles.previewActionButtonText}>Compartilhar</Text>
         </TouchableOpacity>
-        
+
         <TouchableOpacity
           style={[styles.previewActionButton, { backgroundColor: Colors.secondary }]}
           onPress={() => navigation.navigate('AnaliseCV', { curriculoData })}
