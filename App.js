@@ -14,6 +14,7 @@ import {
   Platform,
   Share,
   ActivityIndicator,
+  Linking,
   Image
 } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
@@ -134,9 +135,257 @@ const salvarIAAPIKey = async (tipoIA, apiKey) => {
   }
 };
 
-// Função para buscar vagas com Gemini
-const buscarVagasComGemini = async (curriculoData) => {
+// Função aprimorada para buscar vagas com Gemini
+// const buscarVagasComGemini = async (curriculoData) => {
+//   try {
+//     // Obter API key do Gemini
+//     const apiKey = await getIAAPIKey('GEMINI');
+    
+//     if (!apiKey) {
+//       throw new Error("API key do Google Gemini não configurada");
+//     }
+    
+//     // Formatar dados relevantes do currículo para o prompt
+//     const cv = curriculoData.data;
+    
+//     // Extrair informações chave do currículo
+//     const area = cv.informacoes_pessoais?.area || '';
+//     const nome = `${cv.informacoes_pessoais?.nome || ''} ${cv.informacoes_pessoais?.sobrenome || ''}`.trim();
+    
+//     // Extrair competências e palavras-chave do currículo
+//     const habilidades = new Set();
+    
+//     // De projetos
+//     if (cv.projetos && cv.projetos.length > 0) {
+//       cv.projetos.forEach(projeto => {
+//         if (projeto.habilidades) {
+//           projeto.habilidades.split(',').forEach(hab => {
+//             habilidades.add(hab.trim());
+//           });
+//         }
+//       });
+//     }
+    
+//     // De experiências
+//     const experiencias = [];
+//     if (cv.experiencias && cv.experiencias.length > 0) {
+//       cv.experiencias.forEach(exp => {
+//         experiencias.push({
+//           cargo: exp.cargo,
+//           empresa: exp.empresa,
+//           descricao: exp.descricao
+//         });
+        
+//         // Extrair palavras-chave das descrições de experiência
+//         if (exp.descricao) {
+//           const palavrasChave = exp.descricao
+//             .split(/[\s,;.]+/)
+//             .filter(palavra => 
+//               palavra.length > 4 && 
+//               !['sobre', 'como', 'para', 'onde', 'quando', 'quem', 'porque', 'então'].includes(palavra.toLowerCase())
+//             );
+          
+//           palavrasChave.forEach(palavra => habilidades.add(palavra));
+//         }
+//       });
+//     }
+    
+//     // De formação
+//     const formacoes = [];
+//     if (cv.formacoes_academicas && cv.formacoes_academicas.length > 0) {
+//       cv.formacoes_academicas.forEach(formacao => {
+//         formacoes.push({
+//           diploma: formacao.diploma,
+//           area: formacao.area_estudo,
+//           instituicao: formacao.instituicao
+//         });
+        
+//         // Adicionar área de estudo às habilidades
+//         if (formacao.area_estudo) {
+//           habilidades.add(formacao.area_estudo);
+//         }
+//       });
+//     }
+    
+//     // De idiomas
+//     const idiomas = [];
+//     if (cv.idiomas && cv.idiomas.length > 0) {
+//       cv.idiomas.forEach(idioma => {
+//         idiomas.push({
+//           idioma: idioma.nome,
+//           nivel: idioma.nivel
+//         });
+//       });
+//     }
+    
+//     // Prompt melhorado para garantir informações completas e links funcionais
+//     const promptText = `
+// Você é um recrutador e especialista em RH com 15 anos de experiência no mercado brasileiro.
+
+// TAREFA: Analisar o perfil profissional abaixo e recomendar 5 vagas reais que estão abertas atualmente no mercado de trabalho brasileiro. Essas vagas devem ser adequadas para o perfil do candidato com base em suas habilidades, experiência e formação.
+
+// PERFIL DO CANDIDATO:
+// Nome: ${nome}
+// Área de atuação: ${area}
+// ${experiencias.length > 0 ? `
+// Experiências profissionais:
+// ${experiencias.map(exp => `- ${exp.cargo} na empresa ${exp.empresa}`).join('\n')}
+// ` : ''}
+
+// ${formacoes.length > 0 ? `
+// Formação acadêmica:
+// ${formacoes.map(form => `- ${form.diploma} em ${form.area} - ${form.instituicao}`).join('\n')}
+// ` : ''}
+
+// ${idiomas.length > 0 ? `
+// Idiomas:
+// ${idiomas.map(idioma => `- ${idioma.idioma}: ${idioma.nivel}`).join('\n')}
+// ` : ''}
+
+// Principais competências e palavras-chave:
+// ${Array.from(habilidades).slice(0, 15).join(', ')}
+
+// INSTRUÇÕES ESPECÍFICAS:
+// 1. Encontre 5 vagas reais que existem atualmente no mercado brasileiro (2025)
+// 2. As vagas devem ser compatíveis com o perfil, experiência e senioridade do candidato
+
+// 3. Para cada vaga, forneça OBRIGATORIAMENTE todas estas informações:
+//    - Título da vaga (cargo específico)
+//    - Nome da empresa
+//    - Localização (cidade/estado ou remoto)
+//    - Faixa salarial estimada (baseada em sua expertise de mercado)
+//    - 5 principais requisitos/qualificações exigidos
+//    - 3 diferenciais da vaga
+//    - Link completo e clicável para a vaga (URL completa para LinkedIn, Glassdoor, Indeed, etc.)
+//    - Breve descrição das responsabilidades (2-3 frases)
+//    - Avaliação de compatibilidade com o perfil (porcentagem de 0-100% e justificativa)
+
+// 4. IMPORTANTE SOBRE OS LINKS: Forneça URLs completos e funcionais no formato [Site da Vaga](https://www.exemplo.com) 
+//    - Use o formato markdown para links, garantindo que sejam clicáveis
+//    - Os links devem apontar para plataformas reais como LinkedIn, Glassdoor, Indeed, Catho, etc.
+//    - Cada vaga DEVE ter pelo menos um link funcional
+
+// 5. As vagas devem variar em termos de empresas e possibilidades, mostrando diferentes opções no mercado
+// 6. Priorize vagas publicadas nos últimos 30 dias
+// 7. Formate a resposta de forma estruturada usando markdown para facilitar a leitura
+// 8. Inclua uma análise final com recomendações sobre como o candidato pode se destacar ao aplicar para estas vagas
+
+// FORMATO DE RESPOSTA:
+// # Vagas Recomendadas para ${nome}
+
+// ## Vaga 1: [Título da Vaga] - [Empresa]
+// **Localização:** [Cidade/Estado ou Remoto]  
+// **Faixa Salarial:** R$ [valor] - R$ [valor]  
+
+// ### Descrição:
+// [2-3 frases sobre as responsabilidades]
+
+// ### Requisitos:
+// - [Requisito 1]
+// - [Requisito 2]
+// - [Requisito 3]
+// - [Requisito 4]
+// - [Requisito 5]
+
+// ### Diferenciais:
+// - [Diferencial 1]
+// - [Diferencial 2]
+// - [Diferencial 3]
+
+// ### Link da Vaga:
+// [Nome da Plataforma](URL completa da vaga)
+
+// ### Compatibilidade:
+// **[XX]%** - [Justificativa breve]
+
+// [Repetir o formato acima para as 5 vagas]
+
+// ## Recomendações para se destacar
+// [3-5 dicas personalizadas]
+
+// IMPORTANTE: Todas as vagas informadas devem ser REAIS e ATUAIS (2025), baseando-se em sua base de conhecimento sobre o mercado de trabalho brasileiro atual. Não crie vagas fictícias e SEMPRE forneça TODAS as informações solicitadas, sem omitir nenhum campo.
+// `;
+
+//     console.log('Enviando prompt para busca de vagas:', promptText);
+
+//     // Preparar a requisição para o Gemini
+//     const endpoint = `${IA_APIS.GEMINI.endpoint}?key=${apiKey}`;
+//     const requestBody = {
+//       contents: [{ parts: [{ text: promptText }] }],
+//       generationConfig: {
+//         temperature: 0.2,  // Baixa temperatura para resultados mais factuais
+//         maxOutputTokens: 4000,  // Aumentado para garantir conteúdo completo
+//         topP: 0.8,
+//         topK: 40
+//       }
+//     };
+    
+//     // Fazer a chamada para o Gemini
+//     const response = await axios.post(endpoint, requestBody, {
+//       headers: { 'Content-Type': 'application/json' },
+//       timeout: 30000  // Aumentado para 30 segundos
+//     });
+    
+//     // Processar a resposta
+//     if (response.data?.candidates?.[0]?.content?.parts?.[0]?.text) {
+//       const resultado = response.data.candidates[0].content.parts[0].text;
+      
+//       // Armazenar no cache
+//       try {
+//         const cacheKey = `vagas_${JSON.stringify(curriculoData).slice(0, 50)}`;
+//         await AsyncStorage.setItem(cacheKey, JSON.stringify({
+//           resultado: resultado,
+//           timestamp: new Date().toISOString()
+//         }));
+//       } catch (cacheError) {
+//         console.log('Erro ao salvar busca de vagas no cache:', cacheError.message);
+//       }
+      
+//       return {
+//         success: true,
+//         vagas: resultado,
+//         timestamp: new Date().toISOString()
+//       };
+//     } else {
+//       throw new Error('Formato de resposta inesperado do Gemini');
+//     }
+//   } catch (error) {
+//     console.error('Erro ao buscar vagas:', error);
+//     return {
+//       success: false,
+//       error: error.message || 'Erro ao buscar vagas com IA'
+//     };
+//   }
+// };
+
+// Função atualizada para buscar vagas com opção de forçar atualização
+const buscarVagasComGemini = async (curriculoData, forceRefresh = false) => {
   try {
+    // Verificar cache apenas se não estiver forçando atualização
+    if (!forceRefresh) {
+      const cacheKey = `vagas_${JSON.stringify(curriculoData).slice(0, 50)}`;
+      const cachedResult = await AsyncStorage.getItem(cacheKey);
+      
+      if (cachedResult) {
+        const parsed = JSON.parse(cachedResult);
+        const cacheAge = new Date() - new Date(parsed.timestamp);
+        const cacheValidHours = 24;
+        
+        if (cacheAge < cacheValidHours * 60 * 60 * 1000) {
+          console.log(`Usando resultado em cache para busca de vagas`);
+          return {
+            success: true,
+            vagas: parsed.resultado,
+            timestamp: parsed.timestamp,
+            fromCache: true
+          };
+        }
+      }
+    }
+    
+    // Se estamos forçando refresh ou não tem cache válido, proceder com busca
+    console.log('Iniciando busca de vagas com IA', forceRefresh ? '(forçando atualização)' : '');
+    
     // Obter API key do Gemini
     const apiKey = await getIAAPIKey('GEMINI');
     
@@ -217,7 +466,10 @@ const buscarVagasComGemini = async (curriculoData) => {
       });
     }
     
-    // Construir o prompt para o Gemini
+    // Adicionar timestamp para diversificar as respostas quando forçar atualização
+    const timestamp = new Date().toISOString();
+    
+    // Prompt melhorado para garantir informações completas e links funcionais
     const promptText = `
 Você é um recrutador e especialista em RH com 15 anos de experiência no mercado brasileiro.
 
@@ -247,32 +499,74 @@ ${Array.from(habilidades).slice(0, 15).join(', ')}
 INSTRUÇÕES ESPECÍFICAS:
 1. Encontre 5 vagas reais que existem atualmente no mercado brasileiro (2025)
 2. As vagas devem ser compatíveis com o perfil, experiência e senioridade do candidato
-3. Para cada vaga, forneça:
+3. Cada vez que esta consulta for executada, encontre vagas DIFERENTES das anteriores (atual: ${timestamp})
+
+4. Para cada vaga, forneça OBRIGATORIAMENTE todas estas informações:
    - Título da vaga (cargo específico)
    - Nome da empresa
    - Localização (cidade/estado ou remoto)
    - Faixa salarial estimada (baseada em sua expertise de mercado)
    - 5 principais requisitos/qualificações exigidos
    - 3 diferenciais da vaga
-   - Link ou plataforma onde a vaga pode ser encontrada (LinkedIn, Glassdoor, Indeed, etc.)
+   - Link completo e clicável para a vaga (URL completa para LinkedIn, Glassdoor, Indeed, etc.)
    - Breve descrição das responsabilidades (2-3 frases)
    - Avaliação de compatibilidade com o perfil (porcentagem de 0-100% e justificativa)
 
-4. As vagas devem variar em termos de empresas e possibilidades, mostrando diferentes opções no mercado
-5. Priorize vagas publicadas nos últimos 30 dias
-6. Formate a resposta de forma estruturada e organizada para fácil leitura
-7. Inclua uma análise final com recomendações sobre como o candidato pode se destacar ao aplicar para estas vagas
+5. IMPORTANTE SOBRE OS LINKS: Forneça URLs completos e funcionais no formato [texto](url) 
+   - Use o formato markdown para links, garantindo que sejam clicáveis
+   - Os links devem apontar para plataformas reais como LinkedIn, Glassdoor, Indeed, Catho, etc.
+   - Cada vaga DEVE ter pelo menos um link funcional
 
-IMPORTANTE: Todas as vagas informadas devem ser REAIS e ATUAIS (2025), baseando-se em sua base de conhecimento sobre o mercado de trabalho brasileiro atual. Não invente vagas fictícias.
+6. As vagas devem variar em termos de empresas e possibilidades, mostrando diferentes opções no mercado
+7. Priorize vagas publicadas nos últimos 30 dias
+8. Formate a resposta de forma estruturada usando markdown para facilitar a leitura
+9. Inclua uma análise final com recomendações sobre como o candidato pode se destacar ao aplicar para estas vagas
+
+FORMATO DE RESPOSTA:
+# Vagas Recomendadas para ${nome}
+
+## Vaga 1: [Título da Vaga] - [Empresa]
+**Localização:** [Cidade/Estado ou Remoto]  
+**Faixa Salarial:** R$ [valor] - R$ [valor]  
+
+### Descrição:
+[2-3 frases sobre as responsabilidades]
+
+### Requisitos:
+- [Requisito 1]
+- [Requisito 2]
+- [Requisito 3]
+- [Requisito 4]
+- [Requisito 5]
+
+### Diferenciais:
+- [Diferencial 1]
+- [Diferencial 2]
+- [Diferencial 3]
+
+### Link da Vaga:
+[Nome da Plataforma](URL completa da vaga)
+
+### Compatibilidade:
+**[XX]%** - [Justificativa breve]
+
+[Repetir o formato acima para as 5 vagas]
+
+## Recomendações para se destacar
+[3-5 dicas personalizadas]
+
+IMPORTANTE: Todas as vagas informadas devem ser REAIS e ATUAIS (2025), baseando-se em sua base de conhecimento sobre o mercado de trabalho brasileiro atual. Não crie vagas fictícias e SEMPRE forneça TODAS as informações solicitadas, sem omitir nenhum campo.
 `;
+
+    console.log('Enviando prompt para busca de vagas:', promptText);
 
     // Preparar a requisição para o Gemini
     const endpoint = `${IA_APIS.GEMINI.endpoint}?key=${apiKey}`;
     const requestBody = {
       contents: [{ parts: [{ text: promptText }] }],
       generationConfig: {
-        temperature: 0.2,  // Baixa temperatura para resultados mais factuais
-        maxOutputTokens: 1500,  // Resposta mais longa para conter detalhes das vagas
+        temperature: forceRefresh ? 0.4 : 0.2,  // Temperatura ligeiramente mais alta para refresh
+        maxOutputTokens: 4000,  // Garantir conteúdo completo
         topP: 0.8,
         topK: 40
       }
@@ -281,7 +575,7 @@ IMPORTANTE: Todas as vagas informadas devem ser REAIS e ATUAIS (2025), baseando-
     // Fazer a chamada para o Gemini
     const response = await axios.post(endpoint, requestBody, {
       headers: { 'Content-Type': 'application/json' },
-      timeout: 20000  // Timeout maior para permitir resposta completa
+      timeout: 30000  // 30 segundos
     });
     
     // Processar a resposta
@@ -302,7 +596,8 @@ IMPORTANTE: Todas as vagas informadas devem ser REAIS e ATUAIS (2025), baseando-
       return {
         success: true,
         vagas: resultado,
-        timestamp: new Date().toISOString()
+        timestamp: new Date().toISOString(),
+        fromCache: false
       };
     } else {
       throw new Error('Formato de resposta inesperado do Gemini');
@@ -317,12 +612,301 @@ IMPORTANTE: Todas as vagas informadas devem ser REAIS e ATUAIS (2025), baseando-
 };
 
 // Tela de Busca de Vagas
+// const BuscaVagasScreen = ({ route, navigation }) => {
+//   const { curriculoData } = route.params;
+//   const [loading, setLoading] = useState(true);
+//   const [error, setError] = useState(null);
+//   const [vagasResultado, setVagasResultado] = useState(null);
+//   const [loadingProgress, setLoadingProgress] = useState(0);
+  
+//   useEffect(() => {
+//     // Simular progresso durante a busca para feedback visual
+//     const progressInterval = setInterval(() => {
+//       setLoadingProgress(prev => {
+//         const newProgress = prev + (0.1 * Math.random());
+//         return newProgress > 0.9 ? 0.9 : newProgress;
+//       });
+//     }, 800);
+    
+//     // Iniciar a busca de vagas
+//     buscarVagas();
+    
+//     return () => clearInterval(progressInterval);
+//   }, []);
+  
+//   const buscarVagas = async () => {
+//     try {
+//       // Verificar o cache primeiro
+//       const cacheKey = `vagas_${JSON.stringify(curriculoData).slice(0, 50)}`;
+//       const cachedResult = await AsyncStorage.getItem(cacheKey);
+      
+//       if (cachedResult) {
+//         const parsed = JSON.parse(cachedResult);
+//         const cacheAge = new Date() - new Date(parsed.timestamp);
+//         const cacheValidHours = 24;
+        
+//         if (cacheAge < cacheValidHours * 60 * 60 * 1000) {
+//           console.log(`Usando resultado em cache para busca de vagas`);
+//           setVagasResultado(parsed.resultado);
+//           setLoading(false);
+//           setLoadingProgress(1);
+//           return;
+//         }
+//       }
+      
+//       // Se não tem cache válido, fazer a busca
+//       const resultado = await buscarVagasComGemini(curriculoData);
+      
+//       if (resultado.success) {
+//         setVagasResultado(resultado.vagas);
+//       } else {
+//         setError(resultado.error);
+//       }
+//     } catch (error) {
+//       console.error('Erro na busca de vagas:', error);
+//       setError('Não foi possível completar a busca de vagas. Tente novamente mais tarde.');
+//     } finally {
+//       setLoading(false);
+//       setLoadingProgress(1);
+//     }
+//   };
+  
+//   const handleTryAgain = () => {
+//     setLoading(true);
+//     setError(null);
+//     setLoadingProgress(0.1);
+//     buscarVagas();
+//   };
+  
+//   const handleShare = async () => {
+//     try {
+//       await Share.share({
+//         message: vagasResultado,
+//         title: 'Vagas recomendadas para seu perfil'
+//       });
+//     } catch (error) {
+//       console.error('Erro ao compartilhar:', error);
+//       Alert.alert('Erro', 'Não foi possível compartilhar as vagas.');
+//     }
+//   };
+  
+//   return (
+//     <SafeAreaView style={styles.container}>
+//       <StatusBar barStyle="light-content" backgroundColor={Colors.dark} />
+      
+//       <View style={styles.header}>
+//         <TouchableOpacity
+//           style={styles.backButton}
+//           onPress={() => navigation.goBack()}
+//         >
+//           <Text style={styles.backButtonText}>‹</Text>
+//         </TouchableOpacity>
+//         <Text style={styles.headerTitle}>Vagas para Você</Text>
+//       </View>
+      
+//       {loading ? (
+//         <View style={styles.loadingContainer}>
+//           <Text style={{
+//             fontSize: 18,
+//             fontWeight: 'bold',
+//             color: Colors.dark,
+//             marginBottom: 20,
+//             textAlign: 'center'
+//           }}>
+//             Buscando vagas personalizadas
+//           </Text>
+          
+//           <View style={{
+//             width: '80%',
+//             height: 10,
+//             backgroundColor: Colors.lightGray,
+//             borderRadius: 5,
+//             marginBottom: 20
+//           }}>
+//             <View style={{
+//               width: `${loadingProgress * 100}%`,
+//               height: '100%',
+//               backgroundColor: Colors.primary,
+//               borderRadius: 5
+//             }} />
+//           </View>
+          
+//           <View style={{
+//             backgroundColor: 'rgba(0, 188, 212, 0.1)',
+//             padding: 15,
+//             borderRadius: 8,
+//             marginTop: 20,
+//             maxWidth: '90%'
+//           }}>
+//             <Text style={{ textAlign: 'center', color: Colors.dark }}>
+//               Nossa IA está analisando seu perfil e buscando vagas que correspondam às suas qualificações e objetivos de carreira.
+//             </Text>
+//           </View>
+//         </View>
+//       ) : error ? (
+//         <View style={styles.errorContainer}>
+//           <Text style={styles.errorText}>{error}</Text>
+//           <TouchableOpacity
+//             style={styles.retryButton}
+//             onPress={handleTryAgain}
+//           >
+//             <Text style={styles.retryButtonText}>Tentar Novamente</Text>
+//           </TouchableOpacity>
+//         </View>
+//       ) : (
+//         <View style={{ flex: 1 }}>
+//           <ScrollView style={{ padding: 15 }}>
+//             {/* Título e informações */}
+//             <View style={{
+//               backgroundColor: Colors.white,
+//               borderRadius: 10,
+//               padding: 15,
+//               marginBottom: 15,
+//               ...Platform.select({
+//                 ios: {
+//                   shadowColor: '#000',
+//                   shadowOffset: { width: 0, height: 2 },
+//                   shadowOpacity: 0.1,
+//                   shadowRadius: 4,
+//                 },
+//                 android: {
+//                   elevation: 2,
+//                 },
+//               }),
+//             }}>
+//               <Text style={{
+//                 fontSize: 18,
+//                 fontWeight: 'bold',
+//                 marginBottom: 8,
+//                 color: Colors.dark,
+//               }}>
+//                 Vagas Personalizadas para Seu Perfil
+//               </Text>
+              
+//               <Text style={{
+//                 fontSize: 14,
+//                 color: Colors.lightText,
+//                 marginBottom: 10,
+//               }}>
+//                 Com base nas informações do seu currículo, encontramos estas vagas que correspondem ao seu perfil profissional.
+//               </Text>
+//             </View>
+            
+//             {/* Resultados da IA */}
+//             <View style={{
+//               backgroundColor: Colors.white,
+//               borderRadius: 10,
+//               padding: 15,
+//               marginBottom: 15,
+//               ...Platform.select({
+//                 ios: {
+//                   shadowColor: '#000',
+//                   shadowOffset: { width: 0, height: 2 },
+//                   shadowOpacity: 0.1,
+//                   shadowRadius: 4,
+//                 },
+//                 android: {
+//                   elevation: 2,
+//                 },
+//               }),
+//             }}>
+//               <Markdown
+//                 style={{
+//                   body: { fontSize: 16, lineHeight: 24, color: Colors.dark },
+//                   heading1: { 
+//                     fontSize: 22, 
+//                     fontWeight: 'bold', 
+//                     marginBottom: 10, 
+//                     color: Colors.dark,
+//                     borderBottomWidth: 1,
+//                     borderBottomColor: Colors.mediumGray,
+//                     paddingBottom: 5,
+//                   },
+//                   heading2: { 
+//                     fontSize: 20, 
+//                     fontWeight: 'bold', 
+//                     marginBottom: 10,
+//                     marginTop: 15,
+//                     color: Colors.dark 
+//                   },
+//                   heading3: { 
+//                     fontSize: 18, 
+//                     fontWeight: 'bold', 
+//                     marginTop: 10,
+//                     marginBottom: 5,
+//                     color: Colors.dark 
+//                   },
+//                   paragraph: { 
+//                     fontSize: 16, 
+//                     lineHeight: 24,
+//                     marginBottom: 10,
+//                     color: Colors.dark 
+//                   },
+//                   list_item: {
+//                     marginBottom: 5,
+//                     flexDirection: 'row',
+//                     alignItems: 'flex-start',
+//                   },
+//                   bullet_list: {
+//                     marginVertical: 10,
+//                   },
+//                   strong: {
+//                     fontWeight: 'bold',
+//                   },
+//                   em: {
+//                     fontStyle: 'italic',
+//                   },
+//                   link: {
+//                     color: Colors.primary,
+//                     textDecorationLine: 'underline',
+//                   },
+//                 }}
+//               >
+//                 {vagasResultado}
+//               </Markdown>
+//             </View>
+//           </ScrollView>
+          
+//           {/* Botão para compartilhar */}
+//           <View style={{
+//             padding: 15,
+//             backgroundColor: Colors.white,
+//             borderTopWidth: 1,
+//             borderTopColor: Colors.mediumGray,
+//           }}>
+//             <TouchableOpacity
+//               style={{
+//                 backgroundColor: Colors.primary,
+//                 paddingVertical: 12,
+//                 borderRadius: 8,
+//                 alignItems: 'center',
+//               }}
+//               onPress={handleShare}
+//             >
+//               <Text style={{
+//                 color: Colors.white,
+//                 fontWeight: 'bold',
+//                 fontSize: 16,
+//               }}>
+//                 Compartilhar Vagas
+//               </Text>
+//             </TouchableOpacity>
+//           </View>
+//         </View>
+//       )}
+//     </SafeAreaView>
+//   );
+// };
+
+// Tela de Busca de Vagas com botão de atualização
 const BuscaVagasScreen = ({ route, navigation }) => {
   const { curriculoData } = route.params;
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [vagasResultado, setVagasResultado] = useState(null);
   const [loadingProgress, setLoadingProgress] = useState(0);
+  const [fromCache, setFromCache] = useState(false);
+  const [lastUpdate, setLastUpdate] = useState(null);
   
   useEffect(() => {
     // Simular progresso durante a busca para feedback visual
@@ -339,31 +923,27 @@ const BuscaVagasScreen = ({ route, navigation }) => {
     return () => clearInterval(progressInterval);
   }, []);
   
-  const buscarVagas = async () => {
+  const buscarVagas = async (forceRefresh = false) => {
     try {
-      // Verificar o cache primeiro
-      const cacheKey = `vagas_${JSON.stringify(curriculoData).slice(0, 50)}`;
-      const cachedResult = await AsyncStorage.getItem(cacheKey);
+      setLoading(true);
+      setError(null);
+      setLoadingProgress(0.1);
       
-      if (cachedResult) {
-        const parsed = JSON.parse(cachedResult);
-        const cacheAge = new Date() - new Date(parsed.timestamp);
-        const cacheValidHours = 24;
-        
-        if (cacheAge < cacheValidHours * 60 * 60 * 1000) {
-          console.log(`Usando resultado em cache para busca de vagas`);
-          setVagasResultado(parsed.resultado);
-          setLoading(false);
-          setLoadingProgress(1);
-          return;
-        }
+      if (forceRefresh) {
+        // Mostrar tooltip/mensagem quando forçar a atualização
+        Alert.alert(
+          'Buscando Novas Vagas', 
+          'Estamos buscando novas vagas compatíveis com seu perfil. Isso pode levar alguns instantes...'
+        );
       }
       
-      // Se não tem cache válido, fazer a busca
-      const resultado = await buscarVagasComGemini(curriculoData);
+      // Chamar a função de busca com o parâmetro de forçar atualização
+      const resultado = await buscarVagasComGemini(curriculoData, forceRefresh);
       
       if (resultado.success) {
         setVagasResultado(resultado.vagas);
+        setFromCache(resultado.fromCache || false);
+        setLastUpdate(resultado.timestamp || new Date().toISOString());
       } else {
         setError(resultado.error);
       }
@@ -374,6 +954,11 @@ const BuscaVagasScreen = ({ route, navigation }) => {
       setLoading(false);
       setLoadingProgress(1);
     }
+  };
+  
+  const handleRefresh = () => {
+    // Forçar atualização (ignorar cache)
+    buscarVagas(true);
   };
   
   const handleTryAgain = () => {
@@ -395,6 +980,146 @@ const BuscaVagasScreen = ({ route, navigation }) => {
     }
   };
   
+  // Funções de processamento de links (manter de antes)
+  const processarConteudo = (texto) => {
+    if (!texto) return { conteudoProcessado: '', links: [] };
+    
+    // Extrair links do formato markdown [texto](url)
+    const regex = /\[([^\]]+)\]\(([^)]+)\)/g;
+    let match;
+    const links = [];
+    
+    while ((match = regex.exec(texto)) !== null) {
+      links.push({
+        texto: match[1],
+        url: match[2],
+        completo: match[0]
+      });
+    }
+    
+    return {
+      conteudoProcessado: texto,
+      links
+    };
+  };
+  
+  // Componente VagaLink (manter de antes)
+  const VagaLink = ({ url, label }) => {
+    const handlePress = async () => {
+      // Verificar se a URL é válida
+      if (!url.startsWith('http')) {
+        url = 'https://' + url;
+      }
+      
+      try {
+        const supported = await Linking.canOpenURL(url);
+        
+        if (supported) {
+          await Linking.openURL(url);
+        } else {
+          Alert.alert('Erro', `Não foi possível abrir o link: ${url}`);
+        }
+      } catch (error) {
+        console.error('Erro ao abrir link:', error);
+        Alert.alert('Erro', 'Não foi possível abrir este link.');
+      }
+    };
+    
+    return (
+      <TouchableOpacity 
+        onPress={handlePress}
+        style={{
+          backgroundColor: Colors.primary,
+          paddingVertical: 8,
+          paddingHorizontal: 12,
+          borderRadius: 5,
+          alignSelf: 'flex-start',
+          margin: 5,
+        }}
+      >
+        <Text style={{ color: Colors.white, fontWeight: '500' }}>
+          {label || 'Acessar Vaga'}
+        </Text>
+      </TouchableOpacity>
+    );
+  };
+  
+  // Manter de antes
+  const renderizarLinksVagas = () => {
+    const { conteudoProcessado, links } = processarConteudo(vagasResultado);
+    
+    // Agrupar links por vaga (baseado na ocorrência de "Vaga X" no texto)
+    const secoes = conteudoProcessado.split(/## Vaga \d+:/);
+    
+    if (secoes.length <= 1) return null;
+    
+    return (
+      <View style={{
+        backgroundColor: '#e8f5e9',
+        padding: 15,
+        borderRadius: 10,
+        marginBottom: 15,
+      }}>
+        <Text style={{
+          fontSize: 16,
+          fontWeight: 'bold',
+          marginBottom: 10,
+          color: Colors.dark,
+        }}>
+          Links Diretos para as Vagas:
+        </Text>
+        
+        {secoes.map((secao, index) => {
+          if (index === 0) return null; // Pular a introdução
+          
+          // Extrair o título da vaga
+          const tituloMatch = secao.match(/\[([^\]]+)\]\s*-\s*\[([^\]]+)\]/);
+          const titulo = tituloMatch 
+            ? `${tituloMatch[1]} - ${tituloMatch[2]}` 
+            : `Vaga ${index}`;
+          
+          // Encontrar links nesta seção
+          const linksVaga = links.filter(link => 
+            secao.includes(link.completo) && 
+            (link.texto.includes('Link') || 
+             link.texto.includes('vaga') || 
+             link.texto.includes('Aplicar'))
+          );
+          
+          if (linksVaga.length === 0) return null;
+          
+          return (
+            <View key={index} style={{
+              marginBottom: 10,
+              padding: 10,
+              backgroundColor: Colors.white,
+              borderRadius: 5,
+              borderLeftWidth: 3,
+              borderLeftColor: Colors.success,
+            }}>
+              <Text style={{ fontWeight: 'bold', marginBottom: 5 }}>
+                {titulo}
+              </Text>
+              
+              <View style={{ flexDirection: 'row', flexWrap: 'wrap' }}>
+                {linksVaga.map((link, linkIndex) => (
+                  <VagaLink 
+                    key={linkIndex} 
+                    url={link.url} 
+                    label={link.texto} 
+                  />
+                ))}
+              </View>
+            </View>
+          );
+        })}
+      </View>
+    );
+  };
+  
+  // Para processar os resultados
+  const { conteudoProcessado, links } = vagasResultado ? processarConteudo(vagasResultado) : { conteudoProcessado: '', links: [] };
+  
   return (
     <SafeAreaView style={styles.container}>
       <StatusBar barStyle="light-content" backgroundColor={Colors.dark} />
@@ -407,6 +1132,21 @@ const BuscaVagasScreen = ({ route, navigation }) => {
           <Text style={styles.backButtonText}>‹</Text>
         </TouchableOpacity>
         <Text style={styles.headerTitle}>Vagas para Você</Text>
+        
+        {/* Novo botão de atualização */}
+        {!loading && !error && (
+          <TouchableOpacity
+            style={{
+              backgroundColor: 'rgba(255, 255, 255, 0.2)',
+              paddingVertical: 5,
+              paddingHorizontal: 10,
+              borderRadius: 5,
+            }}
+            onPress={handleRefresh}
+          >
+            <Text style={{ color: Colors.white, fontSize: 12 }}>Atualizar</Text>
+          </TouchableOpacity>
+        )}
       </View>
       
       {loading ? (
@@ -479,23 +1219,76 @@ const BuscaVagasScreen = ({ route, navigation }) => {
                 },
               }),
             }}>
-              <Text style={{
-                fontSize: 18,
-                fontWeight: 'bold',
-                marginBottom: 8,
-                color: Colors.dark,
-              }}>
-                Vagas Personalizadas para Seu Perfil
-              </Text>
+              <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
+                <Text style={{
+                  fontSize: 18,
+                  fontWeight: 'bold',
+                  color: Colors.dark,
+                }}>
+                  Vagas Personalizadas para Seu Perfil
+                </Text>
+                
+                {/* Botão de refresh alternativo */}
+                <TouchableOpacity
+                  style={{
+                    backgroundColor: Colors.primary,
+                    padding: 8,
+                    borderRadius: 20,
+                    width: 36,
+                    height: 36,
+                    justifyContent: 'center',
+                    alignItems: 'center',
+                  }}
+                  onPress={handleRefresh}
+                >
+                  <Text style={{ color: Colors.white, fontSize: 16 }}>↻</Text>
+                </TouchableOpacity>
+              </View>
               
               <Text style={{
                 fontSize: 14,
                 color: Colors.lightText,
-                marginBottom: 10,
+                marginBottom: 6,
               }}>
                 Com base nas informações do seu currículo, encontramos estas vagas que correspondem ao seu perfil profissional.
               </Text>
+              
+              {fromCache && (
+                <View style={{
+                  backgroundColor: '#e3f2fd',
+                  padding: 8,
+                  borderRadius: 4,
+                  marginTop: 5,
+                  flexDirection: 'row',
+                  alignItems: 'center',
+                  justifyContent: 'space-between'
+                }}>
+                  <Text style={{
+                    fontSize: 12,
+                    color: '#0d47a1',
+                    flex: 1,
+                  }}>
+                    Última atualização: {new Date(lastUpdate).toLocaleDateString()} às {new Date(lastUpdate).toLocaleTimeString()}
+                  </Text>
+                  
+                  <TouchableOpacity
+                    style={{
+                      backgroundColor: '#1976d2',
+                      paddingVertical: 4,
+                      paddingHorizontal: 8,
+                      borderRadius: 4,
+                      marginLeft: 10,
+                    }}
+                    onPress={handleRefresh}
+                  >
+                    <Text style={{ color: Colors.white, fontSize: 12 }}>Buscar Novas</Text>
+                  </TouchableOpacity>
+                </View>
+              )}
             </View>
+            
+            {/* Renderizar links para vagas */}
+            {renderizarLinksVagas()}
             
             {/* Resultados da IA */}
             <View style={{
@@ -566,8 +1359,14 @@ const BuscaVagasScreen = ({ route, navigation }) => {
                     textDecorationLine: 'underline',
                   },
                 }}
+                onLinkPress={(url) => {
+                  Linking.openURL(url).catch(err => {
+                    console.error('Erro ao abrir link:', err);
+                    Alert.alert('Erro', 'Não foi possível abrir este link.');
+                  });
+                }}
               >
-                {vagasResultado}
+                {conteudoProcessado}
               </Markdown>
             </View>
           </ScrollView>
@@ -578,13 +1377,40 @@ const BuscaVagasScreen = ({ route, navigation }) => {
             backgroundColor: Colors.white,
             borderTopWidth: 1,
             borderTopColor: Colors.mediumGray,
+            flexDirection: 'row',
+            justifyContent: 'space-between',
           }}>
+            {/* Botão de atualização grande para facilitar o acesso */}
+            <TouchableOpacity
+              style={{
+                backgroundColor: Colors.secondary,
+                paddingVertical: 12,
+                paddingHorizontal: 15,
+                borderRadius: 8,
+                alignItems: 'center',
+                flex: 1,
+                marginRight: 8,
+              }}
+              onPress={handleRefresh}
+            >
+              <Text style={{
+                color: Colors.white,
+                fontWeight: 'bold',
+                fontSize: 16,
+              }}>
+                Buscar Novas Vagas
+              </Text>
+            </TouchableOpacity>
+            
             <TouchableOpacity
               style={{
                 backgroundColor: Colors.primary,
                 paddingVertical: 12,
+                paddingHorizontal: 15,
                 borderRadius: 8,
                 alignItems: 'center',
+                flex: 1,
+                marginLeft: 8,
               }}
               onPress={handleShare}
             >
@@ -593,7 +1419,7 @@ const BuscaVagasScreen = ({ route, navigation }) => {
                 fontWeight: 'bold',
                 fontSize: 16,
               }}>
-                Compartilhar Vagas
+                Compartilhar
               </Text>
             </TouchableOpacity>
           </View>
