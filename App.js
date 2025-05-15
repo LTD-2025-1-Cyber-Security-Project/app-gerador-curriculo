@@ -3323,6 +3323,182 @@ const AuthNavigator = () => (
 // Rotas do App
 const AppStack = createStackNavigator();
 
+// Novo componente SobreAppScreen
+// Componente SobreAppScreen completamente independente
+const SobreAppScreen = ({ navigation }) => {
+  // Estilos locais, específicos para este componente
+  const localStyles = StyleSheet.create({
+    container: {
+      flex: 1,
+      backgroundColor: Colors.light,
+    },
+    header: {
+      backgroundColor: Colors.dark,
+      padding: 15,
+      flexDirection: 'row',
+      alignItems: 'center',
+    },
+    headerTitle: {
+      color: Colors.white,
+      fontSize: 18,
+      fontWeight: 'bold',
+    },
+    backButton: {
+      marginRight: 10,
+      width: 30,
+      height: 30,
+      justifyContent: 'center',
+      alignItems: 'center',
+    },
+    backButtonText: {
+      fontSize: 24,
+      color: Colors.white,
+    },
+    contentContainer: {
+      flex: 1,
+      padding: 20,
+    },
+    aboutCard: {
+      backgroundColor: Colors.white,
+      borderRadius: 10,
+      padding: 20,
+      marginBottom: 20,
+      ...Platform.select({
+        ios: {
+          shadowColor: '#000',
+          shadowOffset: { width: 0, height: 2 },
+          shadowOpacity: 0.1,
+          shadowRadius: 4,
+        },
+        android: {
+          elevation: 2,
+        },
+      }),
+    },
+    appTitle: {
+      fontSize: 24,
+      fontWeight: 'bold',
+      color: Colors.dark,
+      textAlign: 'center',
+    },
+    versionText: {
+      fontSize: 16,
+      color: Colors.lightText,
+      textAlign: 'center',
+      marginTop: 5,
+    },
+    divider: {
+      height: 1,
+      backgroundColor: Colors.mediumGray,
+      marginVertical: 20,
+    },
+    sectionTitle: {
+      fontSize: 18,
+      fontWeight: 'bold',
+      color: Colors.dark,
+      marginTop: 15,
+      marginBottom: 10,
+    },
+    bodyText: {
+      fontSize: 16,
+      lineHeight: 24,
+      color: Colors.dark,
+      marginBottom: 15,
+    },
+    featureItem: {
+      marginBottom: 15,
+    },
+    featureTitle: {
+      fontSize: 16,
+      fontWeight: 'bold',
+      color: Colors.dark,
+      marginBottom: 5,
+    },
+    contactButton: {
+      backgroundColor: Colors.primary,
+      padding: 15,
+      borderRadius: 8,
+      alignItems: 'center',
+      marginTop: 20,
+    },
+    buttonText: {
+      color: Colors.white,
+      fontWeight: 'bold',
+      fontSize: 16,
+    },
+  });
+
+  return (
+    <SafeAreaView style={localStyles.container}>
+      <StatusBar barStyle="light-content" backgroundColor={Colors.dark} />
+      
+      <View style={localStyles.header}>
+        <TouchableOpacity
+          style={localStyles.backButton}
+          onPress={() => navigation.goBack()}
+        >
+          <Text style={localStyles.backButtonText}>‹</Text>
+        </TouchableOpacity>
+        <Text style={localStyles.headerTitle}>Sobre o App</Text>
+      </View>
+      
+      <ScrollView style={localStyles.contentContainer}>
+        <View style={localStyles.aboutCard}>
+          <Text style={localStyles.appTitle}>CurriculoBot Premium</Text>
+          <Text style={localStyles.versionText}>Versão 1.0.0</Text>
+          
+          <View style={localStyles.divider} />
+          
+          <Text style={localStyles.sectionTitle}>O que é o CurriculoBot?</Text>
+          <Text style={localStyles.bodyText}>
+            CurriculoBot é um assistente inteligente que ajuda você a criar, gerenciar e analisar 
+            currículos profissionais utilizando inteligência artificial de múltiplos provedores.
+          </Text>
+          
+          <Text style={localStyles.sectionTitle}>Recursos</Text>
+          <View style={localStyles.featureItem}>
+            <Text style={localStyles.featureTitle}>• Criação Guiada</Text>
+            <Text style={localStyles.bodyText}>
+              Interface conversacional que simplifica a criação do seu currículo.
+            </Text>
+          </View>
+          
+          <View style={localStyles.featureItem}>
+            <Text style={localStyles.featureTitle}>• Análise com IA</Text>
+            <Text style={localStyles.bodyText}>
+              Análise profissional do seu currículo usando diferentes IAs como Google Gemini, OpenAI e Claude.
+            </Text>
+          </View>
+          
+          <View style={localStyles.featureItem}>
+            <Text style={localStyles.featureTitle}>• Dicas Personalizadas</Text>
+            <Text style={localStyles.bodyText}>
+              Recomendações de melhorias, cursos e vagas adequadas ao seu perfil.
+            </Text>
+          </View>
+          
+          <Text style={localStyles.sectionTitle}>Contato</Text>
+          <Text style={localStyles.bodyText}>
+            Email: suporte@curriculobot.app
+          </Text>
+          <Text style={localStyles.bodyText}>
+            Website: www.curriculobot.app
+          </Text>
+          
+          <TouchableOpacity 
+            style={localStyles.contactButton}
+            onPress={() => {
+              Alert.alert('Obrigado', 'Agradecemos por usar o CurriculoBot!');
+            }}
+          >
+            <Text style={localStyles.buttonText}>Entre em Contato</Text>
+          </TouchableOpacity>
+        </View>
+      </ScrollView>
+    </SafeAreaView>
+  );
+};
+
 const AppNavigator = () => (
   <AppStack.Navigator
     screenOptions={{
@@ -3546,7 +3722,6 @@ const styles = StyleSheet.create({
     fontSize: 14,
     marginLeft: 8,
   },
-
 
   // Geral
   container: {
