@@ -2373,6 +2373,7 @@ const SplashScreen = ({ navigation }) => {
   );
 };
 
+// Modificações para o LoginScreen
 const LoginScreen = ({ navigation }) => {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -2407,36 +2408,42 @@ const LoginScreen = ({ navigation }) => {
       <View style={styles.authForm}>
         <View style={styles.inputContainer}>
           <Text style={styles.inputLabel}>Email</Text>
-          <TextInput
-            style={styles.input}
-            placeholder="Seu email"
-            value={email}
-            onChangeText={setEmail}
-            keyboardType="email-address"
-            autoCapitalize="none"
-          />
+          <View style={styles.enhancedInputWrapper}>
+            <TextInput
+              style={styles.enhancedInput}
+              placeholder="Seu email"
+              value={email}
+              onChangeText={setEmail}
+              keyboardType="email-address"
+              autoCapitalize="none"
+              placeholderTextColor="#9e9e9e"
+            />
+          </View>
         </View>
         
         <View style={styles.inputContainer}>
           <Text style={styles.inputLabel}>Senha</Text>
-          <TextInput
-            style={styles.input}
-            placeholder="Sua senha"
-            value={password}
-            onChangeText={setPassword}
-            secureTextEntry
-          />
+          <View style={styles.enhancedInputWrapper}>
+            <TextInput
+              style={styles.enhancedInput}
+              placeholder="Sua senha"
+              value={password}
+              onChangeText={setPassword}
+              secureTextEntry
+              placeholderTextColor="#9e9e9e"
+            />
+          </View>
         </View>
         
         <TouchableOpacity
-          style={styles.primaryButton}
+          style={styles.enhancedPrimaryButton}
           onPress={handleLogin}
           disabled={loading}
         >
           {loading ? (
             <ActivityIndicator size="small" color={Colors.white} />
           ) : (
-            <Text style={styles.primaryButtonText}>Entrar</Text>
+            <Text style={styles.enhancedPrimaryButtonText}>Entrar</Text>
           )}
         </TouchableOpacity>
         
@@ -2451,6 +2458,7 @@ const LoginScreen = ({ navigation }) => {
   );
 };
 
+// Modificações para o RegisterScreen
 const RegisterScreen = ({ navigation }) => {
   const [nome, setNome] = useState('');
   const [email, setEmail] = useState('');
@@ -2498,57 +2506,69 @@ const RegisterScreen = ({ navigation }) => {
       <View style={styles.authForm}>
         <View style={styles.inputContainer}>
           <Text style={styles.inputLabel}>Nome</Text>
-          <TextInput
-            style={styles.input}
-            placeholder="Seu nome"
-            value={nome}
-            onChangeText={setNome}
-          />
+          <View style={styles.enhancedInputWrapper}>
+            <TextInput
+              style={styles.enhancedInput}
+              placeholder="Seu nome completo"
+              value={nome}
+              onChangeText={setNome}
+              placeholderTextColor="#9e9e9e"
+            />
+          </View>
         </View>
         
         <View style={styles.inputContainer}>
           <Text style={styles.inputLabel}>Email</Text>
-          <TextInput
-            style={styles.input}
-            placeholder="Seu email"
-            value={email}
-            onChangeText={setEmail}
-            keyboardType="email-address"
-            autoCapitalize="none"
-          />
+          <View style={styles.enhancedInputWrapper}>
+            <TextInput
+              style={styles.enhancedInput}
+              placeholder="Seu email profissional"
+              value={email}
+              onChangeText={setEmail}
+              keyboardType="email-address"
+              autoCapitalize="none"
+              placeholderTextColor="#9e9e9e"
+            />
+          </View>
         </View>
         
         <View style={styles.inputContainer}>
           <Text style={styles.inputLabel}>Senha</Text>
-          <TextInput
-            style={styles.input}
-            placeholder="Sua senha"
-            value={password}
-            onChangeText={setPassword}
-            secureTextEntry
-          />
+          <View style={styles.enhancedInputWrapper}>
+            <TextInput
+              style={styles.enhancedInput}
+              placeholder="Crie uma senha forte"
+              value={password}
+              onChangeText={setPassword}
+              secureTextEntry
+              placeholderTextColor="#9e9e9e"
+            />
+          </View>
         </View>
         
         <View style={styles.inputContainer}>
           <Text style={styles.inputLabel}>Confirmar Senha</Text>
-          <TextInput
-            style={styles.input}
-            placeholder="Confirme sua senha"
-            value={confirmPassword}
-            onChangeText={setConfirmPassword}
-            secureTextEntry
-          />
+          <View style={styles.enhancedInputWrapper}>
+            <TextInput
+              style={styles.enhancedInput}
+              placeholder="Confirme sua senha"
+              value={confirmPassword}
+              onChangeText={setConfirmPassword}
+              secureTextEntry
+              placeholderTextColor="#9e9e9e"
+            />
+          </View>
         </View>
         
         <TouchableOpacity
-          style={styles.primaryButton}
+          style={styles.enhancedPrimaryButton}
           onPress={handleRegister}
           disabled={loading}
         >
           {loading ? (
             <ActivityIndicator size="small" color={Colors.white} />
           ) : (
-            <Text style={styles.primaryButtonText}>Cadastrar</Text>
+            <Text style={styles.enhancedPrimaryButtonText}>Cadastrar</Text>
           )}
         </TouchableOpacity>
         
@@ -2867,27 +2887,29 @@ const ChatbotScreen = ({ navigation }) => {
       
         <KeyboardAvoidingView
           behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-          keyboardVerticalOffset={Platform.OS === 'ios' ? 10 : 0} // Reduzido de 90/70
-          style={{ width: '100%' }} // Adicionado para garantir largura total
+          keyboardVerticalOffset={Platform.OS === 'ios' ? 10 : 0}
+          style={{ width: '100%' }}
         >
-        <View style={styles.inputContainer}>
-          <TextInput
-            style={styles.chatInput}
-            placeholder="Digite sua mensagem..."
-            value={currentMessage}
-            onChangeText={setCurrentMessage}
-            onSubmitEditing={handleSendMessage}
-            returnKeyType="send"
-          />
-          <TouchableOpacity 
-            style={styles.sendButton}
-            onPress={handleSendMessage}
-            disabled={currentMessage.trim() === ''}
-          >
-            <Text style={styles.sendButtonText}>Enviar</Text>
-          </TouchableOpacity>
-        </View>
-      </KeyboardAvoidingView>
+          <View style={styles.chatInputContainer}>
+            <TextInput
+              style={styles.improvedChatInput}
+              placeholder="Digite sua mensagem..."
+              value={currentMessage}
+              onChangeText={setCurrentMessage}
+              onSubmitEditing={handleSendMessage}
+              returnKeyType="send"
+              multiline={true} // Permitir múltiplas linhas
+              numberOfLines={3} // Suporte até 3 linhas
+            />
+            <TouchableOpacity 
+              style={styles.improvedSendButton}
+              onPress={handleSendMessage}
+              disabled={currentMessage.trim() === ''}
+            >
+              <Text style={styles.improvedSendButtonText}>Enviar</Text>
+            </TouchableOpacity>
+          </View>
+        </KeyboardAvoidingView>
     </SafeAreaView>
   );
 };
@@ -3927,15 +3949,6 @@ const styles = StyleSheet.create({
     marginTop: 6,
   },
   
-  // Melhorar a área de digitação
-  inputContainer: {
-    flexDirection: 'row',
-    padding: 12,
-    backgroundColor: Colors.white,
-    borderTopWidth: 1,
-    borderTopColor: '#e5e5e5',
-    alignItems: 'center',
-  },
   chatInput: {
     flex: 1,
     backgroundColor: '#f5f5f5',
@@ -4122,26 +4135,66 @@ const styles = StyleSheet.create({
     color: Colors.white,
     opacity: 0.8,
   },
-  
-  // Autenticação
+
+  enhancedInputWrapper: {
+    backgroundColor: Colors.white,
+    borderRadius: 10,
+    borderWidth: 1,
+    borderColor: Colors.mediumGray,
+    height: 55, // Campo mais alto
+    justifyContent: 'center',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.05,
+    shadowRadius: 2,
+    elevation: 2,
+  },
+  enhancedInput: {
+    paddingHorizontal: 16,
+    paddingVertical: 14,
+    fontSize: 16,
+    color: Colors.dark,
+    height: '100%',
+  },
+  enhancedPrimaryButton: {
+    backgroundColor: Colors.primary,
+    borderRadius: 10,
+    paddingVertical: 16, // Botão mais alto
+    alignItems: 'center',
+    marginTop: 10,
+    marginBottom: 15,
+    shadowColor: Colors.primary,
+    shadowOffset: { width: 0, height: 3 },
+    shadowOpacity: 0.3,
+    shadowRadius: 5,
+    elevation: 3,
+  },
+  enhancedPrimaryButtonText: {
+    color: Colors.white,
+    fontWeight: 'bold',
+    fontSize: 17, // Texto maior
+    letterSpacing: 0.5, // Maior espaçamento entre letras
+  },
+
+  // Modificar os estilos existentes
   authContainer: {
     flex: 1,
     backgroundColor: Colors.primary,
   },
   authHeader: {
     padding: 30,
-    paddingTop: 50,
+    paddingTop: 60, // Mais espaço no topo
   },
   authTitle: {
-    fontSize: 32,
+    fontSize: 36, // Título maior
     fontWeight: 'bold',
     color: Colors.white,
-    marginBottom: 10,
+    marginBottom: 12,
   },
   authSubtitle: {
-    fontSize: 16,
+    fontSize: 18, // Subtítulo maior
     color: Colors.white,
-    opacity: 0.8,
+    opacity: 0.9,
   },
   authForm: {
     flex: 1,
@@ -4151,26 +4204,32 @@ const styles = StyleSheet.create({
     padding: 30,
     paddingTop: 40,
   },
-  inputLabel: {
-    fontSize: 14,
-    color: Colors.lightText,
-    marginBottom: 5,
+  inputContainer: {
+    marginBottom: 22, // Mais espaço entre campos
   },
+  inputLabel: {
+    fontSize: 15, // Label maior
+    fontWeight: '500',
+    color: Colors.dark,
+    marginBottom: 8,
+    paddingLeft: 4,
+  },
+  textButton: {
+    alignItems: 'center',
+    marginTop: 20,
+  },
+  textButtonText: {
+    color: Colors.primary,
+    fontSize: 16, // Texto maior
+    fontWeight: '500',
+  },
+
   input: {
     backgroundColor: Colors.lightGray,
     borderRadius: 8,
     padding: 15,
     fontSize: 16,
-  },
-  textButton: {
-    alignItems: 'center',
-    marginTop: 15,
-  },
-  textButtonText: {
-    color: Colors.primary,
-    fontSize: 14,
-  },
-  
+  },  
   // Home
   homeContainer: {
     flex: 1,
@@ -5067,6 +5126,47 @@ const styles = StyleSheet.create({
   areaOptionText: {
     fontWeight: 'bold', // Texto mais destacado
   },
+
+  chatInputContainer: {
+    flexDirection: 'row',
+    padding: 12,
+    backgroundColor: Colors.white,
+    borderTopWidth: 1,
+    borderTopColor: '#e5e5e5',
+    alignItems: 'center',
+  },
+  improvedChatInput: {
+    flex: 1,
+    backgroundColor: '#f5f5f5',
+    borderRadius: 20,
+    paddingHorizontal: 18,
+    paddingVertical: 14,
+    marginRight: 10,
+    fontSize: 16,
+    maxHeight: 100, // Limitar altura máxima
+    minHeight: 50, // Garantir altura mínima
+    borderWidth: 1,
+    borderColor: '#e0e0e0',
+  },
+  improvedSendButton: {
+    backgroundColor: Colors.primary,
+    borderRadius: 25,
+    width: 70,
+    height: 50,
+    justifyContent: 'center',
+    alignItems: 'center',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 3,
+    elevation: 2,
+  },
+  improvedSendButtonText: {
+    color: Colors.white,
+    fontWeight: 'bold',
+    fontSize: 15,
+  },
+
 });
 
 // Componente principal
