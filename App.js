@@ -16,9 +16,9 @@ import {
   ActivityIndicator,
   Linking,
   Switch,
+  Image,
   Animated,
-  Easing,
-  Image
+  Easing
 } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import Markdown from 'react-native-markdown-display';
@@ -11165,17 +11165,26 @@ const meusCurriculosStyles = StyleSheet.create({
     fontWeight: '600',
     fontSize: 16,
   },
+  
+  modalOverlay: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    backgroundColor: 'rgba(0,0,0,0.3)',
+    justifyContent: 'center',
+    alignItems: 'center',
+  }
 });
 
-// Implementação simplificada da tela de análise de currículo
+// Implementação corrigida da tela de análise de currículo
 const CurriculosAnaliseScreen = ({ navigation }) => {
   const { user } = useAuth();
   const [curriculos, setCurriculos] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [fadeValue, setFadeValue] = useState(0); // Usar um valor numérico em vez de Animated.Value
   
-  // Referência para animação dos cartões
-  const fadeAnim = useRef(new Animated.Value(0)).current;
-
   const loadCurriculos = async () => {
     try {
       setLoading(true);
@@ -11183,12 +11192,10 @@ const CurriculosAnaliseScreen = ({ navigation }) => {
       const curriculosData = cvs ? JSON.parse(cvs) : [];
       setCurriculos(curriculosData);
       
-      // Iniciar animação de fade in
-      Animated.timing(fadeAnim, {
-        toValue: 1,
-        duration: 500,
-        useNativeDriver: true
-      }).start();
+      // Atualizamos para 1 após carregar os dados
+      setTimeout(() => {
+        setFadeValue(1);
+      }, 100);
     } catch (error) {
       console.error('Erro ao carregar currículos:', error);
       Alert.alert('Erro', 'Não foi possível carregar seus currículos.');
@@ -11301,12 +11308,12 @@ const CurriculosAnaliseScreen = ({ navigation }) => {
 
         <Text style={curriculoAnaliseStyles.sectionTitle}>Selecione um currículo para analisar:</Text>
 
-        {/* Usando FlatList normal, sem Animated.FlatList */}
+        {/* Não usamos a propriedade opacity com Animated aqui */}
         <FlatList
           data={curriculos}
           keyExtractor={(item) => item.id}
           contentContainerStyle={{ paddingBottom: 20 }}
-          style={{ opacity: fadeAnim }}
+          style={{ opacity: fadeValue }} // Usamos um valor numérico normal
           renderItem={({ item }) => {
             const resumo = getResumoCurriculo(item);
             
@@ -11413,7 +11420,7 @@ const CurriculosAnaliseScreen = ({ navigation }) => {
   );
 };
 
-// Implementação simplificada da tela de gerenciamento de currículos
+// Implementação corrigida da tela de gerenciamento de currículos
 const MeusCurriculosScreen = ({ navigation }) => {
   const { user } = useAuth();
   const [curriculos, setCurriculos] = useState([]);
@@ -11422,9 +11429,8 @@ const MeusCurriculosScreen = ({ navigation }) => {
   const [filteredCurriculos, setFilteredCurriculos] = useState([]);
   const [showMenu, setShowMenu] = useState(false);
   const [selectedCurriculoId, setSelectedCurriculoId] = useState(null);
+  const [fadeValue, setFadeValue] = useState(0); // Valor numérico para fade
   
-  // Referência para animação
-  const fadeAnim = useRef(new Animated.Value(0)).current;
   // Referência para posição do menu
   const menuPosition = useRef({ x: 0, y: 0 });
 
@@ -11436,12 +11442,10 @@ const MeusCurriculosScreen = ({ navigation }) => {
       setCurriculos(curriculosData);
       setFilteredCurriculos(curriculosData);
       
-      // Iniciar animação de fade in
-      Animated.timing(fadeAnim, {
-        toValue: 1,
-        duration: 500,
-        useNativeDriver: true
-      }).start();
+      // Usando um valor numérico para fade
+      setTimeout(() => {
+        setFadeValue(1);
+      }, 100);
     } catch (error) {
       console.error('Erro ao carregar currículos:', error);
       Alert.alert('Erro', 'Não foi possível carregar seus currículos.');
@@ -11467,7 +11471,7 @@ const MeusCurriculosScreen = ({ navigation }) => {
       setFilteredCurriculos(curriculos);
     } else {
       const filtered = curriculos.filter(cv => 
-        cv.nome.toLowerCase().includes(searchText.toLowerCase())
+        cv.nome?.toLowerCase().includes(searchText.toLowerCase())
       );
       setFilteredCurriculos(filtered);
     }
@@ -11661,7 +11665,7 @@ const MeusCurriculosScreen = ({ navigation }) => {
         data={filteredCurriculos}
         keyExtractor={(item) => item.id}
         contentContainerStyle={{ paddingBottom: 80 }}
-        style={{ opacity: fadeAnim }}
+        style={{ opacity: fadeValue }} // Usando valor numérico
         renderItem={({ item }) => {
           const details = getCurriculoDetails(item);
           
@@ -11779,73 +11783,68 @@ const MeusCurriculosScreen = ({ navigation }) => {
 
       {/* Menu de contexto */}
       {showMenu && (
-        <TouchableWithoutFeedback onPress={() => setShowMenu(false)}>
-          <View style={{ 
-            position: 'absolute', 
-            top: 0, 
-            left: 0, 
-            right: 0, 
-            bottom: 0, 
-            backgroundColor: 'rgba(0,0,0,0.3)' 
-          }}>
-            <View style={[
-              meusCurriculosStyles.menuOptions,
-              { 
-                position: 'absolute',
-                top: menuPosition.current.y,
-                left: menuPosition.current.x
-              }
-            ]}>
-              <TouchableOpacity 
-                style={meusCurriculosStyles.menuOption}
-                onPress={() => {
-                  setShowMenu(false);
-                  const cv = curriculos.find(c => c.id === selectedCurriculoId);
-                  if (cv) handleViewCV(cv);
-                }}
-              >
-                <Text>👁️</Text>
-                <Text style={meusCurriculosStyles.menuOptionText}>Visualizar</Text>
-              </TouchableOpacity>
-              
-              <TouchableOpacity 
-                style={meusCurriculosStyles.menuOption}
-                onPress={() => {
-                  setShowMenu(false);
-                  const cv = curriculos.find(c => c.id === selectedCurriculoId);
-                  if (cv) handleAnalyzeCV(cv);
-                }}
-              >
-                <Text>📊</Text>
-                <Text style={meusCurriculosStyles.menuOptionText}>Analisar</Text>
-              </TouchableOpacity>
-              
-              <TouchableOpacity 
-                style={meusCurriculosStyles.menuOption}
-                onPress={() => {
-                  setShowMenu(false);
-                  const cv = curriculos.find(c => c.id === selectedCurriculoId);
-                  if (cv) handleShareCV(cv);
-                }}
-              >
-                <Text>📤</Text>
-                <Text style={meusCurriculosStyles.menuOptionText}>Compartilhar</Text>
-              </TouchableOpacity>
-              
-              <TouchableOpacity 
-                style={meusCurriculosStyles.menuOption}
-                onPress={() => {
-                  if (selectedCurriculoId) handleDeleteCV(selectedCurriculoId);
-                }}
-              >
-                <Text>🗑️</Text>
-                <Text style={[meusCurriculosStyles.menuOptionText, meusCurriculosStyles.menuOptionDanger]}>
-                  Excluir
-                </Text>
-              </TouchableOpacity>
-            </View>
+        <TouchableOpacity 
+          style={meusCurriculosStyles.modalOverlay}
+          activeOpacity={1}
+          onPress={() => setShowMenu(false)}
+        >
+          <View style={[
+            meusCurriculosStyles.menuOptions,
+            { 
+              position: 'absolute',
+              top: menuPosition.current.y,
+              left: menuPosition.current.x
+            }
+          ]}>
+            <TouchableOpacity 
+              style={meusCurriculosStyles.menuOption}
+              onPress={() => {
+                setShowMenu(false);
+                const cv = curriculos.find(c => c.id === selectedCurriculoId);
+                if (cv) handleViewCV(cv);
+              }}
+            >
+              <Text>👁️</Text>
+              <Text style={meusCurriculosStyles.menuOptionText}>Visualizar</Text>
+            </TouchableOpacity>
+            
+            <TouchableOpacity 
+              style={meusCurriculosStyles.menuOption}
+              onPress={() => {
+                setShowMenu(false);
+                const cv = curriculos.find(c => c.id === selectedCurriculoId);
+                if (cv) handleAnalyzeCV(cv);
+              }}
+            >
+              <Text>📊</Text>
+              <Text style={meusCurriculosStyles.menuOptionText}>Analisar</Text>
+            </TouchableOpacity>
+            
+            <TouchableOpacity 
+              style={meusCurriculosStyles.menuOption}
+              onPress={() => {
+                setShowMenu(false);
+                const cv = curriculos.find(c => c.id === selectedCurriculoId);
+                if (cv) handleShareCV(cv);
+              }}
+            >
+              <Text>📤</Text>
+              <Text style={meusCurriculosStyles.menuOptionText}>Compartilhar</Text>
+            </TouchableOpacity>
+            
+            <TouchableOpacity 
+              style={meusCurriculosStyles.menuOption}
+              onPress={() => {
+                if (selectedCurriculoId) handleDeleteCV(selectedCurriculoId);
+              }}
+            >
+              <Text>🗑️</Text>
+              <Text style={[meusCurriculosStyles.menuOptionText, meusCurriculosStyles.menuOptionDanger]}>
+                Excluir
+              </Text>
+            </TouchableOpacity>
           </View>
-        </TouchableWithoutFeedback>
+        </TouchableOpacity>
       )}
 
       <TouchableOpacity
@@ -11857,7 +11856,6 @@ const MeusCurriculosScreen = ({ navigation }) => {
     </SafeAreaView>
   );
 };
-
 
 // Versão corrigida do PreviewCVScreen sem usar Modal
 const PreviewCVScreen = ({ route, navigation }) => {
