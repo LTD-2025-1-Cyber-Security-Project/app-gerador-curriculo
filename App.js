@@ -125,17 +125,46 @@ const DashboardScreen = ({ navigation }) => {
     pontuacaoMedia: 0
   });
   const [loading, setLoading] = useState(true);
+  
+  // Estados para o novo modal de análise de carreira
+  const [showCareerAnalysisModal, setShowCareerAnalysisModal] = useState(false);
+  const [selectedCurriculo, setSelectedCurriculo] = useState(null);
+  const [curriculosList, setCurriculosList] = useState([]);
+  const [careerAnalysisLoading, setCareerAnalysisLoading] = useState(false);
+  const [careerAnalysisData, setCareerAnalysisData] = useState(null);
+  const [selectedChartType, setSelectedChartType] = useState('radar');
+  
+  const chartTypes = [
+    { id: 'radar', name: 'Radar', icon: '📊' },
+    { id: 'bar', name: 'Barras', icon: '📈' },
+    { id: 'line', name: 'Linha', icon: '📉' },
+    { id: 'pie', name: 'Pizza', icon: '⭕' },
+    { id: 'polar', name: 'Polar', icon: '🔄' }
+  ];
 
   useEffect(() => {
     carregarDados();
+    carregarCurriculos();
     
     // Atualizar quando a tela ganhar foco
     const unsubscribe = navigation.addListener('focus', () => {
       carregarDados();
+      carregarCurriculos();
     });
     
     return unsubscribe;
   }, [navigation]);
+  
+  // Carregar lista de currículos para o seletor de análise
+  const carregarCurriculos = async () => {
+    try {
+      const cvs = await AsyncStorage.getItem(`curriculos_${user.id}`);
+      const curriculos = cvs ? JSON.parse(cvs) : [];
+      setCurriculosList(curriculos);
+    } catch (error) {
+      console.error('Erro ao carregar currículos:', error);
+    }
+  };
 
   const carregarDados = async () => {
     try {
@@ -205,6 +234,886 @@ const DashboardScreen = ({ navigation }) => {
     if (!date) return 'Nunca';
     return `${date.getDate().toString().padStart(2, '0')}/${(date.getMonth() + 1).toString().padStart(2, '0')}/${date.getFullYear()}`;
   };
+  
+  // NOVA FUNÇÃO: Realizar análise de carreira com IA
+  const realizarAnaliseCarreira = async (curriculoId) => {
+    try {
+      setCareerAnalysisLoading(true);
+      
+      // Encontrar o currículo selecionado
+      const curriculo = curriculosList.find(cv => cv.id === curriculoId);
+      if (!curriculo) {
+        throw new Error('Currículo não encontrado');
+      }
+      
+      // Verificar se há análise em cache para este currículo
+      const cacheKey = `career_analysis_${curriculoId}`;
+      const cachedAnalysis = await AsyncStorage.getItem(cacheKey);
+      
+      if (cachedAnalysis) {
+        const parsedAnalysis = JSON.parse(cachedAnalysis);
+        const cacheTime = new Date(parsedAnalysis.timestamp);
+        const now = new Date();
+        const hoursSinceCache = (now - cacheTime) / (1000 * 60 * 60);
+        
+        // Se o cache tem menos de 24 horas, usar os dados do cache
+        if (hoursSinceCache < 24) {
+          setCareerAnalysisData(parsedAnalysis.data);
+          setCareerAnalysisLoading(false);
+          return;
+        }
+      }
+      
+      // Se não há cache ou está desatualizado, gerar nova análise
+      
+      // Obter a chave de API da IA
+      const apiKey = await getIAAPIKey('GEMINI');
+      if (!apiKey) {
+        throw new Error('API key do Gemini não configurada');
+      }
+      
+      // Preparar os dados do currículo para a análise
+      const cv = curriculo.data;
+      
+      // Construir o prompt para a análise de carreira
+      const promptText = `
+Você é um analista de carreira com 15 anos de experiência. Estou fornecendo um currículo detalhado para análise. Preciso:
+
+1. Uma análise da situação atual de carreira
+2. Uma previsão de desenvolvimento profissional para os próximos 2-5 anos
+3. Um roadmap de crescimento com etapas concretas
+4. Dados estruturados para visualização gráfica
+5. Competências organizadas por nível atual (1-10)
+
+CURRÍCULO:
+Nome: ${cv.informacoes_pessoais?.nome || ''} ${cv.informacoes_pessoais?.sobrenome || ''}
+Área: ${cv.informacoes_pessoais?.area || 'Não especificada'}
+
+${cv.resumo_profissional ? `Resumo: ${cv.resumo_profissional}` : ''}
+
+Formação:
+${cv.formacoes_academicas?.map(f => `- ${f.diploma} em ${f.area_estudo} (${f.instituicao})`).join('\n') || 'Não informada'}
+
+Experiência:
+${cv.experiencias?.map(e => `- ${e.cargo} em ${e.empresa} (${e.data_inicio} a ${e.data_fim}): ${e.descricao || ''}`).join('\n') || 'Não informada'}
+
+Competências/Projetos:
+${cv.projetos?.map(p => `- ${p.nome}: ${p.descricao || ''} (Habilidades: ${p.habilidades || ''})`).join('\n') || 'Não informados'}
+
+Idiomas:
+${cv.idiomas?.map(i => `- ${i.nome}: ${i.nivel}`).join('\n') || 'Não informados'}
+
+FORMATAÇÃO DE RESPOSTA:
+
+Forneça sua análise em formato JSON como um objeto JavaScript com as seguintes seções:
+
+{
+  "analiseAtual": "Texto com análise da situação atual (250-300 palavras)",
+  "previsaoFutura": "Texto com previsão de desenvolvimento (250-300 palavras)",
+  "pontuacaoGeral": 7.5, // Exemplo de pontuação geral (1-10)
+  "competencias": [
+    {"nome": "Liderança", "nivel": 6, "comentario": "Breve comentário sobre a competência"},
+    // Adicione 8-10 competências principais com pontuações 1-10
+  ],
+  "roadmap": [
+    {"fase": "Curto prazo (0-6 meses)", "objetivos": ["Objetivo 1", "Objetivo 2", "Objetivo 3"]},
+    {"fase": "Médio prazo (6-18 meses)", "objetivos": ["Objetivo 1", "Objetivo 2", "Objetivo 3"]},
+    {"fase": "Longo prazo (18+ meses)", "objetivos": ["Objetivo 1", "Objetivo 2", "Objetivo 3"]}
+  ],
+  "areaMelhoria": [
+    {"area": "Nome da área 1", "importancia": 9, "sugestao": "Sugestão específica"},
+    // Adicione 3-5 áreas principais de melhoria
+  ],
+  "cursosRecomendados": [
+    {"nome": "Nome do curso 1", "plataforma": "Plataforma", "motivo": "Motivo da recomendação"},
+    // Adicione 3-5 cursos recomendados
+  ]
+}
+
+Garanta que a resposta esteja em JSON válido para ser processada programaticamente. A resposta deve ser APENAS esse objeto JSON, sem texto adicional.
+      `;
+      
+      // Chamar a API do Gemini
+      const endpoint = `${IA_APIS.GEMINI.endpoint}?key=${apiKey}`;
+      const requestBody = {
+        contents: [{ parts: [{ text: promptText }] }],
+        generationConfig: {
+          temperature: 0.2,
+          maxOutputTokens: 4000,
+          topP: 0.8,
+          topK: 40
+        }
+      };
+
+      const response = await axios.post(endpoint, requestBody, {
+        headers: { 'Content-Type': 'application/json' },
+        timeout: 30000
+      });
+      
+      if (response.data?.candidates?.[0]?.content?.parts?.[0]?.text) {
+        const resultText = response.data.candidates[0].content.parts[0].text;
+        
+        // Extrair o JSON da resposta (pode estar envolvido em backticks ou outros marcadores)
+        const jsonMatch = resultText.match(/\{[\s\S]*\}/);
+        if (jsonMatch) {
+          try {
+            const analysisData = JSON.parse(jsonMatch[0]);
+            
+            // Adicionar dados para gráficos de progresso
+            analysisData.progressData = {
+              atual: analysisData.pontuacaoGeral,
+              meta6meses: Math.min(10, analysisData.pontuacaoGeral + 0.5),
+              meta1ano: Math.min(10, analysisData.pontuacaoGeral + 1.5),
+              meta2anos: Math.min(10, analysisData.pontuacaoGeral + 2.5)
+            };
+            
+            // Salvar em cache
+            await AsyncStorage.setItem(cacheKey, JSON.stringify({
+              timestamp: new Date().toISOString(),
+              data: analysisData
+            }));
+            
+            setCareerAnalysisData(analysisData);
+          } catch (jsonError) {
+            console.error('Erro ao parsear JSON da resposta:', jsonError);
+            throw new Error('Formato de resposta inválido');
+          }
+        } else {
+          throw new Error('Não foi possível extrair dados estruturados da resposta');
+        }
+      } else {
+        throw new Error('Formato de resposta inesperado do Gemini');
+      }
+    } catch (error) {
+      console.error('Erro na análise de carreira:', error);
+      Alert.alert('Erro', `Não foi possível realizar a análise de carreira: ${error.message}`);
+    } finally {
+      setCareerAnalysisLoading(false);
+    }
+  };
+  
+  // Componente de gráfico de radar para competências
+  const renderSkillsRadarChart = () => {
+    if (!careerAnalysisData || !careerAnalysisData.competencias) {
+      return <Text>Dados insuficientes para gerar o gráfico</Text>;
+    }
+    
+    const skills = careerAnalysisData.competencias;
+    
+    return (
+      <View style={{ alignItems: 'center' }}>
+        <View style={{ 
+          width: 300, 
+          height: 300, 
+          position: 'relative',
+          alignItems: 'center',
+          justifyContent: 'center'
+        }}>
+          {/* Círculos de fundo */}
+          {[2, 4, 6, 8, 10].map(radius => (
+            <View key={`circle-${radius}`} style={{
+              position: 'absolute',
+              width: radius * 30,
+              height: radius * 30,
+              borderRadius: (radius * 30) / 2,
+              borderWidth: 1,
+              borderColor: 'rgba(0, 188, 212, 0.3)',
+              backgroundColor: 'transparent',
+            }} />
+          ))}
+          
+          {/* Linhas radiais para cada habilidade */}
+          {skills.map((skill, index) => {
+            const angle = (Math.PI * 2 * index) / skills.length;
+            const length = 150; // Raio máximo
+            
+            return (
+              <View key={`line-${index}`} style={{
+                position: 'absolute',
+                width: length,
+                height: 1,
+                backgroundColor: 'rgba(0, 0, 0, 0.1)',
+                transform: [
+                  { rotate: `${angle * (180 / Math.PI)}deg` },
+                ],
+              }} />
+            );
+          })}
+          
+          {/* Pontos de habilidades */}
+          {skills.map((skill, index) => {
+            const angle = (Math.PI * 2 * index) / skills.length;
+            const radius = skill.nivel * 15; // Escala de 1-10 para o gráfico
+            
+            const x = Math.cos(angle) * radius;
+            const y = Math.sin(angle) * radius;
+            
+            return (
+              <React.Fragment key={`skill-${index}`}>
+                <View style={{
+                  position: 'absolute',
+                  width: 10,
+                  height: 10,
+                  borderRadius: 5,
+                  backgroundColor: Colors.primary,
+                  transform: [
+                    { translateX: x },
+                    { translateY: y },
+                  ],
+                }} />
+                
+                {/* Rótulo da habilidade */}
+                <Text style={{
+                  position: 'absolute',
+                  fontSize: 12,
+                  fontWeight: 'bold',
+                  color: Colors.dark,
+                  textAlign: 'center',
+                  width: 80,
+                  transform: [
+                    { translateX: Math.cos(angle) * (radius + 20) },
+                    { translateY: Math.sin(angle) * (radius + 20) },
+                  ],
+                }}>
+                  {skill.nome}
+                </Text>
+              </React.Fragment>
+            );
+          })}
+          
+          {/* Área preenchida do gráfico */}
+          <View style={{
+            position: 'absolute',
+            width: 150,
+            height: 150,
+            borderWidth: 2,
+            borderColor: 'rgba(0, 188, 212, 0.7)',
+            backgroundColor: 'rgba(0, 188, 212, 0.2)',
+            // Aqui precisaríamos de SVG ou uma biblioteca de gráficos real para criar
+            // uma forma poligonal baseada nos pontos. Esta é uma simplificação visual.
+            borderRadius: 75,
+            opacity: 0.5,
+          }} />
+        </View>
+      </View>
+    );
+  };
+  
+  // Gráfico de barras para áreas de melhoria
+  const renderImprovementBarChart = () => {
+    if (!careerAnalysisData || !careerAnalysisData.areaMelhoria) {
+      return <Text>Dados insuficientes para gerar o gráfico</Text>;
+    }
+    
+    const areas = careerAnalysisData.areaMelhoria;
+    
+    return (
+      <View style={{ padding: 10 }}>
+        <Text style={{ fontWeight: 'bold', fontSize: 16, marginBottom: 10, textAlign: 'center' }}>
+          Áreas Prioritárias para Desenvolvimento
+        </Text>
+        
+        {areas.map((area, index) => (
+          <View key={index} style={{ marginBottom: 15 }}>
+            <View style={{ flexDirection: 'row', justifyContent: 'space-between', marginBottom: 5 }}>
+              <Text style={{ flex: 1, fontWeight: '500' }}>{area.area}</Text>
+              <Text>{area.importancia}/10</Text>
+            </View>
+            
+            <View style={{ backgroundColor: '#e0e0e0', height: 15, borderRadius: 8 }}>
+              <View style={{
+                width: `${area.importancia * 10}%`,
+                backgroundColor: getColorForImportance(area.importancia),
+                height: '100%',
+                borderRadius: 8,
+              }} />
+            </View>
+            
+            <Text style={{ color: '#616161', fontSize: 12, marginTop: 4 }}>{area.sugestao}</Text>
+          </View>
+        ))}
+      </View>
+    );
+  };
+  
+  // Gráfico de linha para progresso projetado
+  const renderProgressLineChart = () => {
+    if (!careerAnalysisData || !careerAnalysisData.progressData) {
+      return <Text>Dados insuficientes para gerar o gráfico</Text>;
+    }
+    
+    const { atual, meta6meses, meta1ano, meta2anos } = careerAnalysisData.progressData;
+    const progressPoints = [
+      { label: 'Atual', value: atual },
+      { label: '6 meses', value: meta6meses },
+      { label: '1 ano', value: meta1ano },
+      { label: '2 anos', value: meta2anos },
+    ];
+    
+    return (
+      <View style={{ padding: 10 }}>
+        <Text style={{ fontWeight: 'bold', fontSize: 16, marginBottom: 10, textAlign: 'center' }}>
+          Projeção de Desenvolvimento Profissional
+        </Text>
+        
+        <View style={{ height: 200, flexDirection: 'row', alignItems: 'flex-end', paddingBottom: 20 }}>
+          {/* Eixo Y */}
+          <View style={{ width: 30, height: '100%', alignItems: 'center', justifyContent: 'space-between' }}>
+            {[10, 8, 6, 4, 2, 0].map(value => (
+              <Text key={value} style={{ fontSize: 10 }}>{value}</Text>
+            ))}
+          </View>
+          
+          {/* Gráfico */}
+          <View style={{ flex: 1, height: '100%', position: 'relative' }}>
+            {/* Linhas de grade horizontais */}
+            {[10, 8, 6, 4, 2, 0].map(value => (
+              <View key={`line-${value}`} style={{
+                position: 'absolute',
+                left: 0,
+                right: 0,
+                height: 1,
+                backgroundColor: 'rgba(0,0,0,0.1)',
+                bottom: `${value * 10}%`,
+              }} />
+            ))}
+            
+            {/* Pontos de dados e linhas */}
+            <View style={{ 
+              flexDirection: 'row', 
+              justifyContent: 'space-around',
+              alignItems: 'flex-end',
+              height: '100%',
+              paddingBottom: 20, // Para evitar que o "0" seja coberto
+            }}>
+              {progressPoints.map((point, index) => {
+                const nextPoint = index < progressPoints.length - 1 ? progressPoints[index + 1] : null;
+                
+                return (
+                  <React.Fragment key={point.label}>
+                    {/* Ponto no gráfico */}
+                    <View style={{ alignItems: 'center' }}>
+                      <View style={{
+                        width: 12,
+                        height: 12,
+                        borderRadius: 6,
+                        backgroundColor: Colors.primary,
+                        marginBottom: 5,
+                      }} />
+                      <Text style={{ fontSize: 10, textAlign: 'center' }}>{point.label}</Text>
+                      <Text style={{ fontSize: 12, fontWeight: 'bold' }}>{point.value.toFixed(1)}</Text>
+                    </View>
+                    
+                    {/* Linha para o próximo ponto */}
+                    {nextPoint && (
+                      <View style={{
+                        position: 'absolute',
+                        height: 2,
+                        backgroundColor: Colors.primary,
+                        left: `${(index * 100) / (progressPoints.length - 1)}%`,
+                        right: `${((progressPoints.length - 2 - index) * 100) / (progressPoints.length - 1)}%`,
+                        bottom: `${(point.value * 10) + 10}%`, // +10 para o padding
+                        transform: [{ 
+                          rotate: `${Math.atan2(
+                            (nextPoint.value - point.value) * 15, 
+                            50
+                          ) * (180 / Math.PI)}deg` 
+                        }],
+                        transformOrigin: 'left',
+                      }} />
+                    )}
+                  </React.Fragment>
+                );
+              })}
+            </View>
+          </View>
+        </View>
+      </View>
+    );
+  };
+  
+  // Gráfico de pizza para distribuição de competências
+  const renderSkillsPieChart = () => {
+    if (!careerAnalysisData || !careerAnalysisData.competencias) {
+      return <Text>Dados insuficientes para gerar o gráfico</Text>;
+    }
+    
+    const skills = careerAnalysisData.competencias;
+    const total = skills.reduce((sum, skill) => sum + skill.nivel, 0);
+    let cumulativeAngle = 0;
+    
+    return (
+      <View style={{ alignItems: 'center', padding: 10 }}>
+        <Text style={{ fontWeight: 'bold', fontSize: 16, marginBottom: 10, textAlign: 'center' }}>
+          Distribuição de Competências
+        </Text>
+        
+        <View style={{ 
+          width: 250, 
+          height: 250, 
+          borderRadius: 125,
+          position: 'relative',
+          overflow: 'hidden', 
+          backgroundColor: '#f0f0f0',
+          justifyContent: 'center',
+          alignItems: 'center',
+        }}>
+          {skills.map((skill, index) => {
+            const percentage = skill.nivel / total;
+            const startAngle = cumulativeAngle;
+            const angle = percentage * 360;
+            cumulativeAngle += angle;
+            
+            // Em uma implementação real, usaríamos SVG ou Canvas para desenhar os setores
+            // Aqui estamos criando uma aproximação visual
+            return (
+              <View key={index} style={{
+                position: 'absolute',
+                width: '100%',
+                height: '100%',
+                transform: [{ rotate: `${startAngle}deg` }],
+              }}>
+                <View style={{
+                  position: 'absolute',
+                  left: '50%',
+                  backgroundColor: getColorByIndex(index),
+                  width: '50%',
+                  height: '50%',
+                  transform: [
+                    { translateX: -1 },
+                    { rotate: `${angle}deg` },
+                    { translateX: 1 },
+                  ]
+                }} />
+              </View>
+            );
+          })}
+          
+          {/* Círculo central para melhorar a aparência */}
+          <View style={{
+            width: 100,
+            height: 100,
+            borderRadius: 50,
+            backgroundColor: 'white',
+            alignItems: 'center',
+            justifyContent: 'center',
+          }}>
+            <Text style={{ fontWeight: 'bold', fontSize: 18 }}>
+              {careerAnalysisData.pontuacaoGeral.toFixed(1)}
+            </Text>
+            <Text style={{ fontSize: 12 }}>Pontuação</Text>
+          </View>
+        </View>
+        
+        {/* Legenda */}
+        <View style={{ marginTop: 20, width: '100%' }}>
+          {skills.map((skill, index) => (
+            <View key={index} style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 8 }}>
+              <View style={{
+                width: 12,
+                height: 12,
+                borderRadius: 6,
+                backgroundColor: getColorByIndex(index),
+                marginRight: 8,
+              }} />
+              <Text style={{ flex: 1 }}>{skill.nome}</Text>
+              <Text style={{ fontWeight: 'bold' }}>{skill.nivel}</Text>
+            </View>
+          ))}
+        </View>
+      </View>
+    );
+  };
+  
+  // Função para renderizar o gráfico selecionado
+  const renderSelectedChart = () => {
+    switch (selectedChartType) {
+      case 'radar':
+        return renderSkillsRadarChart();
+      case 'bar':
+        return renderImprovementBarChart();
+      case 'line':
+        return renderProgressLineChart();
+      case 'pie':
+        return renderSkillsPieChart();
+      case 'polar':
+        return renderSkillsRadarChart(); // Simplificação: usar gráfico de radar como polar
+      default:
+        return renderSkillsRadarChart();
+    }
+  };
+  
+  // Modal de análise de carreira
+  const renderCareerAnalysisModal = () => {
+    if (!showCareerAnalysisModal) return null;
+    
+    return (
+      <View style={{
+        position: 'absolute',
+        left: 0,
+        right: 0,
+        top: 0,
+        bottom: 0,
+        backgroundColor: 'rgba(0, 0, 0, 0.7)',
+        justifyContent: 'center',
+        alignItems: 'center',
+        zIndex: 1000,
+      }}>
+        <View style={{
+          width: '90%',
+          maxHeight: '90%',
+          backgroundColor: Colors.white,
+          borderRadius: 10,
+          padding: 20,
+          ...Platform.select({
+            ios: {
+              shadowColor: '#000',
+              shadowOffset: { width: 0, height: 5 },
+              shadowOpacity: 0.3,
+              shadowRadius: 10,
+            },
+            android: {
+              elevation: 10,
+            },
+          }),
+        }}>
+          <View style={{ 
+            flexDirection: 'row', 
+            justifyContent: 'space-between',
+            alignItems: 'center',
+            marginBottom: 15,
+          }}>
+            <Text style={{ fontSize: 20, fontWeight: 'bold' }}>
+              Análise Avançada de Carreira
+            </Text>
+            <TouchableOpacity onPress={() => setShowCareerAnalysisModal(false)}>
+              <Text style={{ fontSize: 24, color: Colors.dark }}>×</Text>
+            </TouchableOpacity>
+          </View>
+          
+          {!selectedCurriculo ? (
+            <View style={{ padding: 20, alignItems: 'center' }}>
+              <Text style={{ marginBottom: 20, textAlign: 'center' }}>
+                Selecione um currículo para realizar a análise avançada de carreira com IA
+              </Text>
+              
+              {curriculosList.length > 0 ? (
+                <ScrollView style={{ maxHeight: 300, width: '100%' }}>
+                  {curriculosList.map(cv => (
+                    <TouchableOpacity
+                      key={cv.id}
+                      style={{
+                        backgroundColor: '#f5f5f5',
+                        padding: 12,
+                        borderRadius: 8,
+                        marginBottom: 10,
+                        borderLeftWidth: 3,
+                        borderLeftColor: Colors.primary,
+                      }}
+                      onPress={() => {
+                        setSelectedCurriculo(cv.id);
+                        realizarAnaliseCarreira(cv.id);
+                      }}
+                    >
+                      <Text style={{ fontWeight: 'bold', marginBottom: 4 }}>{cv.nome}</Text>
+                      <Text style={{ fontSize: 12, color: Colors.lightText }}>
+                        Criado em: {formatDate(new Date(cv.dataCriacao))}
+                      </Text>
+                    </TouchableOpacity>
+                  ))}
+                </ScrollView>
+              ) : (
+                <View style={{ alignItems: 'center' }}>
+                  <Text style={{ color: Colors.lightText, marginBottom: 15 }}>
+                    Nenhum currículo encontrado
+                  </Text>
+                  <TouchableOpacity
+                    style={{
+                      backgroundColor: Colors.primary,
+                      paddingVertical: 10,
+                      paddingHorizontal: 20,
+                      borderRadius: 8,
+                    }}
+                    onPress={() => {
+                      setShowCareerAnalysisModal(false);
+                      navigation.navigate('Chatbot');
+                    }}
+                  >
+                    <Text style={{ color: Colors.white, fontWeight: 'bold' }}>
+                      Criar Currículo
+                    </Text>
+                  </TouchableOpacity>
+                </View>
+              )}
+            </View>
+          ) : careerAnalysisLoading ? (
+            <View style={{ padding: 30, alignItems: 'center' }}>
+              <ActivityIndicator size="large" color={Colors.primary} />
+              <Text style={{ marginTop: 20, textAlign: 'center' }}>
+                A IA está analisando seu currículo e gerando insights aprofundados para sua carreira...
+              </Text>
+            </View>
+          ) : careerAnalysisData ? (
+            <ScrollView style={{ maxHeight: '85%' }}>
+              {/* Seletor de tipo de gráfico */}
+              <ScrollView
+                horizontal
+                showsHorizontalScrollIndicator={false}
+                style={{ marginBottom: 15 }}
+              >
+                {chartTypes.map(chart => (
+                  <TouchableOpacity
+                    key={chart.id}
+                    style={{
+                      backgroundColor: selectedChartType === chart.id ? Colors.primary : '#f0f0f0',
+                      paddingVertical: 8,
+                      paddingHorizontal: 12,
+                      borderRadius: 20,
+                      marginRight: 8,
+                      flexDirection: 'row',
+                      alignItems: 'center',
+                    }}
+                    onPress={() => setSelectedChartType(chart.id)}
+                  >
+                    <Text style={{ marginRight: 5 }}>{chart.icon}</Text>
+                    <Text style={{ 
+                      color: selectedChartType === chart.id ? Colors.white : Colors.dark,
+                      fontWeight: selectedChartType === chart.id ? 'bold' : 'normal',
+                    }}>
+                      {chart.name}
+                    </Text>
+                  </TouchableOpacity>
+                ))}
+              </ScrollView>
+              
+              {/* Área de visualização do gráfico */}
+              <View style={{
+                backgroundColor: '#f8f8f8',
+                borderRadius: 10,
+                padding: 10,
+                marginBottom: 15,
+                alignItems: 'center',
+              }}>
+                {renderSelectedChart()}
+              </View>
+              
+              {/* Pontuação Geral */}
+              <View style={{
+                flexDirection: 'row',
+                backgroundColor: '#e3f2fd',
+                borderRadius: 10,
+                padding: 15,
+                marginBottom: 15,
+                alignItems: 'center',
+              }}>
+                <View style={{
+                  width: 60,
+                  height: 60,
+                  borderRadius: 30,
+                  backgroundColor: Colors.primary,
+                  justifyContent: 'center',
+                  alignItems: 'center',
+                  marginRight: 15,
+                }}>
+                  <Text style={{ color: Colors.white, fontSize: 24, fontWeight: 'bold' }}>
+                    {careerAnalysisData.pontuacaoGeral.toFixed(1)}
+                  </Text>
+                </View>
+                <View style={{ flex: 1 }}>
+                  <Text style={{ fontWeight: 'bold', fontSize: 16, marginBottom: 5 }}>
+                    Pontuação de Perfil
+                  </Text>
+                  <Text style={{ fontSize: 14 }}>
+                    {getScoreDescription(careerAnalysisData.pontuacaoGeral)}
+                  </Text>
+                </View>
+              </View>
+              
+              {/* Análise de Situação Atual */}
+              <View style={{ marginBottom: 15 }}>
+                <Text style={{ fontSize: 18, fontWeight: 'bold', marginBottom: 8 }}>
+                  Análise da Situação Atual
+                </Text>
+                <Text style={{ lineHeight: 22 }}>
+                  {careerAnalysisData.analiseAtual}
+                </Text>
+              </View>
+              
+              {/* Previsão Futura */}
+              <View style={{ marginBottom: 15 }}>
+                <Text style={{ fontSize: 18, fontWeight: 'bold', marginBottom: 8 }}>
+                  Previsão de Desenvolvimento
+                </Text>
+                <Text style={{ lineHeight: 22 }}>
+                  {careerAnalysisData.previsaoFutura}
+                </Text>
+              </View>
+              
+              {/* Roadmap */}
+              <View style={{ marginBottom: 15 }}>
+                <Text style={{ fontSize: 18, fontWeight: 'bold', marginBottom: 8 }}>
+                  Roadmap de Carreira
+                </Text>
+                
+                {careerAnalysisData.roadmap.map((fase, index) => (
+                  <View key={index} style={{ marginBottom: 15 }}>
+                    <View style={{
+                      backgroundColor: getRoadmapColor(index),
+                      paddingVertical: 8,
+                      paddingHorizontal: 12,
+                      borderRadius: 5,
+                      marginBottom: 8,
+                    }}>
+                      <Text style={{ color: Colors.white, fontWeight: 'bold' }}>
+                        {fase.fase}
+                      </Text>
+                    </View>
+                    
+                    {fase.objetivos.map((objetivo, objIndex) => (
+                      <View key={objIndex} style={{ 
+                        flexDirection: 'row', 
+                        alignItems: 'center',
+                        marginBottom: 5,
+                        paddingLeft: 10,
+                      }}>
+                        <View style={{
+                          width: 8,
+                          height: 8,
+                          borderRadius: 4,
+                          backgroundColor: getRoadmapColor(index),
+                          marginRight: 8,
+                        }} />
+                        <Text>{objetivo}</Text>
+                      </View>
+                    ))}
+                  </View>
+                ))}
+              </View>
+              
+              {/* Cursos Recomendados */}
+              <View style={{ marginBottom: 15 }}>
+                <Text style={{ fontSize: 18, fontWeight: 'bold', marginBottom: 8 }}>
+                  Cursos Recomendados
+                </Text>
+                
+                {careerAnalysisData.cursosRecomendados.map((curso, index) => (
+                  <View key={index} style={{ 
+                    backgroundColor: '#f5f5f5',
+                    borderRadius: 8,
+                    padding: 12,
+                    marginBottom: 8,
+                  }}>
+                    <Text style={{ fontWeight: 'bold', marginBottom: 3 }}>{curso.nome}</Text>
+                    <Text style={{ fontSize: 12, color: Colors.primary, marginBottom: 5 }}>
+                      Plataforma: {curso.plataforma}
+                    </Text>
+                    <Text style={{ fontSize: 14 }}>{curso.motivo}</Text>
+                  </View>
+                ))}
+              </View>
+              
+              {/* Botões de ação */}
+              <View style={{ 
+                flexDirection: 'row', 
+                justifyContent: 'space-between',
+                marginTop: 10,
+                marginBottom: 30,
+              }}>
+                <TouchableOpacity
+                  style={{
+                    backgroundColor: Colors.secondary,
+                    paddingVertical: 10,
+                    paddingHorizontal: 20,
+                    borderRadius: 8,
+                    flex: 1,
+                    marginRight: 8,
+                    alignItems: 'center',
+                  }}
+                  onPress={() => {
+                    setSelectedCurriculo(null);
+                    setCareerAnalysisData(null);
+                  }}
+                >
+                  <Text style={{ color: Colors.white, fontWeight: 'bold' }}>
+                    Voltar
+                  </Text>
+                </TouchableOpacity>
+                
+                <TouchableOpacity
+                  style={{
+                    backgroundColor: Colors.primary,
+                    paddingVertical: 10,
+                    paddingHorizontal: 20,
+                    borderRadius: 8,
+                    flex: 1,
+                    marginLeft: 8,
+                    alignItems: 'center',
+                  }}
+                  onPress={() => {
+                    // Simulação de exportação
+                    Alert.alert(
+                      "Exportar Análise",
+                      "Esta funcionalidade estará disponível em breve. A análise completa poderá ser exportada em PDF.",
+                      [{ text: "OK" }]
+                    );
+                  }}
+                >
+                  <Text style={{ color: Colors.white, fontWeight: 'bold' }}>
+                    Exportar
+                  </Text>
+                </TouchableOpacity>
+              </View>
+            </ScrollView>
+          ) : (
+            <View style={{ padding: 20, alignItems: 'center' }}>
+              <Text style={{ color: Colors.danger, marginBottom: 15 }}>
+                Ocorreu um erro ao analisar o currículo.
+              </Text>
+              <TouchableOpacity
+                style={{
+                  backgroundColor: Colors.primary,
+                  paddingVertical: 10,
+                  paddingHorizontal: 20,
+                  borderRadius: 8,
+                }}
+                onPress={() => setSelectedCurriculo(null)}
+              >
+                <Text style={{ color: Colors.white, fontWeight: 'bold' }}>
+                  Tentar Novamente
+                </Text>
+              </TouchableOpacity>
+            </View>
+          )}
+        </View>
+      </View>
+    );
+  };
+  
+  // Funções auxiliares para cores e descrições
+  const getColorByIndex = (index) => {
+    const colors = ['#2196F3', '#4CAF50', '#FFC107', '#9C27B0', '#F44336', '#009688', '#3F51B5', '#FF9800', '#795548', '#607D8B'];
+    return colors[index % colors.length];
+  };
+  
+  const getColorForImportance = (importance) => {
+    if (importance >= 8) return '#F44336'; // Vermelho
+    if (importance >= 6) return '#FF9800'; // Laranja
+    if (importance >= 4) return '#FFC107'; // Amarelo
+    return '#4CAF50'; // Verde
+  };
+  
+  const getRoadmapColor = (index) => {
+    const colors = ['#4CAF50', '#2196F3', '#9C27B0'];
+    return colors[index % colors.length];
+  };
+  
+  const getScoreDescription = (score) => {
+    if (score >= 9) return 'Perfil excepcional com alto potencial';
+    if (score >= 7.5) return 'Perfil muito bom, competitivo no mercado';
+    if (score >= 6) return 'Perfil sólido com oportunidades de crescimento';
+    if (score >= 4) return 'Perfil em desenvolvimento, com áreas para melhoria';
+    return 'Perfil iniciante com necessidade de desenvolvimento';
+  };
 
   return (
     <SafeAreaView style={styles.container}>
@@ -221,6 +1130,62 @@ const DashboardScreen = ({ navigation }) => {
         </View>
       ) : (
         <ScrollView style={{ padding: 15 }}>
+          {/* Nova seção: Análise Avançada de Carreira */}
+          <View style={{
+            backgroundColor: Colors.white,
+            borderRadius: 10,
+            padding: 20,
+            marginBottom: 20,
+            ...Platform.select({
+              ios: {
+                shadowColor: '#000',
+                shadowOffset: { width: 0, height: 2 },
+                shadowOpacity: 0.1,
+                shadowRadius: 4,
+              },
+              android: {
+                elevation: 3,
+              },
+            }),
+          }}>
+            <Text style={{
+              fontSize: 18,
+              fontWeight: 'bold',
+              color: Colors.dark,
+              marginBottom: 15,
+            }}>
+              Análise Avançada de Carreira
+            </Text>
+            
+            <View style={{
+              backgroundColor: '#f5f5f5',
+              padding: 15,
+              borderRadius: 8,
+              marginBottom: 15,
+              borderLeftWidth: 3,
+              borderLeftColor: '#673AB7',
+            }}>
+              <Text style={{ marginBottom: 10 }}>
+                Utilize nossa IA para avaliar seu perfil profissional, identificar áreas de desenvolvimento e criar um roadmap personalizado.
+              </Text>
+              
+              <TouchableOpacity
+                style={{
+                  backgroundColor: '#673AB7',
+                  paddingVertical: 12,
+                  paddingHorizontal: 15,
+                  borderRadius: 8,
+                  alignItems: 'center',
+                }}
+                onPress={() => setShowCareerAnalysisModal(true)}
+              >
+                <Text style={{ color: Colors.white, fontWeight: 'bold' }}>
+                  Analisar Minha Carreira
+                </Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+          
           <View style={{
             backgroundColor: Colors.white,
             borderRadius: 10,
@@ -409,6 +1374,9 @@ const DashboardScreen = ({ navigation }) => {
           </View>
         </ScrollView>
       )}
+      
+      {/* Modal de análise de carreira */}
+      {renderCareerAnalysisModal()}
     </SafeAreaView>
   );
 };
@@ -980,6 +1948,12 @@ const ConfiguracoesScreen = ({ navigation }) => {
     website: user?.website || ''
   });
   
+  // Estado para controlar o modo premium e notificações
+  const [isPremium, setIsPremium] = useState(true); // Definido como true para o CurriculoBot Premium
+  const [notificationsEnabled, setNotificationsEnabled] = useState(true);
+  const [darkModeEnabled, setDarkModeEnabled] = useState(false);
+  const [dataExportFormat, setDataExportFormat] = useState('PDF');
+  
   // Determinar a cor do avatar com base no índice salvo ou usar padrão
   const avatarColors = ['#3498db', '#2ecc71', '#e74c3c', '#f39c12', '#9b59b6', '#1abc9c', '#d35400', '#c0392b'];
   const avatarColor = user?.avatarColorIndex !== undefined 
@@ -1037,15 +2011,41 @@ const ConfiguracoesScreen = ({ navigation }) => {
   };
   
   const confirmLogout = () => {
-    Alert.alert(
-      'Sair',
-      'Tem certeza que deseja sair da sua conta?',
-      [
-        { text: 'Cancelar', style: 'cancel' },
-        { text: 'Sair', style: 'destructive', onPress: logout }
-      ]
-    );
-  };
+  Alert.alert(
+    'Sair',
+    'Tem certeza que deseja sair da sua conta?',
+    [
+      { text: 'Cancelar', style: 'cancel' },
+      { 
+        text: 'Sair', 
+        style: 'destructive', 
+        onPress: async () => {
+          try {
+            // Mostrar indicador de carregamento (opcional)
+            setLoading(true);
+            
+            // Chamar a função de logout do contexto
+            const success = await logout();
+            
+            if (!success) {
+              // Se logout falhou por algum motivo, mostrar erro
+              Alert.alert('Erro', 'Não foi possível completar o logout. Tente novamente.');
+            }
+            
+            // Não precisamos redirecionar explicitamente, pois o RootNavigator
+            // deve cuidar disso automaticamente quando user for definido como null
+          } catch (error) {
+            console.error('Erro ao fazer logout:', error);
+            Alert.alert('Erro', 'Ocorreu um problema ao sair. Tente novamente.');
+          } finally {
+            // Esconder o indicador de carregamento
+            setLoading(false);
+          }
+        }
+      }
+    ]
+  );
+};
   
   const limparCache = async () => {
     try {
@@ -1077,44 +2077,123 @@ const ConfiguracoesScreen = ({ navigation }) => {
     }
   };
   
+  // Função para mostrar mensagem de funcionalidade futura
+  const showComingSoonFeature = (featureName) => {
+    Alert.alert(
+      "Em Breve",
+      `A funcionalidade "${featureName}" estará disponível em uma atualização futura do aplicativo.`,
+      [{ text: "Entendi" }]
+    );
+  };
+  
   // Função para exportar dados
   const exportarDados = () => {
     Alert.alert(
       'Exportar Dados',
-      'Esta função permitirá exportar todos os seus dados, incluindo currículos e configurações.',
+      'Escolha o formato para exportação dos seus dados:',
       [
         { text: 'Cancelar', style: 'cancel' },
         { 
-          text: 'Continuar', 
+          text: 'PDF', 
           onPress: () => {
-            Alert.alert(
-              'Simulação',
-              'Em um aplicativo real, seus dados seriam exportados para um arquivo que você poderia salvar. Esta é apenas uma simulação dessa funcionalidade.',
-              [{ text: 'Entendi' }]
-            );
+            setDataExportFormat('PDF');
+            showComingSoonFeature('Exportar para PDF');
+          }
+        },
+        { 
+          text: 'Word', 
+          onPress: () => {
+            setDataExportFormat('Word');
+            showComingSoonFeature('Exportar para Word');
+          }
+        },
+        { 
+          text: 'JSON', 
+          onPress: () => {
+            setDataExportFormat('JSON');
+            showComingSoonFeature('Exportar para JSON');
           }
         }
       ]
     );
   };
   
+  // Função para autenticação em duas etapas
+  const configurarDoisFatores = () => {
+    showComingSoonFeature('Autenticação em Duas Etapas');
+  };
+  
+  // Função para sincronização com a nuvem
+  const sincronizarNuvem = () => {
+    showComingSoonFeature('Sincronizar com a Nuvem');
+  };
+  
+  // Função para integração com LinkedIn
+  const conectarLinkedIn = () => {
+    showComingSoonFeature('Conectar com LinkedIn');
+  };
+  
+  // Função para alterar idioma
+  const alterarIdioma = () => {
+    Alert.alert(
+      'Selecionar Idioma',
+      'Escolha o idioma do aplicativo:',
+      [
+        { text: 'Cancelar', style: 'cancel' },
+        { text: 'Português (Atual)', onPress: () => {} },
+        { text: 'English', onPress: () => showComingSoonFeature('Mudar para Inglês') },
+        { text: 'Español', onPress: () => showComingSoonFeature('Mudar para Espanhol') }
+      ]
+    );
+  };
+  
   // Função para mudar o tema (simulação)
   const mudarTema = () => {
+    setDarkModeEnabled(!darkModeEnabled);
     Alert.alert(
-      'Mudar Tema',
-      'Em um aplicativo completo, você poderia escolher entre tema claro, escuro ou usar o padrão do sistema.',
-      [{ text: 'OK' }]
+      darkModeEnabled ? 'Modo Claro Ativado' : 'Modo Escuro Ativado',
+      `Você ativou o ${darkModeEnabled ? 'modo claro' : 'modo escuro'}. A funcionalidade completa estará disponível em breve.`,
+      [{ text: "OK" }]
     );
+  };
+  
+  // Função para gerenciar notificações
+  const gerenciarNotificacoes = () => {
+    setNotificationsEnabled(!notificationsEnabled);
+    Alert.alert(
+      notificationsEnabled ? 'Notificações Desativadas' : 'Notificações Ativadas',
+      `Você ${notificationsEnabled ? 'desativou' : 'ativou'} as notificações. A funcionalidade completa estará disponível em breve.`,
+      [{ text: "OK" }]
+    );
+  };
+  
+  // Função para backup automático
+  const configurarBackupAutomatico = () => {
+    showComingSoonFeature('Backup Automático');
   };
   
   // Função para alterar senha
   const alterarSenha = () => {
-    // Implementação simulada de alteração de senha
     Alert.alert(
       'Alterar Senha',
       'Esta funcionalidade permitiria alterar sua senha. Em um aplicativo real, você precisaria fornecer sua senha atual e confirmar a nova senha.',
-      [{ text: 'Entendi' }]
+      [{ text: "Entendi" }]
     );
+  };
+  
+  // Verificar atualizações
+  const verificarAtualizacoes = () => {
+    setLoading(true);
+    
+    // Simular verificação de atualização
+    setTimeout(() => {
+      setLoading(false);
+      Alert.alert(
+        'Nenhuma Atualização Disponível',
+        'Você já está usando a versão mais recente do CurriculoBot Premium (1.2.0).',
+        [{ text: "OK" }]
+      );
+    }, 1500);
   };
   
   return (
@@ -1224,6 +2303,21 @@ const ConfiguracoesScreen = ({ navigation }) => {
             <Text style={{ color: Colors.lightText }}>
               {user?.email || 'email@exemplo.com'}
             </Text>
+            
+            {/* Badge de status premium */}
+            <View style={{
+              backgroundColor: '#FFD700',
+              paddingHorizontal: 10,
+              paddingVertical: 3,
+              borderRadius: 12,
+              marginTop: 5,
+              flexDirection: 'row',
+              alignItems: 'center',
+            }}>
+              <Text style={{ color: '#000', fontWeight: 'bold', fontSize: 12, marginRight: 4 }}>
+                ⭐ PREMIUM
+              </Text>
+            </View>
           </View>
           
           {editingProfile ? (
@@ -1374,7 +2468,7 @@ const ConfiguracoesScreen = ({ navigation }) => {
           )}
         </View>
         
-        {/* Seção de Segurança e Privacidade */}
+        {/* Seção de Conta e Segurança - EXPANDIDA COM NOVAS FUNCIONALIDADES */}
         <View style={{
           backgroundColor: Colors.white,
           borderRadius: 10,
@@ -1398,7 +2492,7 @@ const ConfiguracoesScreen = ({ navigation }) => {
             color: Colors.dark,
             marginBottom: 15,
           }}>
-            Segurança e Privacidade
+            Conta e Segurança
           </Text>
           
           <TouchableOpacity
@@ -1429,6 +2523,43 @@ const ConfiguracoesScreen = ({ navigation }) => {
             <Text style={{ color: Colors.primary, fontSize: 24 }}>›</Text>
           </TouchableOpacity>
           
+          {/* NOVA FUNCIONALIDADE: Autenticação em Duas Etapas */}
+          <TouchableOpacity
+            style={{
+              flexDirection: 'row',
+              alignItems: 'center',
+              paddingVertical: 12,
+              borderBottomWidth: 1,
+              borderBottomColor: Colors.mediumGray,
+            }}
+            onPress={configurarDoisFatores}
+          >
+            <View style={{
+              width: 40,
+              height: 40,
+              borderRadius: 20,
+              backgroundColor: '#9C27B0',
+              justifyContent: 'center',
+              alignItems: 'center',
+              marginRight: 15,
+            }}>
+              <Text style={{ color: Colors.white, fontSize: 16 }}>🔐</Text>
+            </View>
+            <View style={{ flex: 1 }}>
+              <Text style={{ fontSize: 16, fontWeight: '500' }}>Autenticação em Duas Etapas</Text>
+              <Text style={{ color: Colors.lightText, fontSize: 14 }}>Adicione uma camada extra de segurança</Text>
+            </View>
+            <View style={{
+              backgroundColor: '#FFD700',
+              paddingHorizontal: 8,
+              paddingVertical: 2,
+              borderRadius: 12,
+            }}>
+              <Text style={{ fontSize: 10, fontWeight: 'bold' }}>EM BREVE</Text>
+            </View>
+            <Text style={{ color: Colors.primary, fontSize: 24, marginLeft: 8 }}>›</Text>
+          </TouchableOpacity>
+          
           <TouchableOpacity
             style={{
               flexDirection: 'row',
@@ -1454,11 +2585,151 @@ const ConfiguracoesScreen = ({ navigation }) => {
               <Text style={{ fontSize: 16, fontWeight: '500' }}>Exportar Meus Dados</Text>
               <Text style={{ color: Colors.lightText, fontSize: 14 }}>Faça backup de seus currículos e configurações</Text>
             </View>
+            <Text style={{ color: '#777', fontSize: 12, marginRight: 8 }}>{dataExportFormat}</Text>
             <Text style={{ color: Colors.primary, fontSize: 24 }}>›</Text>
+          </TouchableOpacity>
+          
+          {/* NOVA FUNCIONALIDADE: Backup Automático */}
+          <TouchableOpacity
+            style={{
+              flexDirection: 'row',
+              alignItems: 'center',
+              paddingVertical: 12,
+              borderBottomWidth: 1,
+              borderBottomColor: Colors.mediumGray,
+            }}
+            onPress={configurarBackupAutomatico}
+          >
+            <View style={{
+              width: 40,
+              height: 40,
+              borderRadius: 20,
+              backgroundColor: '#4CAF50',
+              justifyContent: 'center',
+              alignItems: 'center',
+              marginRight: 15,
+            }}>
+              <Text style={{ color: Colors.white, fontSize: 16 }}>🔄</Text>
+            </View>
+            <View style={{ flex: 1 }}>
+              <Text style={{ fontSize: 16, fontWeight: '500' }}>Backup Automático</Text>
+              <Text style={{ color: Colors.lightText, fontSize: 14 }}>Configure salvamento periódico dos seus dados</Text>
+            </View>
+            <View style={{
+              backgroundColor: '#FFD700',
+              paddingHorizontal: 8,
+              paddingVertical: 2,
+              borderRadius: 12,
+            }}>
+              <Text style={{ fontSize: 10, fontWeight: 'bold' }}>EM BREVE</Text>
+            </View>
+            <Text style={{ color: Colors.primary, fontSize: 24, marginLeft: 8 }}>›</Text>
           </TouchableOpacity>
         </View>
         
-        {/* Seção de Configurações Gerais */}
+        {/* NOVA SEÇÃO: Integrações */}
+        <View style={{
+          backgroundColor: Colors.white,
+          borderRadius: 10,
+          padding: 20,
+          marginBottom: 20,
+          ...Platform.select({
+            ios: {
+              shadowColor: '#000',
+              shadowOffset: { width: 0, height: 2 },
+              shadowOpacity: 0.1,
+              shadowRadius: 4,
+            },
+            android: {
+              elevation: 2,
+            },
+          }),
+        }}>
+          <Text style={{
+            fontSize: 18,
+            fontWeight: 'bold',
+            color: Colors.dark,
+            marginBottom: 15,
+          }}>
+            Integrações
+          </Text>
+          
+          {/* Integração com LinkedIn */}
+          <TouchableOpacity
+            style={{
+              flexDirection: 'row',
+              alignItems: 'center',
+              paddingVertical: 12,
+              borderBottomWidth: 1,
+              borderBottomColor: Colors.mediumGray,
+            }}
+            onPress={conectarLinkedIn}
+          >
+            <View style={{
+              width: 40,
+              height: 40,
+              borderRadius: 20,
+              backgroundColor: '#0077B5',
+              justifyContent: 'center',
+              alignItems: 'center',
+              marginRight: 15,
+            }}>
+              <Text style={{ color: Colors.white, fontSize: 16 }}>🔗</Text>
+            </View>
+            <View style={{ flex: 1 }}>
+              <Text style={{ fontSize: 16, fontWeight: '500' }}>Conectar com LinkedIn</Text>
+              <Text style={{ color: Colors.lightText, fontSize: 14 }}>Importe dados do seu perfil profissional</Text>
+            </View>
+            <View style={{
+              backgroundColor: '#FFD700',
+              paddingHorizontal: 8,
+              paddingVertical: 2,
+              borderRadius: 12,
+            }}>
+              <Text style={{ fontSize: 10, fontWeight: 'bold' }}>EM BREVE</Text>
+            </View>
+            <Text style={{ color: Colors.primary, fontSize: 24, marginLeft: 8 }}>›</Text>
+          </TouchableOpacity>
+          
+          {/* Sincronização com nuvem */}
+          <TouchableOpacity
+            style={{
+              flexDirection: 'row',
+              alignItems: 'center',
+              paddingVertical: 12,
+              borderBottomWidth: 1,
+              borderBottomColor: Colors.mediumGray,
+            }}
+            onPress={sincronizarNuvem}
+          >
+            <View style={{
+              width: 40,
+              height: 40,
+              borderRadius: 20,
+              backgroundColor: '#03A9F4',
+              justifyContent: 'center',
+              alignItems: 'center',
+              marginRight: 15,
+            }}>
+              <Text style={{ color: Colors.white, fontSize: 16 }}>☁️</Text>
+            </View>
+            <View style={{ flex: 1 }}>
+              <Text style={{ fontSize: 16, fontWeight: '500' }}>Sincronizar com Nuvem</Text>
+              <Text style={{ color: Colors.lightText, fontSize: 14 }}>Google Drive, Dropbox ou OneDrive</Text>
+            </View>
+            <View style={{
+              backgroundColor: '#FFD700',
+              paddingHorizontal: 8,
+              paddingVertical: 2,
+              borderRadius: 12,
+            }}>
+              <Text style={{ fontSize: 10, fontWeight: 'bold' }}>EM BREVE</Text>
+            </View>
+            <Text style={{ color: Colors.primary, fontSize: 24, marginLeft: 8 }}>›</Text>
+          </TouchableOpacity>
+        </View>
+        
+        {/* Seção de Configurações Gerais - EXPANDIDA COM NOVAS OPÇÕES */}
         <View style={{
           backgroundColor: Colors.white,
           borderRadius: 10,
@@ -1513,6 +2784,7 @@ const ConfiguracoesScreen = ({ navigation }) => {
             <Text style={{ color: Colors.primary, fontSize: 24 }}>›</Text>
           </TouchableOpacity>
           
+          {/* Tema do aplicativo */}
           <TouchableOpacity
             style={{
               flexDirection: 'row',
@@ -1536,9 +2808,89 @@ const ConfiguracoesScreen = ({ navigation }) => {
             </View>
             <View style={{ flex: 1 }}>
               <Text style={{ fontSize: 16, fontWeight: '500' }}>Tema do Aplicativo</Text>
-              <Text style={{ color: Colors.lightText, fontSize: 14 }}>Alterar aparência (claro/escuro)</Text>
+              <Text style={{ color: Colors.lightText, fontSize: 14 }}>
+                {darkModeEnabled ? 'Modo escuro ativado' : 'Modo claro ativado'}
+              </Text>
             </View>
-            <Text style={{ color: Colors.primary, fontSize: 24 }}>›</Text>
+            <Switch
+              value={darkModeEnabled}
+              onValueChange={mudarTema}
+              trackColor={{ false: Colors.lightGray, true: 'rgba(155, 89, 182, 0.5)' }}
+              thumbColor={darkModeEnabled ? '#9b59b6' : '#f4f3f4'}
+            />
+          </TouchableOpacity>
+          
+          {/* NOVA FUNCIONALIDADE: Notificações */}
+          <TouchableOpacity
+            style={{
+              flexDirection: 'row',
+              alignItems: 'center',
+              paddingVertical: 12,
+              borderBottomWidth: 1,
+              borderBottomColor: Colors.mediumGray,
+            }}
+            onPress={gerenciarNotificacoes}
+          >
+            <View style={{
+              width: 40,
+              height: 40,
+              borderRadius: 20,
+              backgroundColor: '#F44336',
+              justifyContent: 'center',
+              alignItems: 'center',
+              marginRight: 15,
+            }}>
+              <Text style={{ color: Colors.white, fontSize: 16 }}>🔔</Text>
+            </View>
+            <View style={{ flex: 1 }}>
+              <Text style={{ fontSize: 16, fontWeight: '500' }}>Notificações</Text>
+              <Text style={{ color: Colors.lightText, fontSize: 14 }}>
+                {notificationsEnabled ? 'Notificações ativadas' : 'Notificações desativadas'}
+              </Text>
+            </View>
+            <Switch
+              value={notificationsEnabled}
+              onValueChange={gerenciarNotificacoes}
+              trackColor={{ false: Colors.lightGray, true: 'rgba(244, 67, 54, 0.5)' }}
+              thumbColor={notificationsEnabled ? '#F44336' : '#f4f3f4'}
+            />
+          </TouchableOpacity>
+          
+          {/* NOVA FUNCIONALIDADE: Idioma */}
+          <TouchableOpacity
+            style={{
+              flexDirection: 'row',
+              alignItems: 'center',
+              paddingVertical: 12,
+              borderBottomWidth: 1,
+              borderBottomColor: Colors.mediumGray,
+            }}
+            onPress={alterarIdioma}
+          >
+            <View style={{
+              width: 40,
+              height: 40,
+              borderRadius: 20,
+              backgroundColor: '#2196F3',
+              justifyContent: 'center',
+              alignItems: 'center',
+              marginRight: 15,
+            }}>
+              <Text style={{ color: Colors.white, fontSize: 16 }}>🌐</Text>
+            </View>
+            <View style={{ flex: 1 }}>
+              <Text style={{ fontSize: 16, fontWeight: '500' }}>Idioma</Text>
+              <Text style={{ color: Colors.lightText, fontSize: 14 }}>Português</Text>
+            </View>
+            <View style={{
+              backgroundColor: '#FFD700',
+              paddingHorizontal: 8,
+              paddingVertical: 2,
+              borderRadius: 12,
+            }}>
+              <Text style={{ fontSize: 10, fontWeight: 'bold' }}>EM BREVE</Text>
+            </View>
+            <Text style={{ color: Colors.primary, fontSize: 24, marginLeft: 8 }}>›</Text>
           </TouchableOpacity>
           
           <TouchableOpacity
@@ -1595,6 +2947,40 @@ const ConfiguracoesScreen = ({ navigation }) => {
               <Text style={{ color: Colors.lightText, fontSize: 14 }}>Informações e termos de uso</Text>
             </View>
             <Text style={{ color: Colors.primary, fontSize: 24 }}>›</Text>
+          </TouchableOpacity>
+          
+          {/* NOVA FUNCIONALIDADE: Verificar Atualizações */}
+          <TouchableOpacity
+            style={{
+              flexDirection: 'row',
+              alignItems: 'center',
+              paddingVertical: 12,
+              borderBottomWidth: 1,
+              borderBottomColor: Colors.mediumGray,
+            }}
+            onPress={verificarAtualizacoes}
+            disabled={loading}
+          >
+            <View style={{
+              width: 40,
+              height: 40,
+              borderRadius: 20,
+              backgroundColor: '#009688',
+              justifyContent: 'center',
+              alignItems: 'center',
+              marginRight: 15,
+            }}>
+              <Text style={{ color: Colors.white, fontSize: 16 }}>↻</Text>
+            </View>
+            <View style={{ flex: 1 }}>
+              <Text style={{ fontSize: 16, fontWeight: '500' }}>Verificar Atualizações</Text>
+              <Text style={{ color: Colors.lightText, fontSize: 14 }}>Buscar novas versões do aplicativo</Text>
+            </View>
+            {loading ? (
+              <ActivityIndicator size="small" color={Colors.primary} style={{ marginRight: 10 }} />
+            ) : (
+              <Text style={{ color: Colors.primary, fontSize: 24 }}>›</Text>
+            )}
           </TouchableOpacity>
           
           <TouchableOpacity
@@ -3250,6 +4636,8 @@ const getApiKeySourceForIA = async (tipoIA) => {
 // Contexto de Autenticação
 const AuthContext = createContext();
 
+// No arquivo onde você definiu AuthProvider e o contexto de Auth
+
 const AuthProvider = ({ children }) => {
   const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -3330,17 +4718,39 @@ const AuthProvider = ({ children }) => {
     }
   };
 
+  // Função de logout corrigida
   const logout = async () => {
     try {
-      await AsyncStorage.removeItem('currentUser');
+      // Primeiro, definimos o estado para null para evitar acesso a dados antigos
       setUser(null);
+      
+      // Depois removemos os dados de usuário do AsyncStorage
+      await AsyncStorage.removeItem('currentUser');
+      
+      // Talvez seja necessário limpar outras informações também
+      // Por exemplo, limpar cache de análises, etc.
+      
+      console.log('Logout realizado com sucesso');
+      return true;
     } catch (error) {
       console.error('Erro ao fazer logout:', error);
+      // Mesmo com erro, definir o usuário como null para evitar problemas
+      setUser(null);
+      return false;
+    }
+  };
+
+  // Função para atualizar o user (opcional, se você tiver)
+  const updateUser = (userData) => {
+    try {
+      setUser(userData);
+    } catch (error) {
+      console.error('Erro ao atualizar dados do usuário:', error);
     }
   };
 
   return (
-    <AuthContext.Provider value={{ user, loading, login, register, logout }}>
+    <AuthContext.Provider value={{ user, loading, login, register, logout, updateUser }}>
       {children}
     </AuthContext.Provider>
   );
@@ -4135,6 +5545,25 @@ const ChatOptions = ({ options, onSelect }) => {
   );
 };
 
+const curriculumTemplates = [
+  { id: 'modern', name: 'Moderno', color: '#00BCD4', icon: '📱' },
+  { id: 'classic', name: 'Clássico', color: '#263238', icon: '📄' },
+  { id: 'creative', name: 'Criativo', color: '#9C27B0', icon: '🎨' },
+  { id: 'professional', name: 'Profissional', color: '#3F51B5', icon: '💼' },
+  { id: 'minimalist', name: 'Minimalista', color: '#607D8B', icon: '🔍' },
+  { id: 'elegant', name: 'Elegante', color: '#795548', icon: '✨' },
+  { id: 'corporate', name: 'Corporativo', color: '#0277BD', icon: '🏢' },
+  { id: 'tech', name: 'Tecnologia', color: '#00838F', icon: '💻' },
+  { id: 'academic', name: 'Acadêmico', color: '#4527A0', icon: '🎓' },
+  { id: 'bold', name: 'Destaque', color: '#D32F2F', icon: '🔆' },
+  { id: 'pastel', name: 'Tons Pastel', color: '#81C784', icon: '🌈' },
+  { id: 'dark', name: 'Escuro', color: '#212121', icon: '🌑' },
+  { id: 'light', name: 'Claro', color: '#ECEFF1', icon: '☀️' },
+  { id: 'startup', name: 'Startup', color: '#FF5722', icon: '🚀' },
+  { id: 'international', name: 'Internacional', color: '#2196F3', icon: '🌎' },
+  { id: 'executive', name: 'Executivo', color: '#455A64', icon: '👔' }
+];
+
 const CurriculumPreview = ({ data, templateStyle = 'modern' }) => {
   if (!data || !data.informacoes_pessoais) {
     return (
@@ -4149,6 +5578,7 @@ const CurriculumPreview = ({ data, templateStyle = 'modern' }) => {
   // Definição de estilos baseados no template selecionado
   const getTemplateStyles = () => {
     switch (templateStyle) {
+      // 1. Clássico
       case 'classic':
         return {
           container: {
@@ -4192,6 +5622,8 @@ const CurriculumPreview = ({ data, templateStyle = 'modern' }) => {
             paddingLeft: 0,
           }
         };
+      
+      // 2. Criativo
       case 'creative':
         return {
           container: {
@@ -4235,6 +5667,8 @@ const CurriculumPreview = ({ data, templateStyle = 'modern' }) => {
             paddingLeft: 10,
           }
         };
+      
+      // 3. Profissional
       case 'professional':
         return {
           container: {
@@ -4275,7 +5709,1343 @@ const CurriculumPreview = ({ data, templateStyle = 'modern' }) => {
             paddingLeft: 10,
           }
         };
-      default: // 'modern'
+      
+      // 4. Minimalista
+      case 'minimal':
+        return {
+          container: {
+            backgroundColor: Colors.white,
+            padding: 15,
+          },
+          header: {
+            marginBottom: 20,
+            alignItems: 'center',
+          },
+          name: {
+            fontSize: 28,
+            fontWeight: '300', // Fonte mais leve
+            color: Colors.dark,
+            textAlign: 'center',
+            letterSpacing: 1,
+          },
+          contact: {
+            color: Colors.lightText,
+            textAlign: 'center',
+            marginBottom: 5,
+            fontSize: 14,
+          },
+          sectionTitle: {
+            fontSize: 16,
+            fontWeight: '500',
+            color: Colors.dark,
+            marginBottom: 12,
+            textTransform: 'uppercase',
+            letterSpacing: 2,
+          },
+          itemTitle: {
+            fontSize: 16,
+            fontWeight: '500',
+            color: Colors.dark,
+          },
+          accent: Colors.dark,
+          itemBorder: {
+            borderLeftWidth: 0,
+            paddingLeft: 0,
+            marginBottom: 15,
+          }
+        };
+      
+      // 5. Executivo
+      case 'executive':
+        return {
+          container: {
+            backgroundColor: '#fafafa',
+            padding: 15,
+            borderWidth: 1,
+            borderColor: '#e0e0e0',
+          },
+          header: {
+            borderBottomWidth: 1,
+            borderBottomColor: '#000',
+            paddingBottom: 15,
+            marginBottom: 15,
+          },
+          name: {
+            fontSize: 24,
+            fontWeight: 'bold',
+            color: '#000',
+            textTransform: 'uppercase',
+            letterSpacing: 3,
+          },
+          contact: {
+            color: '#555',
+            marginTop: 8,
+          },
+          sectionTitle: {
+            fontSize: 16,
+            fontWeight: 'bold',
+            color: '#000',
+            textTransform: 'uppercase',
+            marginBottom: 12,
+            letterSpacing: 1,
+          },
+          itemTitle: {
+            fontSize: 16,
+            fontWeight: 'bold',
+            color: '#333',
+          },
+          accent: '#000',
+          itemBorder: {
+            borderLeftWidth: 0,
+            paddingLeft: 0,
+            paddingBottom: 10,
+            marginBottom: 10,
+            borderBottomWidth: 1,
+            borderBottomColor: '#eee',
+          }
+        };
+      
+      // 6. Tecnologia
+      case 'tech':
+        return {
+          container: {
+            backgroundColor: '#f0f4f8',
+            padding: 15,
+            borderRadius: 8,
+          },
+          header: {
+            backgroundColor: '#2d3748',
+            padding: 18,
+            borderRadius: 8,
+            marginBottom: 20,
+          },
+          name: {
+            fontSize: 26,
+            fontWeight: 'bold',
+            color: '#fff',
+            marginBottom: 6,
+          },
+          contact: {
+            color: '#a0aec0',
+            marginBottom: 3,
+          },
+          sectionTitle: {
+            fontSize: 18,
+            fontWeight: 'bold',
+            color: '#2d3748',
+            marginBottom: 12,
+            paddingBottom: 5,
+            borderBottomWidth: 2,
+            borderBottomColor: '#4299e1',
+          },
+          itemTitle: {
+            fontSize: 16,
+            fontWeight: 'bold',
+            color: '#2d3748',
+          },
+          accent: '#4299e1', // Azul tech
+          itemBorder: {
+            borderLeftWidth: 3,
+            borderLeftColor: '#4299e1',
+            paddingLeft: 10,
+            marginBottom: 12,
+            backgroundColor: '#fff',
+            borderRadius: 4,
+            padding: 10,
+            ...Platform.select({
+              ios: {
+                shadowColor: '#000',
+                shadowOffset: { width: 0, height: 1 },
+                shadowOpacity: 0.05,
+                shadowRadius: 1,
+              },
+              android: {
+                elevation: 1,
+              },
+            }),
+          }
+        };
+      
+      // 7. Artes Criativas
+      case 'creative-arts':
+        return {
+          container: {
+            backgroundColor: '#fff',
+            padding: 15,
+            borderRadius: 0,
+          },
+          header: {
+            marginBottom: 20,
+            borderBottomWidth: 3,
+            borderBottomColor: '#f06292', // Rosa vibrante
+            paddingBottom: 15,
+          },
+          name: {
+            fontSize: 30,
+            fontWeight: 'bold',
+            color: '#6a1b9a', // Roxo escuro
+            marginBottom: 8,
+            textAlign: 'left',
+          },
+          contact: {
+            color: '#9c27b0', // Roxo médio
+            marginBottom: 5,
+            fontSize: 14,
+          },
+          sectionTitle: {
+            fontSize: 22,
+            fontWeight: '400',
+            color: '#6a1b9a',
+            marginBottom: 15,
+            fontStyle: 'italic',
+          },
+          itemTitle: {
+            fontSize: 18,
+            fontWeight: 'bold',
+            color: '#9c27b0',
+          },
+          accent: '#f06292', // Rosa
+          itemBorder: {
+            borderLeftWidth: 4,
+            borderLeftColor: '#f06292',
+            paddingLeft: 12,
+            marginBottom: 15,
+          }
+        };
+      
+      // 8. Acadêmico
+      case 'academic':
+        return {
+          container: {
+            backgroundColor: '#fff',
+            padding: 20,
+            borderWidth: 1,
+            borderColor: '#d1d1d1',
+          },
+          header: {
+            marginBottom: 25,
+            borderBottomWidth: 1,
+            borderBottomColor: '#333',
+            paddingBottom: 15,
+            alignItems: 'center',
+          },
+          name: {
+            fontSize: 24,
+            fontWeight: 'bold',
+            color: '#333',
+            textAlign: 'center',
+            marginBottom: 5,
+          },
+          contact: {
+            color: '#666',
+            textAlign: 'center',
+            marginBottom: 3,
+            fontSize: 14,
+          },
+          sectionTitle: {
+            fontSize: 18,
+            fontWeight: 'bold',
+            color: '#333',
+            marginBottom: 15,
+            borderBottomWidth: 1,
+            borderBottomColor: '#bbb',
+            paddingBottom: 3,
+          },
+          itemTitle: {
+            fontSize: 16,
+            fontWeight: 'bold',
+            color: '#333',
+          },
+          accent: '#333',
+          itemBorder: {
+            paddingLeft: 0,
+            marginBottom: 18,
+          }
+        };
+      
+      // 9. Engenharia
+      case 'engineering':
+        return {
+          container: {
+            backgroundColor: '#fafafa',
+            padding: 15,
+          },
+          header: {
+            backgroundColor: '#263238', // Cinza azulado escuro
+            padding: 18,
+            marginBottom: 18,
+            borderRadius: 3,
+          },
+          name: {
+            fontSize: 24,
+            fontWeight: 'bold',
+            color: '#fff',
+            marginBottom: 5,
+          },
+          contact: {
+            color: '#b0bec5',
+            marginBottom: 3,
+          },
+          sectionTitle: {
+            fontSize: 17,
+            fontWeight: 'bold',
+            color: '#37474f',
+            marginBottom: 12,
+            backgroundColor: '#eceff1',
+            paddingVertical: 5,
+            paddingHorizontal: 10,
+            borderRadius: 3,
+          },
+          itemTitle: {
+            fontSize: 16,
+            fontWeight: 'bold',
+            color: '#37474f',
+          },
+          accent: '#039be5', // Azul claro
+          itemBorder: {
+            borderLeftWidth: 3,
+            borderLeftColor: '#039be5',
+            paddingLeft: 10,
+            marginBottom: 15,
+          }
+        };
+      
+      // 10. Marketing
+      case 'marketing':
+        return {
+          container: {
+            backgroundColor: '#fff',
+            padding: 15,
+            borderRadius: 10,
+          },
+          header: {
+            backgroundColor: '#7b1fa2', // Roxo vibrante
+            padding: 18,
+            borderRadius: 10,
+            marginBottom: 20,
+            ...Platform.select({
+              ios: {
+                shadowColor: '#000',
+                shadowOffset: { width: 0, height: 3 },
+                shadowOpacity: 0.2,
+                shadowRadius: 4,
+              },
+              android: {
+                elevation: 4,
+              },
+            }),
+          },
+          name: {
+            fontSize: 26,
+            fontWeight: 'bold',
+            color: '#fff',
+            marginBottom: 5,
+          },
+          contact: {
+            color: '#e1bee7',
+            marginBottom: 3,
+          },
+          sectionTitle: {
+            fontSize: 18,
+            fontWeight: 'bold',
+            color: '#7b1fa2',
+            marginBottom: 15,
+            paddingBottom: 5,
+            borderBottomWidth: 2,
+            borderBottomColor: '#ba68c8',
+          },
+          itemTitle: {
+            fontSize: 17,
+            fontWeight: 'bold',
+            color: '#7b1fa2',
+          },
+          accent: '#ba68c8', // Roxo mais claro
+          itemBorder: {
+            borderLeftWidth: 0,
+            marginBottom: 15,
+            backgroundColor: '#f3e5f5',
+            borderRadius: 8,
+            padding: 10,
+          }
+        };
+      
+      // 11. Legal/Jurídico
+      case 'legal':
+        return {
+          container: {
+            backgroundColor: '#fff',
+            padding: 18,
+            borderWidth: 1,
+            borderColor: '#ccc',
+          },
+          header: {
+            marginBottom: 20,
+            paddingBottom: 15,
+            borderBottomWidth: 1,
+            borderBottomColor: '#01579b', // Azul escuro
+          },
+          name: {
+            fontSize: 24,
+            fontWeight: 'bold',
+            color: '#01579b',
+            marginBottom: 5,
+          },
+          contact: {
+            color: '#333',
+            marginBottom: 3,
+          },
+          sectionTitle: {
+            fontSize: 17,
+            fontWeight: 'bold',
+            color: '#01579b',
+            marginBottom: 12,
+            paddingBottom: 4,
+            borderBottomWidth: 1,
+            borderBottomColor: '#ccc',
+          },
+          itemTitle: {
+            fontSize: 16,
+            fontWeight: 'bold',
+            color: '#01579b',
+          },
+          accent: '#01579b',
+          itemBorder: {
+            paddingLeft: 0,
+            marginBottom: 15,
+          }
+        };
+      
+      // 12. Médico/Saúde
+      case 'medical':
+        return {
+          container: {
+            backgroundColor: '#fff',
+            padding: 15,
+            borderRadius: 3,
+          },
+          header: {
+            backgroundColor: '#e3f2fd', // Azul bem claro
+            padding: 15,
+            borderRadius: 3,
+            marginBottom: 18,
+            borderLeftWidth: 5,
+            borderLeftColor: '#0277bd',
+          },
+          name: {
+            fontSize: 24,
+            fontWeight: 'bold',
+            color: '#0277bd', // Azul médio
+            marginBottom: 5,
+          },
+          contact: {
+            color: '#333',
+            marginBottom: 3,
+          },
+          sectionTitle: {
+            fontSize: 17,
+            fontWeight: 'bold',
+            color: '#0277bd',
+            marginBottom: 12,
+            paddingBottom: 5,
+            borderBottomWidth: 1,
+            borderBottomColor: '#bbdefb',
+          },
+          itemTitle: {
+            fontSize: 16,
+            fontWeight: 'bold',
+            color: '#0277bd',
+          },
+          accent: '#0277bd',
+          itemBorder: {
+            borderLeftWidth: 3,
+            borderLeftColor: '#0277bd',
+            paddingLeft: 10,
+            marginBottom: 15,
+          }
+        };
+      
+      // 13. Startup
+      case 'startup':
+        return {
+          container: {
+            backgroundColor: '#fafafa',
+            padding: 15,
+            borderRadius: 10,
+          },
+          header: {
+            padding: 15,
+            backgroundColor: '#20232a', // Escuro
+            borderRadius: 10,
+            marginBottom: 20,
+            ...Platform.select({
+              ios: {
+                shadowColor: '#000',
+                shadowOffset: { width: 0, height: 3 },
+                shadowOpacity: 0.2,
+                shadowRadius: 4,
+              },
+              android: {
+                elevation: 3,
+              },
+            }),
+          },
+          name: {
+            fontSize: 28,
+            fontWeight: 'bold',
+            color: '#61dafb', // Azul claro/ciano
+            marginBottom: 5,
+          },
+          contact: {
+            color: '#fff',
+            marginBottom: 3,
+          },
+          sectionTitle: {
+            fontSize: 18,
+            fontWeight: 'bold',
+            color: '#20232a',
+            marginBottom: 15,
+            borderRadius: 4,
+            paddingVertical: 5,
+          },
+          itemTitle: {
+            fontSize: 16,
+            fontWeight: 'bold',
+            color: '#20232a',
+          },
+          accent: '#61dafb', // Azul claro
+          itemBorder: {
+            borderLeftWidth: 3,
+            borderLeftColor: '#61dafb',
+            borderRadius: 4,
+            paddingLeft: 10,
+            marginBottom: 15,
+            backgroundColor: '#fff',
+            ...Platform.select({
+              ios: {
+                shadowColor: '#000',
+                shadowOffset: { width: 0, height: 1 },
+                shadowOpacity: 0.1,
+                shadowRadius: 2,
+              },
+              android: {
+                elevation: 1,
+              },
+            }),
+          }
+        };
+      
+      // 14. Modo Escuro
+      case 'dark-mode':
+        return {
+          container: {
+            backgroundColor: '#121212',
+            padding: 15,
+            borderRadius: 10,
+          },
+          header: {
+            marginBottom: 20,
+            padding: 10,
+            borderBottomWidth: 1,
+            borderBottomColor: '#333',
+          },
+          name: {
+            fontSize: 26,
+            fontWeight: 'bold',
+            color: '#fff',
+            marginBottom: 5,
+          },
+          contact: {
+            color: '#aaa',
+            marginBottom: 3,
+          },
+          sectionTitle: {
+            fontSize: 18,
+            fontWeight: 'bold',
+            color: '#bb86fc', // Roxo claro
+            marginBottom: 15,
+            borderBottomWidth: 1,
+            borderBottomColor: '#333',
+            paddingBottom: 5,
+          },
+          itemTitle: {
+            fontSize: 16,
+            fontWeight: 'bold',
+            color: '#fff',
+          },
+          accent: '#bb86fc', // Roxo
+          itemBorder: {
+            borderLeftWidth: 2,
+            borderLeftColor: '#bb86fc',
+            paddingLeft: 10,
+            marginBottom: 15,
+            backgroundColor: '#1e1e1e',
+            padding: 8,
+            borderRadius: 4,
+          }
+        };
+      
+      // 15. Elegante
+      case 'elegant':
+        return {
+          container: {
+            backgroundColor: '#fff',
+            padding: 20,
+            borderWidth: 1,
+            borderColor: '#d4d4d4',
+          },
+          header: {
+            marginBottom: 25,
+            alignItems: 'center',
+            borderBottomWidth: 0.5,
+            borderBottomColor: '#aaa',
+            paddingBottom: 20,
+          },
+          name: {
+            fontSize: 28,
+            fontWeight: '300', // Mais leve
+            color: '#333',
+            marginBottom: 5,
+            letterSpacing: 2,
+            textTransform: 'uppercase',
+            textAlign: 'center',
+          },
+          contact: {
+            color: '#666',
+            marginBottom: 3,
+            textAlign: 'center',
+            fontSize: 14,
+          },
+          sectionTitle: {
+            fontSize: 16,
+            fontWeight: '400',
+            color: '#333',
+            marginBottom: 15,
+            textTransform: 'uppercase',
+            letterSpacing: 2,
+            paddingBottom: 5,
+            borderBottomWidth: 0.5,
+            borderBottomColor: '#aaa',
+            textAlign: 'center',
+          },
+          itemTitle: {
+            fontSize: 16,
+            fontWeight: '500',
+            color: '#333',
+          },
+          accent: '#333',
+          itemBorder: {
+            paddingLeft: 0,
+            marginBottom: 18,
+          }
+        };
+      
+      // 16. Compacto
+      case 'compact':
+        return {
+          container: {
+            backgroundColor: '#fff',
+            padding: 12,
+            borderRadius: 5,
+          },
+          header: {
+            marginBottom: 12,
+          },
+          name: {
+            fontSize: 20,
+            fontWeight: 'bold',
+            color: Colors.dark,
+            marginBottom: 3,
+          },
+          contact: {
+            color: Colors.dark,
+            marginBottom: 2,
+            fontSize: 12,
+          },
+          sectionTitle: {
+            fontSize: 15,
+            fontWeight: 'bold',
+            color: Colors.dark,
+            marginBottom: 8,
+            backgroundColor: '#f5f5f5',
+            paddingVertical: 3,
+            paddingHorizontal: 5,
+            borderRadius: 3,
+          },
+          itemTitle: {
+            fontSize: 14,
+            fontWeight: 'bold',
+            color: Colors.dark,
+          },
+          accent: Colors.dark,
+          itemBorder: {
+            borderLeftWidth: 2,
+            borderLeftColor: '#ddd',
+            paddingLeft: 8,
+            marginBottom: 10,
+          }
+        };
+      
+      // 17. Duas Colunas
+      case 'two-column':
+        return {
+          container: {
+            backgroundColor: '#fff',
+            padding: 15,
+            flexDirection: 'row',
+          },
+          header: {
+            width: '30%',
+            backgroundColor: '#0d47a1', // Azul escuro
+            padding: 15,
+            alignItems: 'center',
+            justifyContent: 'flex-start',
+            marginRight: 15,
+            borderRadius: 8,
+          },
+          name: {
+            fontSize: 20,
+            fontWeight: 'bold',
+            color: '#fff',
+            marginBottom: 15,
+            textAlign: 'center',
+          },
+          contact: {
+            color: '#fff',
+            marginBottom: 5,
+            fontSize: 12,
+            textAlign: 'center',
+          },
+          sectionTitle: {
+            fontSize: 16,
+            fontWeight: 'bold',
+            color: '#0d47a1',
+            marginBottom: 10,
+            paddingBottom: 3,
+            borderBottomWidth: 1,
+            borderBottomColor: '#ccc',
+          },
+          itemTitle: {
+            fontSize: 15,
+            fontWeight: 'bold',
+            color: '#0d47a1',
+          },
+          accent: '#0d47a1',
+          itemBorder: {
+            borderLeftWidth: 0,
+            paddingLeft: 0,
+            marginBottom: 12,
+          },
+          // Propriedades adicionais específicas para o layout de duas colunas
+          contentColumn: {
+            flex: 1,
+            paddingLeft: 5,
+          },
+          sidebarSection: {
+            marginBottom: 20,
+            paddingHorizontal: 10,
+          },
+          sidebarTitle: {
+            color: '#fff',
+            fontSize: 14,
+            fontWeight: 'bold',
+            marginBottom: 8,
+            textAlign: 'center',
+            borderBottomWidth: 1,
+            borderBottomColor: 'rgba(255,255,255,0.3)',
+            paddingBottom: 5,
+          }
+        };
+      
+      // 18. Bold
+      case 'bold':
+        return {
+          container: {
+            backgroundColor: '#fff',
+            padding: 15,
+          },
+          header: {
+            backgroundColor: '#212121', // Quase preto
+            padding: 20,
+            marginBottom: 20,
+            borderRadius: 0,
+          },
+          name: {
+            fontSize: 28,
+            fontWeight: 'bold',
+            color: '#fff',
+            marginBottom: 5,
+            textTransform: 'uppercase',
+          },
+          contact: {
+            color: '#f5f5f5',
+            marginBottom: 3,
+          },
+          sectionTitle: {
+            fontSize: 18,
+            fontWeight: 'bold',
+            color: '#212121',
+            marginBottom: 15,
+            borderLeftWidth: 10,
+            borderLeftColor: '#212121',
+            paddingLeft: 10,
+            paddingVertical: 5,
+            backgroundColor: '#f5f5f5',
+            textTransform: 'uppercase',
+          },
+          itemTitle: {
+            fontSize: 16,
+            fontWeight: 'bold',
+            color: '#212121',
+          },
+          accent: '#212121',
+          itemBorder: {
+            borderLeftWidth: 5,
+            borderLeftColor: '#212121',
+            paddingLeft: 12,
+            marginBottom: 15,
+          }
+        };
+      
+      // 19. Pastel
+      case 'pastel':
+        return {
+          container: {
+            backgroundColor: '#fdfafa', // Rosa muito claro
+            padding: 15,
+            borderRadius: 10,
+          },
+          header: {
+            backgroundColor: '#f8bbd0', // Rosa pastel
+            padding: 15,
+            borderRadius: 10,
+            marginBottom: 18,
+            alignItems: 'center',
+          },
+          name: {
+            fontSize: 24,
+            fontWeight: 'bold',
+            color: '#5d4037', // Marrom
+            marginBottom: 5,
+            textAlign: 'center',
+          },
+          contact: {
+            color: '#795548', // Marrom mais claro
+            marginBottom: 3,
+            textAlign: 'center',
+          },
+          sectionTitle: {
+            fontSize: 18,
+            fontWeight: 'bold',
+            color: '#5d4037',
+            marginBottom: 15,
+            padding: 5,
+            borderRadius: 5,
+            textAlign: 'center',
+            backgroundColor: '#f8bbd0',
+          },
+          itemTitle: {
+            fontSize: 16,
+            fontWeight: 'bold',
+            color: '#5d4037',
+          },
+          accent: '#ec407a', // Rosa mais escuro
+          itemBorder: {
+            borderLeftWidth: 3,
+            borderLeftColor: '#f8bbd0',
+            paddingLeft: 10,
+            marginBottom: 15,
+            backgroundColor: '#fff',
+            borderRadius: 8,
+            padding: 8,
+          }
+        };
+      
+      // 20. Vintage
+      case 'vintage':
+        return {
+          container: {
+            backgroundColor: '#f8f3e6', // Bege claro
+            padding: 15,
+            borderWidth: 1,
+            borderColor: '#d3c0a9', // Bege mais escuro
+          },
+          header: {
+            marginBottom: 20,
+            borderBottomWidth: 2,
+            borderBottomColor: '#8d6e63', // Marrom médio
+            paddingBottom: 15,
+          },
+          name: {
+            fontSize: 26,
+            fontWeight: 'bold',
+            color: '#5d4037', // Marrom escuro
+            marginBottom: 5,
+            fontStyle: 'italic',
+          },
+          contact: {
+            color: '#795548', // Marrom mais claro
+            marginBottom: 3,
+            fontStyle: 'italic',
+          },
+          sectionTitle: {
+            fontSize: 18,
+            fontWeight: 'bold',
+            color: '#8d6e63',
+            marginBottom: 12,
+            borderBottomWidth: 1,
+            borderBottomColor: '#d3c0a9',
+            paddingBottom: 5,
+            fontStyle: 'italic',
+          },
+          itemTitle: {
+            fontSize: 16,
+            fontWeight: 'bold',
+            color: '#5d4037',
+            fontStyle: 'italic',
+          },
+          accent: '#8d6e63',
+          itemBorder: {
+            borderLeftWidth: 0,
+            paddingLeft: 0,
+            marginBottom: 15,
+          }
+        };
+      
+      // 21. Geométrico
+      case 'geometric':
+        return {
+          container: {
+            backgroundColor: '#fff',
+            padding: 15,
+          },
+          header: {
+            backgroundColor: '#3949ab', // Azul escuro
+            padding: 15,
+            marginBottom: 20,
+            borderRadius: 0,
+            borderTopWidth: 5,
+            borderTopColor: '#5c6bc0', // Azul mais claro
+            borderBottomWidth: 5,
+            borderBottomColor: '#283593', // Azul mais escuro
+          },
+          name: {
+            fontSize: 24,
+            fontWeight: 'bold',
+            color: '#fff',
+            marginBottom: 5,
+          },
+          contact: {
+            color: '#c5cae9', // Azul bem claro
+            marginBottom: 3,
+          },
+          sectionTitle: {
+            fontSize: 18,
+            fontWeight: 'bold',
+            color: '#3949ab',
+            marginBottom: 15,
+            paddingLeft: 10,
+            borderLeftWidth: 15,
+            borderLeftColor: '#3949ab',
+            paddingVertical: 5,
+          },
+          itemTitle: {
+            fontSize: 16,
+            fontWeight: 'bold',
+            color: '#3949ab',
+          },
+          accent: '#3949ab',
+          itemBorder: {
+            borderLeftWidth: 0,
+            paddingLeft: 0,
+            marginBottom: 15,
+            padding: 10,
+            backgroundColor: '#f5f5f5',
+            borderRadius: 0,
+            borderTopWidth: 3,
+            borderTopColor: '#3949ab',
+          }
+        };
+      
+      // 22. Negócios
+      case 'business':
+        return {
+          container: {
+            backgroundColor: '#fff',
+            padding: 15,
+          },
+          header: {
+            marginBottom: 15,
+            borderBottomWidth: 1,
+            borderBottomColor: '#bdbdbd',
+            paddingBottom: 15,
+          },
+          name: {
+            fontSize: 24,
+            fontWeight: 'bold',
+            color: '#2e3b4e', // Azul escuro corporativo
+            marginBottom: 5,
+          },
+          contact: {
+            color: '#505a64', // Cinza azulado
+            marginBottom: 3,
+          },
+          sectionTitle: {
+            fontSize: 17,
+            fontWeight: 'bold',
+            color: '#2e3b4e',
+            marginBottom: 12,
+            borderBottomWidth: 1,
+            borderBottomColor: '#e0e0e0',
+            paddingBottom: 5,
+          },
+          itemTitle: {
+            fontSize: 16,
+            fontWeight: 'bold',
+            color: '#2e3b4e',
+          },
+          accent: '#2e3b4e',
+          itemBorder: {
+            borderLeftWidth: 0,
+            paddingLeft: 0,
+            marginBottom: 15,
+          }
+        };
+      
+      // 23. Minimalista Colorido
+      case 'minimalist-color':
+        return {
+          container: {
+            backgroundColor: '#fff',
+            padding: 15,
+          },
+          header: {
+            marginBottom: 20,
+            alignItems: 'center',
+          },
+          name: {
+            fontSize: 28,
+            fontWeight: '300', // Fonte mais leve
+            color: '#00acc1', // Azul turquesa
+            marginBottom: 5,
+            textAlign: 'center',
+          },
+          contact: {
+            color: '#757575', // Cinza médio
+            marginBottom: 3,
+            textAlign: 'center',
+            fontSize: 14,
+          },
+          sectionTitle: {
+            fontSize: 17,
+            fontWeight: '400',
+            color: '#00acc1',
+            marginBottom: 15,
+            padding: 0,
+            borderBottomWidth: 1,
+            borderBottomColor: '#e0e0e0',
+            paddingBottom: 5,
+          },
+          itemTitle: {
+            fontSize: 16,
+            fontWeight: '500',
+            color: '#00acc1',
+          },
+          accent: '#00acc1',
+          itemBorder: {
+            borderLeftWidth: 0,
+            paddingLeft: 0,
+            marginBottom: 15,
+          }
+        };
+      
+      // 24. Gradiente
+      case 'gradient':
+        return {
+          container: {
+            backgroundColor: '#fff',
+            padding: 15,
+          },
+          header: {
+            marginBottom: 20,
+            padding: 15,
+            backgroundColor: '#7b1fa2', // Cor de base para o "gradiente"
+            borderLeftWidth: 15,
+            borderLeftColor: '#9c27b0',
+            borderRightWidth: 15,
+            borderRightColor: '#6a1b9a',
+            borderRadius: 8,
+          },
+          name: {
+            fontSize: 26,
+            fontWeight: 'bold',
+            color: '#fff',
+            marginBottom: 5,
+          },
+          contact: {
+            color: '#e1bee7', // Roxo bem claro
+            marginBottom: 3,
+          },
+          sectionTitle: {
+            fontSize: 18,
+            fontWeight: 'bold',
+            color: '#7b1fa2',
+            marginBottom: 15,
+            padding: 5,
+            borderBottomWidth: 2,
+            borderBottomColor: '#9c27b0',
+            borderRightWidth: 2,
+            borderRightColor: '#6a1b9a',
+          },
+          itemTitle: {
+            fontSize: 16,
+            fontWeight: 'bold',
+            color: '#7b1fa2',
+          },
+          accent: '#9c27b0',
+          itemBorder: {
+            borderLeftWidth: 3,
+            borderLeftColor: '#9c27b0',
+            borderRightWidth: 1,
+            borderRightColor: '#6a1b9a',
+            paddingLeft: 10,
+            marginBottom: 15,
+            backgroundColor: '#fafafa',
+            padding: 8,
+            borderRadius: 4,
+          }
+        };
+      
+      // 25. Boxes
+      case 'boxed':
+        return {
+          container: {
+            backgroundColor: '#eef2f5', // Cinza azulado muito claro
+            padding: 15,
+          },
+          header: {
+            backgroundColor: '#fff',
+            padding: 15,
+            marginBottom: 15,
+            borderRadius: 8,
+            ...Platform.select({
+              ios: {
+                shadowColor: '#000',
+                shadowOffset: { width: 0, height: 1 },
+                shadowOpacity: 0.1,
+                shadowRadius: 2,
+              },
+              android: {
+                elevation: 1,
+              },
+            }),
+          },
+          name: {
+            fontSize: 24,
+            fontWeight: 'bold',
+            color: '#455a64',
+            marginBottom: 5,
+          },
+          contact: {
+            color: '#607d8b',
+            marginBottom: 3,
+          },
+          sectionTitle: {
+            fontSize: 18,
+            fontWeight: 'bold',
+            color: '#455a64',
+            marginBottom: 10,
+            backgroundColor: '#fff',
+            padding: 10,
+            borderRadius: 8,
+            borderLeftWidth: 4,
+            borderLeftColor: '#455a64',
+            ...Platform.select({
+              ios: {
+                shadowColor: '#000',
+                shadowOffset: { width: 0, height: 1 },
+                shadowOpacity: 0.1,
+                shadowRadius: 2,
+              },
+              android: {
+                elevation: 1,
+              },
+            }),
+          },
+          itemTitle: {
+            fontSize: 16,
+            fontWeight: 'bold',
+            color: '#455a64',
+          },
+          accent: '#455a64',
+          itemBorder: {
+            paddingLeft: 10,
+            marginBottom: 15,
+            backgroundColor: '#fff',
+            padding: 10,
+            borderRadius: 8,
+            ...Platform.select({
+              ios: {
+                shadowColor: '#000',
+                shadowOffset: { width: 0, height: 1 },
+                shadowOpacity: 0.05,
+                shadowRadius: 1,
+              },
+              android: {
+                elevation: 1,
+              },
+            }),
+          }
+        };
+      
+      // 26. Timeline
+      case 'timeline':
+        return {
+          container: {
+            backgroundColor: '#fafafa',
+            padding: 15,
+          },
+          header: {
+            backgroundColor: '#00796b', // Verde escuro
+            padding: 15,
+            marginBottom: 25,
+            borderRadius: 8,
+          },
+          name: {
+            fontSize: 24,
+            fontWeight: 'bold',
+            color: '#fff',
+            marginBottom: 5,
+          },
+          contact: {
+            color: '#b2dfdb', // Verde bem claro
+            marginBottom: 3,
+          },
+          sectionTitle: {
+            fontSize: 18,
+            fontWeight: 'bold',
+            color: '#00796b',
+            marginBottom: 15,
+            borderBottomWidth: 2,
+            borderBottomColor: '#009688',
+            paddingBottom: 5,
+          },
+          itemTitle: {
+            fontSize: 16,
+            fontWeight: 'bold',
+            color: '#00796b',
+          },
+          accent: '#009688',
+          itemBorder: {
+            borderLeftWidth: 2,
+            borderLeftColor: '#009688',
+            paddingLeft: 15,
+            marginBottom: 15,
+            marginLeft: 15,
+            position: 'relative',
+          },
+          // Elementos de Timeline
+          timelineDot: {
+            position: 'absolute',
+            left: -18,
+            top: 0,
+            width: 20,
+            height: 20,
+            borderRadius: 10,
+            backgroundColor: '#009688',
+            justifyContent: 'center',
+            alignItems: 'center',
+            borderWidth: 3,
+            borderColor: '#b2dfdb',
+          }
+        };
+      
+      // 27. Infográfico
+      case 'infographic':
+        return {
+          container: {
+            backgroundColor: '#fff',
+            padding: 15,
+          },
+          header: {
+            backgroundColor: '#1565c0', // Azul médio
+            padding: 18,
+            marginBottom: 20,
+            borderRadius: 8,
+            alignItems: 'center',
+            ...Platform.select({
+              ios: {
+                shadowColor: '#000',
+                shadowOffset: { width: 0, height: 2 },
+                shadowOpacity: 0.2,
+                shadowRadius: 3,
+              },
+              android: {
+                elevation: 3,
+              },
+            }),
+          },
+          name: {
+            fontSize: 26,
+            fontWeight: 'bold',
+            color: '#fff',
+            marginBottom: 5,
+            textAlign: 'center',
+          },
+          contact: {
+            color: '#bbdefb', // Azul bem claro
+            marginBottom: 3,
+            textAlign: 'center',
+          },
+          sectionTitle: {
+            fontSize: 18,
+            fontWeight: 'bold',
+            color: '#fff',
+            marginBottom: 15,
+            backgroundColor: '#1976d2',
+            paddingVertical: 8,
+            paddingHorizontal: 15,
+            borderRadius: 20,
+            textAlign: 'center',
+            ...Platform.select({
+              ios: {
+                shadowColor: '#000',
+                shadowOffset: { width: 0, height: 1 },
+                shadowOpacity: 0.2,
+                shadowRadius: 2,
+              },
+              android: {
+                elevation: 2,
+              },
+            }),
+          },
+          itemTitle: {
+            fontSize: 16,
+            fontWeight: 'bold',
+            color: '#1565c0',
+          },
+          accent: '#1976d2',
+          itemBorder: {
+            borderLeftWidth: 0,
+            marginBottom: 15,
+            backgroundColor: '#e3f2fd',
+            padding: 12,
+            borderRadius: 8,
+            ...Platform.select({
+              ios: {
+                shadowColor: '#000',
+                shadowOffset: { width: 0, height: 1 },
+                shadowOpacity: 0.1,
+                shadowRadius: 2,
+              },
+              android: {
+                elevation: 1,
+              },
+            }),
+          }
+        };
+    
+      // Template padrão (Modern)
+      default:
         return {
           container: {
             backgroundColor: Colors.white,
@@ -4322,6 +7092,330 @@ const CurriculumPreview = ({ data, templateStyle = 'modern' }) => {
   const personalInfo = data.informacoes_pessoais;
   const fullName = `${personalInfo.nome || ''} ${personalInfo.sobrenome || ''}`.trim();
   
+  // Renderização do currículo em duas colunas ou formato padrão
+  if (templateStyle === 'two-column') {
+    return (
+      <View style={[styles.previewContainer, ts.container]}>
+        {/* Coluna lateral */}
+        <View style={ts.header}>
+          {fullName ? (
+            <Text style={ts.name}>{fullName}</Text>
+          ) : null}
+          
+          {personalInfo.email || personalInfo.endereco ? (
+            <Text style={ts.contact}>
+              {personalInfo.email}
+              {personalInfo.email && personalInfo.endereco ? '\n' : ''}
+              {personalInfo.endereco}
+            </Text>
+          ) : null}
+          
+          {/* Links na barra lateral */}
+          {(personalInfo.site || personalInfo.linkedin || personalInfo.github) && (
+            <View style={ts.sidebarSection}>
+              <Text style={ts.sidebarTitle}>Links</Text>
+              {personalInfo.site && (
+                <Text style={[styles.previewLink, {color: '#fff', textAlign: 'center'}]}>{personalInfo.site}</Text>
+              )}
+              {personalInfo.linkedin && (
+                <Text style={[styles.previewLink, {color: '#fff', textAlign: 'center'}]}>LinkedIn</Text>
+              )}
+              {personalInfo.github && (
+                <Text style={[styles.previewLink, {color: '#fff', textAlign: 'center'}]}>GitHub</Text>
+              )}
+            </View>
+          )}
+          
+          {/* Idiomas na barra lateral */}
+          {data.idiomas && data.idiomas.length > 0 && (
+            <View style={ts.sidebarSection}>
+              <Text style={ts.sidebarTitle}>Idiomas</Text>
+              {data.idiomas.map((idioma, index) => (
+                <Text key={index} style={{color: '#fff', textAlign: 'center', marginBottom: 4}}>
+                  {idioma.nome}: {idioma.nivel}
+                </Text>
+              ))}
+            </View>
+          )}
+        </View>
+        
+        {/* Coluna principal de conteúdo */}
+        <View style={ts.contentColumn}>
+          {/* Resumo Profissional */}
+          {data.resumo_profissional ? (
+            <View style={styles.previewSection}>
+              <Text style={[styles.previewSectionTitle, ts.sectionTitle]}>Resumo Profissional</Text>
+              <Text style={styles.previewResumeText}>{data.resumo_profissional}</Text>
+            </View>
+          ) : null}
+          
+          {/* Formação Acadêmica */}
+          {data.formacoes_academicas && data.formacoes_academicas.length > 0 && (
+            <View style={styles.previewSection}>
+              <Text style={[styles.previewSectionTitle, ts.sectionTitle]}>Formação Acadêmica</Text>
+              {data.formacoes_academicas.map((formacao, index) => (
+                <View key={index} style={[styles.previewItem, ts.itemBorder]}>
+                  <Text style={[styles.previewItemTitle, ts.itemTitle]}>
+                    {formacao.diploma} em {formacao.area_estudo}
+                  </Text>
+                  <Text style={styles.previewItemSubtitle}>{formacao.instituicao}</Text>
+                  {formacao.data_inicio ? (
+                    <Text style={styles.previewItemDate}>
+                      {formacao.data_inicio}
+                      {formacao.data_fim ? 
+                        formacao.data_fim.toLowerCase() === 'atual' ? 
+                          ' - Presente' : 
+                          ` - ${formacao.data_fim}` : 
+                        ''}
+                    </Text>
+                  ) : null}
+                </View>
+              ))}
+            </View>
+          )}
+          
+          {/* Experiência Profissional */}
+          {data.experiencias && data.experiencias.length > 0 && (
+            <View style={styles.previewSection}>
+              <Text style={[styles.previewSectionTitle, ts.sectionTitle]}>Experiência Profissional</Text>
+              {data.experiencias.map((exp, index) => (
+                <View key={index} style={[styles.previewItem, ts.itemBorder]}>
+                  <Text style={[styles.previewItemTitle, ts.itemTitle]}>{exp.cargo}</Text>
+                  <Text style={styles.previewItemSubtitle}>{exp.empresa}</Text>
+                  {exp.data_inicio ? (
+                    <Text style={styles.previewItemDate}>
+                      {exp.data_inicio}
+                      {exp.data_fim ? 
+                        exp.data_fim.toLowerCase() === 'atual' ? 
+                          ' - Presente' : 
+                          ` - ${exp.data_fim}` : 
+                        ''}
+                    </Text>
+                  ) : null}
+                  {exp.descricao ? (
+                    <Text style={styles.previewItemDescription}>{exp.descricao}</Text>
+                  ) : null}
+                </View>
+              ))}
+            </View>
+          )}
+          
+          {/* Cursos */}
+          {data.cursos && data.cursos.length > 0 && (
+            <View style={styles.previewSection}>
+              <Text style={[styles.previewSectionTitle, ts.sectionTitle]}>Cursos e Certificados</Text>
+              {data.cursos.map((curso, index) => (
+                <View key={index} style={[styles.previewItem, ts.itemBorder]}>
+                  <Text style={[styles.previewItemTitle, ts.itemTitle]}>{curso.nome}</Text>
+                  <Text style={styles.previewItemSubtitle}>{curso.instituicao}</Text>
+                  {curso.data_inicio || curso.data_fim ? (
+                    <Text style={styles.previewItemDate}>
+                      {curso.data_inicio || ''}
+                      {curso.data_inicio && curso.data_fim ? ' - ' : ''}
+                      {curso.data_fim || ''}
+                    </Text>
+                  ) : null}
+                  {curso.descricao ? (
+                    <Text style={styles.previewItemDescription}>{curso.descricao}</Text>
+                  ) : null}
+                </View>
+              ))}
+            </View>
+          )}
+          
+          {/* Projetos */}
+          {data.projetos && data.projetos.length > 0 && (
+            <View style={styles.previewSection}>
+              <Text style={[styles.previewSectionTitle, ts.sectionTitle]}>Projetos</Text>
+              {data.projetos.map((projeto, index) => (
+                <View key={index} style={[styles.previewItem, ts.itemBorder]}>
+                  <Text style={[styles.previewItemTitle, ts.itemTitle]}>{projeto.nome}</Text>
+                  {projeto.habilidades ? (
+                    <Text style={styles.previewItemSubtitle}>
+                      <Text style={{fontWeight: 'bold'}}>Habilidades:</Text> {projeto.habilidades}
+                    </Text>
+                  ) : null}
+                  {projeto.descricao ? (
+                    <Text style={styles.previewItemDescription}>{projeto.descricao}</Text>
+                  ) : null}
+                </View>
+              ))}
+            </View>
+          )}
+        </View>
+      </View>
+    );
+  }
+  
+  // Renderização especial para template de timeline
+  else if (templateStyle === 'timeline') {
+    return (
+      <View style={[styles.previewContainer, ts.container]}>
+        <View style={ts.header}>
+          {fullName ? (
+            <Text style={ts.name}>{fullName}</Text>
+          ) : null}
+          
+          {personalInfo.email || personalInfo.endereco ? (
+            <Text style={ts.contact}>
+              {personalInfo.email}
+              {personalInfo.email && personalInfo.endereco ? ' | ' : ''}
+              {personalInfo.endereco}
+            </Text>
+          ) : null}
+          
+          {/* Links */}
+          {(personalInfo.site || personalInfo.linkedin || personalInfo.github) && (
+            <View style={styles.previewLinks}>
+              {personalInfo.site && (
+                <Text style={[styles.previewLink, {color: '#b2dfdb'}]}>{personalInfo.site}</Text>
+              )}
+              {personalInfo.linkedin && (
+                <Text style={[styles.previewLink, {color: '#b2dfdb'}]}>LinkedIn</Text>
+              )}
+              {personalInfo.github && (
+                <Text style={[styles.previewLink, {color: '#b2dfdb'}]}>GitHub</Text>
+              )}
+            </View>
+          )}
+        </View>
+        
+        {/* Resumo Profissional */}
+        {data.resumo_profissional ? (
+          <View style={styles.previewSection}>
+            <Text style={[styles.previewSectionTitle, ts.sectionTitle]}>Resumo Profissional</Text>
+            <Text style={styles.previewResumeText}>{data.resumo_profissional}</Text>
+          </View>
+        ) : null}
+        
+        {/* Experiência Profissional com Timeline */}
+        {data.experiencias && data.experiencias.length > 0 && (
+          <View style={styles.previewSection}>
+            <Text style={[styles.previewSectionTitle, ts.sectionTitle]}>Experiência Profissional</Text>
+            {data.experiencias.map((exp, index) => (
+              <View key={index} style={[styles.previewItem, ts.itemBorder]}>
+                {/* Dot da Timeline */}
+                <View style={ts.timelineDot}>
+                  <Text style={{color: '#fff', fontSize: 10, fontWeight: 'bold'}}>
+                    {index + 1}
+                  </Text>
+                </View>
+                
+                <Text style={[styles.previewItemTitle, ts.itemTitle]}>{exp.cargo}</Text>
+                <Text style={styles.previewItemSubtitle}>{exp.empresa}</Text>
+                {exp.data_inicio ? (
+                  <Text style={[styles.previewItemDate, {fontWeight: 'bold', color: '#00796b'}]}>
+                    {exp.data_inicio}
+                    {exp.data_fim ? 
+                      exp.data_fim.toLowerCase() === 'atual' ? 
+                        ' - Presente' : 
+                        ` - ${exp.data_fim}` : 
+                      ''}
+                  </Text>
+                ) : null}
+                {exp.descricao ? (
+                  <Text style={styles.previewItemDescription}>{exp.descricao}</Text>
+                ) : null}
+              </View>
+            ))}
+          </View>
+        )}
+        
+        {/* Outras seções como padrão */}
+        {data.formacoes_academicas && data.formacoes_academicas.length > 0 && (
+          <View style={styles.previewSection}>
+            <Text style={[styles.previewSectionTitle, ts.sectionTitle]}>Formação Acadêmica</Text>
+            {data.formacoes_academicas.map((formacao, index) => (
+              <View key={index} style={[styles.previewItem, ts.itemBorder]}>
+                <Text style={[styles.previewItemTitle, ts.itemTitle]}>
+                  {formacao.diploma} em {formacao.area_estudo}
+                </Text>
+                <Text style={styles.previewItemSubtitle}>{formacao.instituicao}</Text>
+                {formacao.data_inicio ? (
+                  <Text style={styles.previewItemDate}>
+                    {formacao.data_inicio}
+                    {formacao.data_fim ? 
+                      formacao.data_fim.toLowerCase() === 'atual' ? 
+                        ' - Presente' : 
+                        ` - ${formacao.data_fim}` : 
+                      ''}
+                  </Text>
+                ) : null}
+              </View>
+            ))}
+          </View>
+        )}
+        
+        {/* Restante das seções como no padrão */}
+        {data.cursos && data.cursos.length > 0 && (
+          <View style={styles.previewSection}>
+            <Text style={[styles.previewSectionTitle, ts.sectionTitle]}>Cursos e Certificados</Text>
+            {data.cursos.map((curso, index) => (
+              <View key={index} style={[styles.previewItem, ts.itemBorder]}>
+                <Text style={[styles.previewItemTitle, ts.itemTitle]}>{curso.nome}</Text>
+                <Text style={styles.previewItemSubtitle}>{curso.instituicao}</Text>
+                {curso.data_inicio || curso.data_fim ? (
+                  <Text style={styles.previewItemDate}>
+                    {curso.data_inicio || ''}
+                    {curso.data_inicio && curso.data_fim ? ' - ' : ''}
+                    {curso.data_fim || ''}
+                  </Text>
+                ) : null}
+                {curso.descricao ? (
+                  <Text style={styles.previewItemDescription}>{curso.descricao}</Text>
+                ) : null}
+              </View>
+            ))}
+          </View>
+        )}
+        
+        {data.projetos && data.projetos.length > 0 && (
+          <View style={styles.previewSection}>
+            <Text style={[styles.previewSectionTitle, ts.sectionTitle]}>Projetos</Text>
+            {data.projetos.map((projeto, index) => (
+              <View key={index} style={[styles.previewItem, ts.itemBorder]}>
+                <Text style={[styles.previewItemTitle, ts.itemTitle]}>{projeto.nome}</Text>
+                {projeto.habilidades ? (
+                  <Text style={styles.previewItemSubtitle}>
+                    <Text style={{fontWeight: 'bold'}}>Habilidades:</Text> {projeto.habilidades}
+                  </Text>
+                ) : null}
+                {projeto.descricao ? (
+                  <Text style={styles.previewItemDescription}>{projeto.descricao}</Text>
+                ) : null}
+              </View>
+            ))}
+          </View>
+        )}
+        
+        {data.idiomas && data.idiomas.length > 0 && (
+          <View style={styles.previewSection}>
+            <Text style={[styles.previewSectionTitle, ts.sectionTitle]}>Idiomas</Text>
+            <View style={{flexDirection: 'row', flexWrap: 'wrap'}}>
+              {data.idiomas.map((idioma, index) => (
+                <View key={index} style={{
+                  backgroundColor: '#e0f2f1',
+                  paddingVertical: 8,
+                  paddingHorizontal: 12,
+                  marginRight: 10,
+                  marginBottom: 10,
+                  borderRadius: 5,
+                  borderLeftWidth: 3,
+                  borderLeftColor: ts.accent,
+                }}>
+                  <Text style={{fontWeight: 'bold', color: '#00796b'}}>
+                    {idioma.nome}: <Text style={{fontWeight: 'normal'}}>{idioma.nivel}</Text>
+                  </Text>
+                </View>
+              ))}
+            </View>
+          </View>
+        )}
+      </View>
+    );
+  }
+  
+  // Renderização padrão para os outros templates
   return (
     <View style={[styles.previewContainer, ts.container]}>
       <View style={ts.header}>
@@ -6752,10 +9846,39 @@ const PreviewCVScreen = ({ route, navigation }) => {
   };
   
   const templateOptions = [
-    { id: 'modern', name: 'Moderno', color: Colors.primary },
-    { id: 'classic', name: 'Clássico', color: Colors.dark },
-    { id: 'creative', name: 'Criativo', color: '#9c27b0' },
-    { id: 'professional', name: 'Profissional', color: Colors.secondary }
+    { id: 'modern', name: 'Moderno', category: 'Moderno', color: Colors.primary },
+    { id: 'minimal', name: 'Minimalista', category: 'Moderno', color: '#333333' },
+    { id: 'tech', name: 'Tech', category: 'Moderno', color: '#3498db' },
+    { id: 'gradient', name: 'Gradiente', category: 'Moderno', color: '#6200ee' },
+    { id: 'startup', name: 'Startup', category: 'Moderno', color: '#000000' },
+    
+    // Clássicos
+    { id: 'classic', name: 'Clássico', category: 'Clássico', color: Colors.dark },
+    { id: 'traditional', name: 'Tradicional', category: 'Clássico', color: '#333333' },
+    { id: 'elegant', name: 'Elegante', category: 'Clássico', color: '#222222' },
+    { id: 'serif', name: 'Serif', category: 'Clássico', color: '#5d4037' },
+    { id: 'academic', name: 'Acadêmico', category: 'Clássico', color: '#000000' },
+    
+    // Criativos
+    { id: 'creative', name: 'Criativo', category: 'Criativo', color: Colors.primary },
+    { id: 'artistic', name: 'Artístico', category: 'Criativo', color: '#9c27b0' },
+    { id: 'colorful', name: 'Colorido', category: 'Criativo', color: '#2196f3' },
+    { id: 'portfolio', name: 'Portfólio', category: 'Criativo', color: '#212121' },
+    { id: 'designer', name: 'Designer', category: 'Criativo', color: '#ff5722' },
+    
+    // Profissionais
+    { id: 'professional', name: 'Profissional', category: 'Profissional', color: Colors.secondary },
+    { id: 'executive', name: 'Executivo', category: 'Profissional', color: '#263238' },
+    { id: 'corporate', name: 'Corporativo', category: 'Profissional', color: '#01579b' },
+    { id: 'business', name: 'Business', category: 'Profissional', color: '#1e3a5f' },
+    { id: 'consulting', name: 'Consultoria', category: 'Profissional', color: '#1a237e' },
+    
+    // Específicos por área
+    { id: 'tech-dev', name: 'Desenvolvedor', category: 'Por Área', color: '#61dafb' },
+    { id: 'marketing', name: 'Marketing', category: 'Por Área', color: '#673ab7' },
+    { id: 'healthcare', name: 'Saúde', category: 'Por Área', color: '#00897b' },
+    { id: 'education', name: 'Educação', category: 'Por Área', color: '#0277bd' },
+    { id: 'legal', name: 'Jurídico', category: 'Por Área', color: '#37474f' },
   ];
   
   return (
@@ -8686,6 +11809,10 @@ const RootStack = createStackNavigator();
 const RootNavigator = () => {
   const { user, loading } = useAuth();
 
+  // Log para ajudar na depuração
+  console.log('RootNavigator - User state:', user ? 'Logged in' : 'Logged out');
+
+  // Mostrar tela de carregamento enquanto verifica autenticação
   if (loading) {
     return <SplashScreen />;
   }
