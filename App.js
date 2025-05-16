@@ -18,15 +18,20 @@ import {
   Switch,
   Image,
   Animated,
+  useCallback,
+  Dimensions,
+  RefreshControl,
   Easing
 } from 'react-native';
+import { Ionicons, MaterialIcons, FontAwesome5 } from '@expo/vector-icons';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import Markdown from 'react-native-markdown-display';
 import { NavigationContainer } from '@react-navigation/native';
 import { createStackNavigator } from '@react-navigation/stack';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
-import { Ionicons } from 'react-native-vector-icons/Ionicons';
+// import { Ionicons } from 'react-native-vector-icons/Ionicons';
 import axios from 'axios';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 // Adicione no início do arquivo, junto com os imports
 axios.interceptors.request.use(request => {
@@ -10814,42 +10819,70 @@ const RegisterScreen = ({ navigation }) => {
 
 const HomeScreen = ({ navigation }) => {
   const { user, logout } = useAuth();
+  const insets = useSafeAreaInsets();
+  const scrollY = new Animated.Value(0);
+  const screenWidth = Dimensions.get('window').width;
+  
+  // Estados gerais do HomeScreen
   const [curriculos, setCurriculos] = useState([]);
   const [loadingCurriculos, setLoadingCurriculos] = useState(true);
   const [temProgressoSalvo, setTemProgressoSalvo] = useState(false);
   const [ultimoProgressoData, setUltimoProgressoData] = useState(null);
   
-  // Estados para a nova funcionalidade de Conhecimento
-  const [showKnowledgeModal, setShowKnowledgeModal] = useState(false);
+  // Estados para a funcionalidade de Conhecimento
+  const [activeScreen, setActiveScreen] = useState('home'); // 'home', 'knowledge'
+  const [searchQuery, setSearchQuery] = useState('');
+  const [searchResults, setSearchResults] = useState([]);
+  const [isSearching, setIsSearching] = useState(false);
   const [selectedTopic, setSelectedTopic] = useState(null);
   const [generatingContent, setGeneratingContent] = useState(false);
   const [generatedContent, setGeneratedContent] = useState(null);
   const [savedKnowledge, setSavedKnowledge] = useState([]);
-  const [showContentPreview, setShowContentPreview] = useState(false);
   const [relatedTopics, setRelatedTopics] = useState([]);
+  const [activeTab, setActiveTab] = useState('topics'); // 'topics', 'saved', 'content'
+  const [refreshing, setRefreshing] = useState(false);
+  const [isBookmarked, setIsBookmarked] = useState(false);
+  const [selectedCategory, setSelectedCategory] = useState('all');
+  
+  // Referência para o timeout do debounce
+  const searchTimeoutRef = useRef(null);
   
   // Lista de tópicos de carreira
   const careerTopics = [
-    { id: 'resume-writing', title: 'Técnicas de Escrita de Currículo', icon: '📝' },
-    { id: 'interview-tips', title: 'Dicas para Entrevistas de Emprego', icon: '🗣️' },
-    { id: 'networking', title: 'Networking Profissional', icon: '🔗' },
-    { id: 'personal-branding', title: 'Marca Pessoal', icon: '🌟' },
-    { id: 'career-transition', title: 'Transição de Carreira', icon: '🔄' },
-    { id: 'remote-work', title: 'Trabalho Remoto', icon: '🏠' },
-    { id: 'salary-negotiation', title: 'Negociação Salarial', icon: '💰' },
-    { id: 'linkedin-optimization', title: 'Otimização de Perfil LinkedIn', icon: '👔' },
-    { id: 'technical-interviews', title: 'Entrevistas Técnicas', icon: '💻' },
-    { id: 'soft-skills', title: 'Habilidades Interpessoais', icon: '🤝' },
-    { id: 'portfolio-building', title: 'Construção de Portfólio', icon: '📊' },
-    { id: 'leadership', title: 'Desenvolvimento de Liderança', icon: '👑' },
-    { id: 'freelancing', title: 'Trabalho Freelance', icon: '🚀' },
-    { id: 'career-planning', title: 'Planejamento de Carreira', icon: '📈' },
-    { id: 'industry-trends', title: 'Tendências do Mercado', icon: '📊' },
-    { id: 'work-life-balance', title: 'Equilíbrio Vida-Trabalho', icon: '⚖️' },
-    { id: 'mentorship', title: 'Mentoria Profissional', icon: '🧠' },
-    { id: 'startup-careers', title: 'Carreiras em Startups', icon: '🚀' },
-    { id: 'digital-nomad', title: 'Nômade Digital', icon: '🌍' },
-    { id: 'career-coaching', title: 'Coaching de Carreira', icon: '🏆' },
+    { id: 'resume-writing', title: 'Técnicas de Escrita de Currículo', icon: '📝', category: 'curriculum' },
+    { id: 'interview-tips', title: 'Dicas para Entrevistas de Emprego', icon: '🗣️', category: 'interview' },
+    { id: 'networking', title: 'Networking Profissional', icon: '🔗', category: 'networking' },
+    { id: 'personal-branding', title: 'Marca Pessoal', icon: '🌟', category: 'branding' },
+    { id: 'career-transition', title: 'Transição de Carreira', icon: '🔄', category: 'career' },
+    { id: 'remote-work', title: 'Trabalho Remoto', icon: '🏠', category: 'work' },
+    { id: 'salary-negotiation', title: 'Negociação Salarial', icon: '💰', category: 'negotiation' },
+    { id: 'linkedin-optimization', title: 'Otimização de Perfil LinkedIn', icon: '👔', category: 'social' },
+    { id: 'technical-interviews', title: 'Entrevistas Técnicas', icon: '💻', category: 'interview' },
+    { id: 'soft-skills', title: 'Habilidades Interpessoais', icon: '🤝', category: 'skills' },
+    { id: 'portfolio-building', title: 'Construção de Portfólio', icon: '📊', category: 'branding' },
+    { id: 'leadership', title: 'Desenvolvimento de Liderança', icon: '👑', category: 'leadership' },
+    { id: 'freelancing', title: 'Trabalho Freelance', icon: '🚀', category: 'work' },
+    { id: 'career-planning', title: 'Planejamento de Carreira', icon: '📈', category: 'career' },
+    { id: 'industry-trends', title: 'Tendências do Mercado', icon: '📊', category: 'trends' },
+    { id: 'work-life-balance', title: 'Equilíbrio Vida-Trabalho', icon: '⚖️', category: 'lifestyle' },
+    { id: 'mentorship', title: 'Mentoria Profissional', icon: '🧠', category: 'development' },
+    { id: 'startup-careers', title: 'Carreiras em Startups', icon: '🚀', category: 'career' },
+    { id: 'digital-nomad', title: 'Nômade Digital', icon: '🌍', category: 'lifestyle' },
+    { id: 'career-coaching', title: 'Coaching de Carreira', icon: '🏆', category: 'development' },
+  ];
+  
+  // Categorias de tópicos 
+  const categories = [
+    { id: 'curriculum', name: 'Currículo', icon: '📄' },
+    { id: 'interview', name: 'Entrevistas', icon: '🎯' },
+    { id: 'career', name: 'Carreira', icon: '📈' },
+    { id: 'skills', name: 'Habilidades', icon: '🧠' },
+    { id: 'work', name: 'Trabalho', icon: '💼' },
+    { id: 'networking', name: 'Networking', icon: '🔗' },
+    { id: 'branding', name: 'Marca Pessoal', icon: '🌟' },
+    { id: 'lifestyle', name: 'Estilo de Vida', icon: '🌴' },
+    { id: 'development', name: 'Desenvolvimento', icon: '🚀' },
+    { id: 'all', name: 'Todos', icon: '🔍' },
   ];
   
   // Funções e hooks existentes
@@ -10905,7 +10938,7 @@ const HomeScreen = ({ navigation }) => {
     }
   };
   
-  // Nova função para carregar conhecimentos salvos
+  // Função para carregar conhecimentos salvos
   const carregarConhecimentosSalvos = async () => {
     try {
       const conhecimentos = await AsyncStorage.getItem(`conhecimentos_${user.id}`);
@@ -10936,7 +10969,10 @@ const HomeScreen = ({ navigation }) => {
     
     // Converter para dias
     const dias = Math.floor(horas / 24);
-    return `${dias} ${dias === 1 ? 'dia' : 'dias'} atrás`;
+    if (dias < 30) return `${dias} ${dias === 1 ? 'dia' : 'dias'} atrás`;
+    
+    // Para datas mais antigas, mostrar a data formatada
+    return new Date(data).toLocaleDateString('pt-BR');
   };
 
   // Função para navegar para a tela de configuração de IAs
@@ -10969,21 +11005,106 @@ const HomeScreen = ({ navigation }) => {
     navigation.navigate('SelecionarCurriculo');
   };
   
-  // Novas funções para a funcionalidade de Conhecimento
-  
-  // Abrir modal de conhecimento
-  const handleOpenKnowledgeModal = () => {
-    setShowKnowledgeModal(true);
+  // Função para navegar para a tela de conhecimento (subpágina)
+  const navegarParaConhecimento = () => {
+    setActiveScreen('knowledge');
+    setActiveTab('topics');
     setSelectedTopic(null);
     setGeneratedContent(null);
-    setShowContentPreview(false);
   };
+  
+  // Função para voltar à tela inicial
+  const voltarParaHome = () => {
+    setActiveScreen('home');
+  };
+  
+  // Implementação própria da função searchTopics com debounce manual
+  const searchTopics = (query) => {
+    if (!query || query.trim() === '') {
+      setSearchResults([]);
+      setIsSearching(false);
+      return;
+    }
+    
+    const normalizedQuery = query.toLowerCase().trim();
+    
+    // Primeiro buscar nos tópicos já definidos
+    const matchingPredefinedTopics = careerTopics.filter(topic => 
+      topic.title.toLowerCase().includes(normalizedQuery)
+    );
+    
+    // Depois buscar nos tópicos salvos
+    const matchingSavedTopics = savedKnowledge.filter(knowledge =>
+      !matchingPredefinedTopics.some(t => t.id === knowledge.topicId) && // Evitar duplicatas
+      knowledge.title.toLowerCase().includes(normalizedQuery)
+    ).map(knowledge => ({
+      id: knowledge.topicId,
+      title: knowledge.title,
+      icon: '📚',
+      isSaved: true
+    }));
+    
+    // Se não encontrou nada e tem pelo menos 3 caracteres, gerar uma sugestão
+    if (matchingPredefinedTopics.length === 0 && matchingSavedTopics.length === 0 && normalizedQuery.length >= 3) {
+      setSearchResults([
+        ...matchingPredefinedTopics,
+        ...matchingSavedTopics,
+        {
+          id: `search-${Date.now()}`,
+          title: `Gerar conteúdo sobre "${query}"`,
+          icon: '🔍',
+          isGenerated: true,
+          generatedTitle: query
+        }
+      ]);
+    } else {
+      setSearchResults([...matchingPredefinedTopics, ...matchingSavedTopics]);
+    }
+    
+    setIsSearching(false);
+  };
+  
+  // Atualizar resultados de busca quando o texto muda (com debounce)
+  const handleSearchChange = (text) => {
+    setSearchQuery(text);
+    
+    if (text.trim() !== '') {
+      setIsSearching(true);
+      
+      // Limpar timeout anterior se existir
+      if (searchTimeoutRef.current) {
+        clearTimeout(searchTimeoutRef.current);
+      }
+      
+      // Definir novo timeout (debounce)
+      searchTimeoutRef.current = setTimeout(() => {
+        searchTopics(text);
+      }, 500);
+    } else {
+      setSearchResults([]);
+      setIsSearching(false);
+      
+      // Limpar timeout se existir
+      if (searchTimeoutRef.current) {
+        clearTimeout(searchTimeoutRef.current);
+      }
+    }
+  };
+  
+  // Limpar o timeout ao desmontar o componente
+  useEffect(() => {
+    return () => {
+      if (searchTimeoutRef.current) {
+        clearTimeout(searchTimeoutRef.current);
+      }
+    };
+  }, []);
   
   // Selecionar um tópico
   const handleSelectTopic = async (topic) => {
     setSelectedTopic(topic);
     setGeneratingContent(true);
-    setShowContentPreview(true);
+    setActiveTab('content');
     
     try {
       // Verificar se já existe conteúdo salvo para este tópico
@@ -10994,9 +11115,19 @@ const HomeScreen = ({ navigation }) => {
         setGeneratedContent(existingContent.content);
         setRelatedTopics(existingContent.relatedTopics || []);
         setGeneratingContent(false);
+        setIsBookmarked(true);
+      } else if (topic.isGenerated) {
+        // Gerar conteúdo para um tópico personalizado
+        await generateContentWithAI({
+          id: topic.id,
+          title: topic.generatedTitle || topic.title,
+          icon: '🔍'
+        });
+        setIsBookmarked(false);
       } else {
-        // Gerar novo conteúdo com IA
+        // Gerar novo conteúdo com IA para um tópico predefinido
         await generateContentWithAI(topic);
+        setIsBookmarked(false);
       }
     } catch (error) {
       console.error('Erro ao processar tópico:', error);
@@ -11015,51 +11146,60 @@ const HomeScreen = ({ navigation }) => {
         throw new Error("API key do Gemini não configurada");
       }
       
-      // Construir o prompt para a IA
+      // Construir o prompt para a IA - prompt melhorado para conteúdo mais detalhado
       const promptText = `
-Crie um guia profissional detalhado sobre "${topic.title}" para desenvolvimento de carreira.
+Crie um guia profissional detalhado e altamente técnico sobre "${topic.title}" para desenvolvimento de carreira no Brasil.
 
 Estruture o conteúdo no formato Markdown com as seguintes seções:
 
 # ${topic.title}
 
 ## Introdução
-[Uma introdução abrangente ao tópico e sua importância no desenvolvimento profissional]
+[Uma introdução abrangente sobre ${topic.title} e sua importância no desenvolvimento profissional atual no Brasil e globalmente]
+
+## Contexto e Importância
+[Explicação do contexto contemporâneo e por que este tópico é relevante para profissionais]
 
 ## Principais Conceitos
-[Explicação dos conceitos fundamentais relacionados a este tópico]
+[Explicação detalhada dos conceitos fundamentais, técnicas e metodologias relacionadas a este tópico, com exemplos específicos]
 
-## Estratégias Práticas
-[4-6 estratégias concretas e acionáveis]
+## Análise Aprofundada
+[Discussão técnica e nuances importantes sobre o tópico, considerando diferentes perspectivas e contextos profissionais]
+
+## Estratégias Avançadas
+[5-7 estratégias concretas, acionáveis e detalhadas, com passos específicos para implementação]
+
+## Estudos de Caso Brasileiros
+[2-3 exemplos reais de sucesso no Brasil, com análise dos fatores críticos]
 
 ## Erros Comuns a Evitar
-[3-5 erros frequentes e como evitá-los]
+[4-6 erros frequentes e como evitá-los, com consequências específicas]
 
-## Exemplos de Sucesso
-[2-3 exemplos ou casos de profissionais/empresas que se destacam nesta área]
+## Ferramentas e Recursos
+[7-10 ferramentas, livros, cursos ou plataformas específicas para aprofundamento, com breve descrição de cada um]
 
-## Recursos Recomendados
-[5-7 livros, cursos, ferramentas ou sites para aprofundamento]
+## Implementação Passo-a-Passo
+[Um guia detalhado com etapas específicas para aplicar este conhecimento em contextos profissionais brasileiros]
 
-## Passos para Implementação
-[Um guia passo a passo para aplicar este conhecimento]
+## Tendências Futuras (2025-2026)
+[Tendências emergentes nesta área para os próximos anos com análise de impacto]
 
-## Tendências Futuras
-[Tendências emergentes nesta área para 2024-2025]
+## Métricas de Sucesso
+[Como medir resultados e avaliar o progresso na aplicação deste conhecimento]
 
 ## Conclusão
-[Síntese dos pontos-chave e próximos passos recomendados]
+[Síntese estratégica dos pontos-chave e recomendações finais]
 
-Forneça conteúdo detalhado, prático e atualizado, adequado para profissionais que buscam desenvolvimento de carreira no Brasil.
+Forneça conteúdo extremamente detalhado, técnico e aplicável, com exemplos concretos do mercado brasileiro quando possível. O texto deve ser profundo e substantivo, com informações práticas que um profissional pode aplicar imediatamente. Evite generalizações e foque em conteúdo específico e acionável.
 `;
       
-      // Chamar a API do Gemini
+      // Chamar a API do Gemini com temperatura mais baixa para resultados mais específicos
       const endpoint = `${IA_APIS.GEMINI.endpoint}?key=${apiKey}`;
       const requestBody = {
         contents: [{ parts: [{ text: promptText }] }],
         generationConfig: {
-          temperature: 0.2,
-          maxOutputTokens: 4000,
+          temperature: 0.1, // Temperatura mais baixa para conteúdo mais focado e técnico
+          maxOutputTokens: 8000, // Aumentado para permitir conteúdo mais detalhado
           topP: 0.8,
           topK: 40
         }
@@ -11067,33 +11207,40 @@ Forneça conteúdo detalhado, prático e atualizado, adequado para profissionais
 
       const response = await axios.post(endpoint, requestBody, {
         headers: { 'Content-Type': 'application/json' },
-        timeout: 30000
+        timeout: 60000 // Timeout aumentado para conteúdo maior
       });
       
       if (response.data?.candidates?.[0]?.content?.parts?.[0]?.text) {
         const content = response.data.candidates[0].content.parts[0].text;
         
-        // Gerar tópicos relacionados
+        // Prompt melhorado para tópicos relacionados mais relevantes
         const relatedTopicsPrompt = `
-Com base no seguinte conteúdo sobre "${topic.title}", sugira 5 tópicos relacionados que complementariam este conhecimento para desenvolvimento de carreira.
+Analise tecnicamente o seguinte conteúdo sobre "${topic.title}" e sugira exatamente 5 tópicos relacionados específicos que complementariam diretamente este conhecimento para desenvolvimento de carreira.
 
-Forneça apenas os títulos dos tópicos, sem explicações adicionais, no formato:
-1. [Tópico 1]
-2. [Tópico 2]
-3. [Tópico 3]
-4. [Tópico 4]
-5. [Tópico 5]
+Os tópicos devem ser altamente relevantes, específicos e seguir estas regras:
+1. Nenhum tópico deve ser redundante com o conteúdo principal
+2. Cada tópico deve representar uma área distinta que se conecte diretamente ao tema principal
+3. Os tópicos devem ser específicos e não genéricos
+4. Foque em tópicos técnicos e práticos, não superficiais
+5. Considere tópicos atuais (2025) relevantes para o mercado brasileiro
 
-Conteúdo:
-${content.substring(0, 1000)}...
+Forneça apenas os títulos dos tópicos no formato:
+1. [Tópico 1 específico]
+2. [Tópico 2 específico]
+3. [Tópico 3 específico]
+4. [Tópico 4 específico]
+5. [Tópico 5 específico]
+
+Conteúdo original:
+${content.substring(0, 1500)}...
 `;
 
         const relatedResponse = await axios.post(endpoint, {
           contents: [{ parts: [{ text: relatedTopicsPrompt }] }],
           generationConfig: {
-            temperature: 0.3,
+            temperature: 0.2,
             maxOutputTokens: 1000,
-            topP: 0.8,
+            topP: 0.9,
             topK: 40
           }
         }, {
@@ -11112,24 +11259,12 @@ ${content.substring(0, 1000)}...
             return {
               id: 'related-' + Date.now() + '-' + Math.random().toString(36).substring(2, 9),
               title: topic,
-              icon: '📚'
+              icon: '📚',
+              isGenerated: true,
+              generatedTitle: topic
             };
           });
         }
-        
-        // Salvar o conteúdo gerado
-        const newKnowledge = {
-          id: 'k-' + Date.now().toString(),
-          topicId: topic.id,
-          title: topic.title,
-          content: content,
-          relatedTopics: relatedTopicsList,
-          timestamp: new Date().toISOString()
-        };
-        
-        const updatedKnowledge = [...savedKnowledge, newKnowledge];
-        await AsyncStorage.setItem(`conhecimentos_${user.id}`, JSON.stringify(updatedKnowledge));
-        setSavedKnowledge(updatedKnowledge);
         
         // Atualizar estados
         setGeneratedContent(content);
@@ -11146,32 +11281,24 @@ ${content.substring(0, 1000)}...
     }
   };
   
-  // Salvar o conteúdo gerado
-  const saveGeneratedContent = async () => {
+  // Salvar ou remover o conteúdo gerado (bookmark)
+  const toggleBookmark = async () => {
     if (!selectedTopic || !generatedContent) return;
     
     try {
-      // Verificar se já existe
-      const existingIndex = savedKnowledge.findIndex(k => k.topicId === selectedTopic.id);
-      
-      if (existingIndex >= 0) {
-        // Atualizar existente
-        const updatedKnowledge = [...savedKnowledge];
-        updatedKnowledge[existingIndex] = {
-          ...updatedKnowledge[existingIndex],
-          content: generatedContent,
-          relatedTopics: relatedTopics,
-          timestamp: new Date().toISOString()
-        };
-        
+      if (isBookmarked) {
+        // Remover dos favoritos
+        const updatedKnowledge = savedKnowledge.filter(k => k.topicId !== selectedTopic.id);
         await AsyncStorage.setItem(`conhecimentos_${user.id}`, JSON.stringify(updatedKnowledge));
         setSavedKnowledge(updatedKnowledge);
+        setIsBookmarked(false);
+        Alert.alert('Removido', 'Conteúdo removido dos favoritos');
       } else {
-        // Adicionar novo
+        // Adicionar aos favoritos
         const newKnowledge = {
           id: 'k-' + Date.now().toString(),
           topicId: selectedTopic.id,
-          title: selectedTopic.title,
+          title: selectedTopic.generatedTitle || selectedTopic.title,
           content: generatedContent,
           relatedTopics: relatedTopics,
           timestamp: new Date().toISOString()
@@ -11180,13 +11307,12 @@ ${content.substring(0, 1000)}...
         const updatedKnowledge = [...savedKnowledge, newKnowledge];
         await AsyncStorage.setItem(`conhecimentos_${user.id}`, JSON.stringify(updatedKnowledge));
         setSavedKnowledge(updatedKnowledge);
+        setIsBookmarked(true);
+        Alert.alert('Sucesso', 'Conteúdo salvo nos favoritos!');
       }
-      
-      Alert.alert('Sucesso', 'Conteúdo salvo com sucesso!');
-      setShowKnowledgeModal(false);
     } catch (error) {
-      console.error('Erro ao salvar conteúdo:', error);
-      Alert.alert('Erro', 'Não foi possível salvar o conteúdo.');
+      console.error('Erro ao gerenciar favoritos:', error);
+      Alert.alert('Erro', 'Não foi possível gerenciar os favoritos.');
     }
   };
   
@@ -11205,349 +11331,705 @@ ${content.substring(0, 1000)}...
     }
   };
   
-  // Renderizar o modal de conhecimento
-  const renderKnowledgeModal = () => {
-    if (!showKnowledgeModal) return null;
+  // Função para atualizar tela (pull-to-refresh)
+  const onRefresh = async () => {
+    setRefreshing(true);
+    await carregarConhecimentosSalvos();
+    setRefreshing(false);
+  };
+  
+  // Filtrar tópicos por categoria
+  const getFilteredTopics = () => {
+    if (selectedCategory === 'all') {
+      return careerTopics;
+    }
+    return careerTopics.filter(topic => topic.category === selectedCategory);
+  };
+  
+  // Componentes de renderização para a tela de Conhecimento
+  
+  // Renderizar cabeçalho da tela de conhecimento
+  const renderKnowledgeHeader = () => (
+    <View style={{
+      backgroundColor: Colors.primary,
+      paddingTop: insets.top,
+      paddingHorizontal: 20,
+      paddingBottom: 15,
+      zIndex: 1000,
+    }}>
+      <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
+        <TouchableOpacity onPress={voltarParaHome}>
+          <Ionicons name="arrow-back" size={24} color="white" />
+        </TouchableOpacity>
+        <Text style={{ fontSize: 18, fontWeight: 'bold', color: 'white' }}>
+          Biblioteca de Conhecimento
+        </Text>
+        <View style={{ width: 24 }} />
+      </View>
+      
+      <View style={{ marginTop: 15 }}>
+        <View style={{
+          flexDirection: 'row',
+          backgroundColor: 'rgba(255,255,255,0.2)',
+          borderRadius: 10,
+          paddingHorizontal: 15,
+          paddingVertical: 10,
+          alignItems: 'center',
+        }}>
+          <Ionicons name="search" size={20} color="white" />
+          <TextInput
+            placeholder="Buscar conhecimento..."
+            placeholderTextColor="rgba(255,255,255,0.7)"
+            style={{
+              flex: 1,
+              color: 'white',
+              marginLeft: 10,
+              fontSize: 16,
+            }}
+            value={searchQuery}
+            onChangeText={handleSearchChange}
+          />
+          {searchQuery ? (
+            <TouchableOpacity onPress={() => handleSearchChange('')}>
+              <Ionicons name="close-circle" size={20} color="white" />
+            </TouchableOpacity>
+          ) : null}
+        </View>
+      </View>
+    </View>
+  );
+  
+  // Renderizar abas de navegação da tela de conhecimento
+  const renderKnowledgeTabs = () => (
+    <View style={{
+      flexDirection: 'row',
+      borderBottomWidth: 1,
+      borderBottomColor: Colors.mediumGray,
+      backgroundColor: 'white',
+    }}>
+      <TouchableOpacity
+        style={{
+          flex: 1,
+          paddingVertical: 15,
+          alignItems: 'center',
+          borderBottomWidth: 3,
+          borderBottomColor: activeTab === 'topics' ? Colors.primary : 'transparent',
+        }}
+        onPress={() => setActiveTab('topics')}
+      >
+        <Text style={{
+          fontWeight: 'bold',
+          color: activeTab === 'topics' ? Colors.primary : Colors.lightText,
+        }}>
+          Explorar Tópicos
+        </Text>
+      </TouchableOpacity>
+      
+      <TouchableOpacity
+        style={{
+          flex: 1,
+          paddingVertical: 15,
+          alignItems: 'center',
+          borderBottomWidth: 3,
+          borderBottomColor: activeTab === 'saved' ? Colors.primary : 'transparent',
+        }}
+        onPress={() => setActiveTab('saved')}
+      >
+        <Text style={{
+          fontWeight: 'bold',
+          color: activeTab === 'saved' ? Colors.primary : Colors.lightText,
+        }}>
+          Favoritos{' '}
+          {savedKnowledge.length > 0 && (
+            <Text>({savedKnowledge.length})</Text>
+          )}
+        </Text>
+      </TouchableOpacity>
+      
+      {selectedTopic && (
+        <TouchableOpacity
+          style={{
+            flex: 1,
+            paddingVertical: 15,
+            alignItems: 'center',
+            borderBottomWidth: 3,
+            borderBottomColor: activeTab === 'content' ? Colors.primary : 'transparent',
+          }}
+          onPress={() => setActiveTab('content')}
+        >
+          <Text style={{
+            fontWeight: 'bold',
+            color: activeTab === 'content' ? Colors.primary : Colors.lightText,
+          }}>
+            Conteúdo
+          </Text>
+        </TouchableOpacity>
+      )}
+    </View>
+  );
+  
+  // Renderizar categorias horizontais
+  const renderCategories = () => (
+    <View style={{ marginVertical: 15 }}>
+      <FlatList
+        horizontal
+        showsHorizontalScrollIndicator={false}
+        data={categories}
+        keyExtractor={(item) => item.id}
+        contentContainerStyle={{ paddingHorizontal: 15 }}
+        renderItem={({ item }) => (
+          <TouchableOpacity
+            style={{
+              paddingHorizontal: 15,
+              paddingVertical: 10,
+              backgroundColor: selectedCategory === item.id ? Colors.primary : 'rgba(0,0,0,0.05)',
+              borderRadius: 20,
+              marginRight: 10,
+              flexDirection: 'row',
+              alignItems: 'center',
+            }}
+            onPress={() => setSelectedCategory(item.id)}
+          >
+            <Text style={{ marginRight: 5 }}>{item.icon}</Text>
+            <Text style={{
+              fontWeight: '500',
+              color: selectedCategory === item.id ? 'white' : Colors.dark,
+            }}>
+              {item.name}
+            </Text>
+          </TouchableOpacity>
+        )}
+      />
+    </View>
+  );
+  
+  // Renderizar resultados de busca
+  const renderSearchResults = () => {
+    if (searchQuery.trim() === '') return null;
     
     return (
       <View style={{
-        position: 'absolute',
-        left: 0,
-        right: 0,
-        top: 0,
-        bottom: 0,
-        backgroundColor: 'rgba(0, 0, 0, 0.5)',
-        justifyContent: 'center',
-        alignItems: 'center',
-        zIndex: 1000,
+        backgroundColor: 'white',
+        borderRadius: 10,
+        margin: 15,
+        elevation: 3,
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 2 },
+        shadowOpacity: 0.1,
+        shadowRadius: 4,
       }}>
         <View style={{
-          width: '90%',
-          height: '90%',
-          backgroundColor: Colors.white,
-          borderRadius: 15,
-          overflow: 'hidden',
-          ...Platform.select({
-            ios: {
-              shadowColor: '#000',
-              shadowOffset: { width: 0, height: 5 },
-              shadowOpacity: 0.3,
-              shadowRadius: 10,
-            },
-            android: {
-              elevation: 10,
-            },
-          }),
+          padding: 15,
+          borderBottomWidth: 1,
+          borderBottomColor: Colors.mediumGray,
         }}>
-          {/* Header do modal */}
-          <View style={{
-            flexDirection: 'row',
-            justifyContent: 'space-between',
-            alignItems: 'center',
-            padding: 15,
-            borderBottomWidth: 1,
-            borderBottomColor: Colors.mediumGray,
-            backgroundColor: Colors.primary,
-          }}>
-            <Text style={{ fontSize: 18, fontWeight: 'bold', color: Colors.white }}>
-              Biblioteca de Conhecimento
-            </Text>
-            <TouchableOpacity onPress={() => setShowKnowledgeModal(false)}>
-              <Text style={{ fontSize: 24, color: Colors.white }}>×</Text>
+          <Text style={{ fontWeight: 'bold', color: Colors.dark }}>
+            Resultados para "{searchQuery}"
+          </Text>
+        </View>
+        
+        {isSearching ? (
+          <View style={{ padding: 20, alignItems: 'center' }}>
+            <ActivityIndicator color={Colors.primary} />
+            <Text style={{ marginTop: 10, color: Colors.lightText }}>Buscando...</Text>
+          </View>
+        ) : searchResults.length === 0 ? (
+          <View style={{ padding: 20, alignItems: 'center' }}>
+            <Text style={{ color: Colors.lightText }}>Nenhum resultado encontrado</Text>
+            <TouchableOpacity
+              style={{
+                marginTop: 10,
+                backgroundColor: Colors.primary,
+                paddingHorizontal: 15,
+                paddingVertical: 8,
+                borderRadius: 20,
+                flexDirection: 'row',
+                alignItems: 'center',
+              }}
+              onPress={() => {
+                const newTopic = {
+                  id: `search-${Date.now()}`,
+                  title: searchQuery,
+                  icon: '🔍',
+                  isGenerated: true,
+                  generatedTitle: searchQuery
+                };
+                handleSelectTopic(newTopic);
+              }}
+            >
+              <Ionicons name="add-circle-outline" size={16} color="white" style={{ marginRight: 5 }} />
+              <Text style={{ color: 'white', fontWeight: '500' }}>
+                Gerar conteúdo sobre "{searchQuery}"
+              </Text>
             </TouchableOpacity>
           </View>
-          
-          {/* Conteúdo do modal */}
-          <View style={{ flex: 1, flexDirection: 'row' }}>
-            {/* Sidebar de tópicos */}
+        ) : (
+          <FlatList
+            data={searchResults}
+            keyExtractor={(item) => item.id}
+            renderItem={({ item }) => (
+              <TouchableOpacity
+                style={{
+                  padding: 15,
+                  borderBottomWidth: 1,
+                  borderBottomColor: Colors.mediumGray,
+                  flexDirection: 'row',
+                  alignItems: 'center',
+                }}
+                onPress={() => handleSelectTopic(item)}
+              >
+                <View style={{
+                  width: 40,
+                  height: 40,
+                  borderRadius: 20,
+                  backgroundColor: item.isGenerated ? '#e1f5fe' : item.isSaved ? '#e8f5e9' : '#f5f5f5',
+                  justifyContent: 'center',
+                  alignItems: 'center',
+                  marginRight: 10,
+                }}>
+                  <Text style={{ fontSize: 18 }}>{item.icon}</Text>
+                </View>
+                <View style={{ flex: 1 }}>
+                  <Text style={{ fontWeight: item.isGenerated ? 'bold' : 'normal', color: Colors.dark }}>
+                    {item.title}
+                  </Text>
+                  {item.isSaved && (
+                    <Text style={{ fontSize: 12, color: Colors.success, marginTop: 2 }}>
+                      Já salvo nos seus favoritos
+                    </Text>
+                  )}
+                </View>
+                <Ionicons name="chevron-forward" size={20} color={Colors.lightText} />
+              </TouchableOpacity>
+            )}
+            style={{ maxHeight: 300 }}
+          />
+        )}
+      </View>
+    );
+  };
+  
+  // Renderizar lista de tópicos
+  const renderTopicsList = () => {
+    const filteredTopics = getFilteredTopics();
+    
+    return (
+      <View style={{ padding: 15 }}>
+        {filteredTopics.map((topic) => (
+          <TouchableOpacity
+            key={topic.id}
+            style={{
+              flexDirection: 'row',
+              alignItems: 'center',
+              padding: 15,
+              backgroundColor: 'white',
+              borderRadius: 10,
+              marginBottom: 10,
+              elevation: 2,
+              shadowColor: '#000',
+              shadowOffset: { width: 0, height: 1 },
+              shadowOpacity: 0.1,
+              shadowRadius: 2,
+            }}
+            onPress={() => handleSelectTopic(topic)}
+          >
             <View style={{
-              width: showContentPreview ? '30%' : '100%',
-              borderRightWidth: showContentPreview ? 1 : 0,
-              borderRightColor: Colors.mediumGray,
+              width: 50,
+              height: 50,
+              borderRadius: 25,
               backgroundColor: '#f5f5f5',
+              justifyContent: 'center',
+              alignItems: 'center',
+              marginRight: 15,
             }}>
-              <ScrollView>
-                <View style={{ padding: 10 }}>
-                  <Text style={{ fontSize: 16, fontWeight: 'bold', marginBottom: 10, color: Colors.dark }}>
-                    Tópicos de Carreira
+              <Text style={{ fontSize: 24 }}>{topic.icon}</Text>
+            </View>
+            <View style={{ flex: 1 }}>
+              <Text style={{ fontSize: 16, fontWeight: 'bold', color: Colors.dark }}>
+                {topic.title}
+              </Text>
+              {savedKnowledge.some(k => k.topicId === topic.id) && (
+                <Text style={{ fontSize: 12, color: Colors.success, marginTop: 4 }}>
+                  <Ionicons name="bookmark" size={12} color={Colors.success} /> Salvo
+                </Text>
+              )}
+            </View>
+            <Ionicons name="chevron-forward" size={20} color={Colors.lightText} />
+          </TouchableOpacity>
+        ))}
+      </View>
+    );
+  };
+  
+  // Renderizar lista de favoritos
+  const renderSavedList = () => {
+    if (savedKnowledge.length === 0) {
+      return (
+        <View style={{ 
+          flex: 1, 
+          alignItems: 'center', 
+          justifyContent: 'center', 
+          paddingVertical: 50,
+          paddingHorizontal: 20 
+        }}>
+          <Ionicons name="bookmark-outline" size={60} color={Colors.lightText} />
+          <Text style={{ 
+            fontSize: 18, 
+            fontWeight: 'bold', 
+            color: Colors.dark, 
+            marginTop: 15,
+            textAlign: 'center' 
+          }}>
+            Nenhum conteúdo salvo ainda
+          </Text>
+          <Text style={{ 
+            color: Colors.lightText, 
+            textAlign: 'center', 
+            marginTop: 10, 
+            marginBottom: 20 
+          }}>
+            Explore tópicos de carreira e salve conteúdo para acesso rápido.
+          </Text>
+          <TouchableOpacity
+            style={{
+              backgroundColor: Colors.primary,
+              paddingHorizontal: 20,
+              paddingVertical: 12,
+              borderRadius: 25,
+              flexDirection: 'row',
+              alignItems: 'center',
+            }}
+            onPress={() => setActiveTab('topics')}
+          >
+            <Ionicons name="search" size={20} color="white" style={{ marginRight: 5 }} />
+            <Text style={{ color: 'white', fontWeight: 'bold' }}>
+              Explorar Tópicos
+            </Text>
+          </TouchableOpacity>
+        </View>
+      );
+    }
+    
+    return (
+      <View style={{ padding: 15 }}>
+        {savedKnowledge.map((knowledge) => {
+          // Encontrar o tópico original se existir
+          const originalTopic = careerTopics.find(t => t.id === knowledge.topicId);
+          
+          return (
+            <TouchableOpacity
+              key={knowledge.id}
+              style={{
+                flexDirection: 'row',
+                alignItems: 'center',
+                padding: 15,
+                backgroundColor: 'white',
+                borderRadius: 10,
+                marginBottom: 10,
+                elevation: 2,
+                shadowColor: '#000',
+                shadowOffset: { width: 0, height: 1 },
+                shadowOpacity: 0.1,
+                shadowRadius: 2,
+              }}
+              onPress={() => handleSelectTopic(originalTopic || {
+                id: knowledge.topicId,
+                title: knowledge.title,
+                icon: '📚'
+              })}
+            >
+              <View style={{
+                width: 50,
+                height: 50,
+                borderRadius: 25,
+                backgroundColor: '#e8f5e9',
+                justifyContent: 'center',
+                alignItems: 'center',
+                marginRight: 15,
+              }}>
+                <Text style={{ fontSize: 24 }}>
+                  {originalTopic?.icon || '📚'}
+                </Text>
+              </View>
+              <View style={{ flex: 1 }}>
+                <Text style={{ fontSize: 16, fontWeight: 'bold', color: Colors.dark }}>
+                  {knowledge.title}
+                </Text>
+                <Text style={{ fontSize: 12, color: Colors.lightText, marginTop: 4 }}>
+                  Salvo: {formatarTempoRelativo(knowledge.timestamp)}
+                </Text>
+              </View>
+              <Ionicons name="chevron-forward" size={20} color={Colors.lightText} />
+            </TouchableOpacity>
+          );
+        })}
+      </View>
+    );
+  };
+  
+  // Renderizar conteúdo do tópico
+  const renderTopicContent = () => {
+    if (!selectedTopic) return null;
+    
+    if (generatingContent) {
+      return (
+        <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center', padding: 20 }}>
+          <ActivityIndicator size="large" color={Colors.primary} />
+          <Text style={{ marginTop: 20, textAlign: 'center', color: Colors.dark, fontWeight: 'bold' }}>
+            Gerando conteúdo sobre
+          </Text>
+          <Text style={{ marginTop: 5, textAlign: 'center', color: Colors.dark, fontWeight: 'bold', fontSize: 18 }}>
+            {selectedTopic.generatedTitle || selectedTopic.title}
+          </Text>
+          <Text style={{ marginTop: 15, textAlign: 'center', color: Colors.lightText }}>
+            Nossa IA está criando um guia profissional detalhado. Isso pode levar alguns instantes.
+          </Text>
+        </View>
+      );
+    }
+    
+    if (generatedContent) {
+      return (
+        <View style={{ flex: 1 }}>
+          <ScrollView style={{ flex: 1 }}>
+            <View style={{ padding: 15 }}>
+              <Markdown
+                style={{
+                  body: { fontSize: 16, lineHeight: 24, color: Colors.dark },
+                  heading1: {
+                    fontSize: 24,
+                    fontWeight: 'bold',
+                    marginBottom: 15,
+                    color: Colors.dark,
+                    borderBottomWidth: 1,
+                    borderBottomColor: Colors.mediumGray,
+                    paddingBottom: 5,
+                  },
+                  heading2: {
+                    fontSize: 20,
+                    fontWeight: 'bold',
+                    marginBottom: 10,
+                    marginTop: 20,
+                    color: Colors.dark
+                  },
+                  heading3: {
+                    fontSize: 18,
+                    fontWeight: 'bold',
+                    marginTop: 15,
+                    marginBottom: 5,
+                    color: Colors.dark
+                  },
+                  paragraph: {
+                    fontSize: 16,
+                    lineHeight: 24,
+                    marginBottom: 10,
+                    color: Colors.dark
+                  },
+                  list_item: {
+                    marginBottom: 5,
+                    flexDirection: 'row',
+                    alignItems: 'flex-start',
+                  },
+                  bullet_list: {
+                    marginVertical: 10,
+                  },
+                  strong: {
+                    fontWeight: 'bold',
+                  },
+                  em: {
+                    fontStyle: 'italic',
+                  },
+                  ordered_list: {
+                    marginVertical: 10,
+                  },
+                  hr: {
+                    backgroundColor: Colors.mediumGray,
+                    height: 1,
+                    marginVertical: 15,
+                  },
+                  blockquote: {
+                    borderLeftWidth: 3,
+                    borderLeftColor: Colors.primary,
+                    paddingLeft: 10,
+                    marginVertical: 10,
+                    backgroundColor: Colors.lightGray,
+                    padding: 10,
+                    borderRadius: 5,
+                  },
+                  link: {
+                    color: Colors.primary,
+                    textDecorationLine: 'underline',
+                  }
+                }}
+              >
+                {generatedContent}
+              </Markdown>
+              
+              {/* Tópicos relacionados */}
+              {relatedTopics && relatedTopics.length > 0 && (
+                <View style={{
+                  marginTop: 30,
+                  padding: 15,
+                  backgroundColor: '#f5f5f5',
+                  borderRadius: 10,
+                  marginBottom: 20,
+                }}>
+                  <Text style={{
+                    fontSize: 18,
+                    fontWeight: 'bold',
+                    marginBottom: 15,
+                    color: Colors.dark,
+                  }}>
+                    Tópicos Relacionados
                   </Text>
                   
-                  {/* Lista de tópicos */}
-                  {careerTopics.map(topic => (
+                  {relatedTopics.map((topic, index) => (
                     <TouchableOpacity
-                      key={topic.id}
+                      key={index}
                       style={{
                         flexDirection: 'row',
                         alignItems: 'center',
                         padding: 12,
-                        backgroundColor: selectedTopic?.id === topic.id ? '#e3f2fd' : Colors.white,
+                        backgroundColor: Colors.white,
                         borderRadius: 8,
                         marginBottom: 8,
-                        borderLeftWidth: 3,
-                        borderLeftColor: selectedTopic?.id === topic.id ? Colors.primary : 'transparent',
+                        elevation: 1,
+                        shadowColor: '#000',
+                        shadowOffset: { width: 0, height: 1 },
+                        shadowOpacity: 0.1,
+                        shadowRadius: 1,
                       }}
                       onPress={() => handleSelectTopic(topic)}
                     >
-                      <Text style={{ fontSize: 20, marginRight: 10 }}>{topic.icon}</Text>
-                      <Text style={{
-                        fontSize: 14,
-                        color: Colors.dark,
-                        flex: 1,
-                        fontWeight: selectedTopic?.id === topic.id ? 'bold' : 'normal',
-                      }}>
+                      <Text style={{ fontSize: 20, marginRight: 10 }}>📚</Text>
+                      <Text style={{ fontSize: 14, color: Colors.dark, flex: 1 }}>
                         {topic.title}
                       </Text>
+                      <Ionicons name="chevron-forward" size={18} color={Colors.primary} />
                     </TouchableOpacity>
                   ))}
-                  
-                  {/* Lista de conhecimentos salvos */}
-                  {savedKnowledge.length > 0 && (
-                    <View style={{ marginTop: 20 }}>
-                      <Text style={{ fontSize: 16, fontWeight: 'bold', marginBottom: 10, color: Colors.dark }}>
-                        Conteúdos Salvos
-                      </Text>
-                      
-                      {savedKnowledge.map(knowledge => {
-                        // Encontrar o tópico original
-                        const originalTopic = careerTopics.find(t => t.id === knowledge.topicId);
-                        
-                        return (
-                          <TouchableOpacity
-                            key={knowledge.id}
-                            style={{
-                              flexDirection: 'row',
-                              alignItems: 'center',
-                              padding: 12,
-                              backgroundColor: selectedTopic?.id === originalTopic?.id ? '#e3f2fd' : '#e8f5e9',
-                              borderRadius: 8,
-                              marginBottom: 8,
-                              borderLeftWidth: 3,
-                              borderLeftColor: Colors.success,
-                            }}
-                            onPress={() => handleSelectTopic(originalTopic || { id: knowledge.topicId, title: knowledge.title, icon: '📚' })}
-                          >
-                            <Text style={{ fontSize: 20, marginRight: 10 }}>
-                              {originalTopic?.icon || '📚'}
-                            </Text>
-                            <View style={{ flex: 1 }}>
-                              <Text style={{
-                                fontSize: 14,
-                                color: Colors.dark,
-                                fontWeight: 'bold',
-                              }}>
-                                {knowledge.title}
-                              </Text>
-                              <Text style={{ fontSize: 12, color: Colors.lightText }}>
-                                Salvo: {formatarTempoRelativo(new Date(knowledge.timestamp))}
-                              </Text>
-                            </View>
-                          </TouchableOpacity>
-                        );
-                      })}
-                    </View>
-                  )}
                 </View>
-              </ScrollView>
+              )}
+              
+              {/* Espaço no final para evitar que o conteúdo fique sob a barra de ações */}
+              <View style={{ height: 70 }} />
             </View>
+          </ScrollView>
+          
+          {/* Barra de ações */}
+          <View style={{
+            flexDirection: 'row',
+            padding: 15,
+            borderTopWidth: 1,
+            borderTopColor: Colors.mediumGray,
+            backgroundColor: 'white',
+            position: 'absolute',
+            bottom: 0,
+            left: 0,
+            right: 0,
+          }}>
+            <TouchableOpacity
+              style={{
+                backgroundColor: isBookmarked ? Colors.success : Colors.primary,
+                flex: 1,
+                paddingVertical: 12,
+                borderRadius: 8,
+                alignItems: 'center',
+                justifyContent: 'center',
+                flexDirection: 'row',
+                marginRight: 10,
+              }}
+              onPress={toggleBookmark}
+            >
+              <Ionicons
+                name={isBookmarked ? "bookmark" : "bookmark-outline"}
+                size={20}
+                color="white"
+                style={{ marginRight: 5 }}
+              />
+              <Text style={{ color: 'white', fontWeight: 'bold' }}>
+                {isBookmarked ? 'Salvo' : 'Salvar'}
+              </Text>
+            </TouchableOpacity>
             
-            {/* Área de visualização do conteúdo */}
-            {showContentPreview && (
-              <View style={{ flex: 1, backgroundColor: Colors.white }}>
-                {generatingContent ? (
-                  <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}>
-                    <ActivityIndicator size="large" color={Colors.primary} />
-                    <Text style={{ marginTop: 20, textAlign: 'center', color: Colors.dark }}>
-                      Gerando conteúdo sobre {selectedTopic?.title}...
-                    </Text>
-                    <Text style={{ marginTop: 10, textAlign: 'center', color: Colors.lightText, paddingHorizontal: 20 }}>
-                      Nossa IA está criando um guia completo. Isso pode levar alguns instantes.
-                    </Text>
-                  </View>
-                ) : generatedContent ? (
-                  <View style={{ flex: 1 }}>
-                    <ScrollView style={{ flex: 1, padding: 15 }}>
-                      <Markdown
-                        style={{
-                          body: { fontSize: 16, lineHeight: 24, color: Colors.dark },
-                          heading1: {
-                            fontSize: 24,
-                            fontWeight: 'bold',
-                            marginBottom: 15,
-                            color: Colors.dark,
-                            borderBottomWidth: 1,
-                            borderBottomColor: Colors.mediumGray,
-                            paddingBottom: 5,
-                          },
-                          heading2: {
-                            fontSize: 20,
-                            fontWeight: 'bold',
-                            marginBottom: 10,
-                            marginTop: 20,
-                            color: Colors.dark
-                          },
-                          heading3: {
-                            fontSize: 18,
-                            fontWeight: 'bold',
-                            marginTop: 15,
-                            marginBottom: 5,
-                            color: Colors.dark
-                          },
-                          paragraph: {
-                            fontSize: 16,
-                            lineHeight: 24,
-                            marginBottom: 10,
-                            color: Colors.dark
-                          },
-                          list_item: {
-                            marginBottom: 5,
-                            flexDirection: 'row',
-                            alignItems: 'flex-start',
-                          },
-                          bullet_list: {
-                            marginVertical: 10,
-                          },
-                          strong: {
-                            fontWeight: 'bold',
-                          },
-                          em: {
-                            fontStyle: 'italic',
-                          },
-                          ordered_list: {
-                            marginVertical: 10,
-                          },
-                          hr: {
-                            backgroundColor: Colors.mediumGray,
-                            height: 1,
-                            marginVertical: 15,
-                          },
-                          blockquote: {
-                            borderLeftWidth: 3,
-                            borderLeftColor: Colors.primary,
-                            paddingLeft: 10,
-                            marginVertical: 10,
-                            backgroundColor: Colors.lightGray,
-                            padding: 10,
-                            borderRadius: 5,
-                          },
-                        }}
-                      >
-                        {generatedContent}
-                      </Markdown>
-                      
-                      {/* Tópicos relacionados */}
-                      {relatedTopics && relatedTopics.length > 0 && (
-                        <View style={{
-                          marginTop: 30,
-                          padding: 15,
-                          backgroundColor: '#f5f5f5',
-                          borderRadius: 10,
-                          marginBottom: 20,
-                        }}>
-                          <Text style={{
-                            fontSize: 18,
-                            fontWeight: 'bold',
-                            marginBottom: 15,
-                            color: Colors.dark,
-                          }}>
-                            Tópicos Relacionados
-                          </Text>
-                          
-                          {relatedTopics.map((topic, index) => (
-                            <TouchableOpacity
-                              key={index}
-                              style={{
-                                flexDirection: 'row',
-                                alignItems: 'center',
-                                padding: 12,
-                                backgroundColor: Colors.white,
-                                borderRadius: 8,
-                                marginBottom: 8,
-                                borderLeftWidth: 3,
-                                borderLeftColor: Colors.primary,
-                              }}
-                              onPress={() => {
-                                // Criar um novo tópico baseado nesta sugestão
-                                const newTopic = {
-                                  id: topic.id,
-                                  title: topic.title,
-                                  icon: '📚'
-                                };
-                                handleSelectTopic(newTopic);
-                              }}
-                            >
-                              <Text style={{ fontSize: 20, marginRight: 10 }}>📚</Text>
-                              <Text style={{ fontSize: 14, color: Colors.dark, flex: 1 }}>
-                                {topic.title}
-                              </Text>
-                              <Text style={{ fontSize: 20, color: Colors.primary }}>❯</Text>
-                            </TouchableOpacity>
-                          ))}
-                        </View>
-                      )}
-                    </ScrollView>
-                    
-                    {/* Barra de ações */}
-                    <View style={{
-                      flexDirection: 'row',
-                      padding: 15,
-                      borderTopWidth: 1,
-                      borderTopColor: Colors.mediumGray,
-                      justifyContent: 'space-between',
-                    }}>
-                      <TouchableOpacity
-                        style={{
-                          backgroundColor: Colors.primary,
-                          paddingVertical: 10,
-                          paddingHorizontal: 15,
-                          borderRadius: 8,
-                          flex: 1,
-                          alignItems: 'center',
-                          marginRight: 8,
-                        }}
-                        onPress={saveGeneratedContent}
-                      >
-                        <Text style={{ color: Colors.white, fontWeight: 'bold' }}>
-                          Salvar
-                        </Text>
-                      </TouchableOpacity>
-                      
-                      <TouchableOpacity
-                        style={{
-                          backgroundColor: Colors.secondary,
-                          paddingVertical: 10,
-                          paddingHorizontal: 15,
-                          borderRadius: 8,
-                          flex: 1,
-                          alignItems: 'center',
-                          marginLeft: 8,
-                        }}
-                        onPress={shareGeneratedContent}
-                      >
-                        <Text style={{ color: Colors.white, fontWeight: 'bold' }}>
-                          Compartilhar
-                        </Text>
-                      </TouchableOpacity>
-                    </View>
-                  </View>
-                ) : (
-                  <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center', padding: 20 }}>
-                    <Text style={{ fontSize: 18, fontWeight: 'bold', marginBottom: 10, textAlign: 'center' }}>
-                      Selecione um tópico para gerar conteúdo
-                    </Text>
-                    <Text style={{ textAlign: 'center', color: Colors.lightText }}>
-                      Escolha um dos tópicos disponíveis na lista ao lado para que a IA gere um guia profissional sobre o assunto.
-                    </Text>
-                  </View>
-                )}
-              </View>
-            )}
+            <TouchableOpacity
+              style={{
+                backgroundColor: Colors.secondary,
+                paddingVertical: 12,
+                paddingHorizontal: 15,
+                borderRadius: 8,
+                alignItems: 'center',
+                justifyContent: 'center',
+                flexDirection: 'row',
+              }}
+              onPress={shareGeneratedContent}
+            >
+              <Ionicons name="share-outline" size={20} color="white" style={{ marginRight: 5 }} />
+              <Text style={{ color: 'white', fontWeight: 'bold' }}>
+                Compartilhar
+              </Text>
+            </TouchableOpacity>
           </View>
         </View>
+      );
+    }
+    
+    return (
+      <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center', padding: 20 }}>
+        <Text style={{ textAlign: 'center', color: Colors.lightText }}>
+          Nenhum conteúdo disponível.
+        </Text>
       </View>
     );
   };
-
-  return (
+  
+  // Renderizar conteúdo principal da tela de conhecimento baseado na aba ativa
+  const renderKnowledgeContent = () => {
+    if (searchQuery.trim() !== '') {
+      return renderSearchResults();
+    }
+    
+    switch (activeTab) {
+      case 'topics':
+        return (
+          <>
+            {renderCategories()}
+            {renderTopicsList()}
+          </>
+        );
+      case 'saved':
+        return renderSavedList();
+      case 'content':
+        return renderTopicContent();
+      default:
+        return null;
+    }
+  };
+  
+  // Renderizar a tela completa de conhecimento
+  const renderKnowledgeScreen = () => (
+    <SafeAreaView style={{ flex: 1, backgroundColor: '#f5f5f5' }}>
+      <StatusBar barStyle="light-content" backgroundColor={Colors.primary} />
+      
+      {renderKnowledgeHeader()}
+      
+      <ScrollView
+        contentContainerStyle={{ flexGrow: 1 }}
+        refreshControl={
+          <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
+        }
+        showsVerticalScrollIndicator={false}
+      >
+        <View style={{ marginTop: 5, flex: 1 }}>
+          {renderKnowledgeTabs()}
+          {renderKnowledgeContent()}
+        </View>
+      </ScrollView>
+    </SafeAreaView>
+  );
+  
+  // Renderização da tela principal do HomeScreen
+  const renderHomeScreen = () => (
     <SafeAreaView style={styles.homeContainer}>
       <StatusBar barStyle="light-content" backgroundColor={Colors.primary} />
 
@@ -11572,7 +12054,7 @@ ${content.substring(0, 1000)}...
         >
           <Text style={styles.welcomeText}>Olá, {user?.nome || 'visitante'}!</Text>
 
-          {/* NOVA SEÇÃO: Botão de Conhecimento */}
+          {/* NOVA SEÇÃO: Botão de Conhecimento - Modificado para navegar */}
           <View style={styles.featureSection}>
             <Text style={styles.featureSectionTitle}>Desenvolvimento Profissional</Text>
             <TouchableOpacity
@@ -11581,7 +12063,7 @@ ${content.substring(0, 1000)}...
                 borderLeftWidth: 4,
                 borderLeftColor: '#03a9f4',
               }]}
-              onPress={handleOpenKnowledgeModal}
+              onPress={navegarParaConhecimento}
               activeOpacity={0.7}
             >
               <View style={{
@@ -11836,11 +12318,11 @@ ${content.substring(0, 1000)}...
           <View style={{ height: 30 }} />
         </ScrollView>
       </View>
-      
-      {/* Modal de Conhecimento */}
-      {renderKnowledgeModal()}
     </SafeAreaView>
   );
+  
+  // Renderização principal do componente HomeScreen
+  return activeScreen === 'home' ? renderHomeScreen() : renderKnowledgeScreen();
 };
 
 const additionalStyles = {
