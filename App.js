@@ -11203,176 +11203,336 @@ const AuthNavigator = () => (
 // Rotas do App
 const AppStack = createStackNavigator();
 
-// Novo componente SobreAppScreen
-// Componente SobreAppScreen completamente independente
 const SobreAppScreen = ({ navigation }) => {
-  // Estilos locais, específicos para este componente
-  const localStyles = StyleSheet.create({
-    container: {
-      flex: 1,
-      backgroundColor: Colors.light,
-    },
-    header: {
-      backgroundColor: Colors.dark,
-      padding: 15,
-      flexDirection: 'row',
-      alignItems: 'center',
-    },
-    headerTitle: {
-      color: Colors.white,
-      fontSize: 18,
-      fontWeight: 'bold',
-    },
-    backButton: {
-      marginRight: 10,
-      width: 30,
-      height: 30,
-      justifyContent: 'center',
-      alignItems: 'center',
-    },
-    backButtonText: {
-      fontSize: 24,
-      color: Colors.white,
-    },
-    contentContainer: {
-      flex: 1,
-      padding: 20,
-    },
-    aboutCard: {
-      backgroundColor: Colors.white,
-      borderRadius: 10,
-      padding: 20,
-      marginBottom: 20,
-      ...Platform.select({
-        ios: {
-          shadowColor: '#000',
-          shadowOffset: { width: 0, height: 2 },
-          shadowOpacity: 0.1,
-          shadowRadius: 4,
-        },
-        android: {
-          elevation: 2,
-        },
-      }),
-    },
-    appTitle: {
-      fontSize: 24,
-      fontWeight: 'bold',
-      color: Colors.dark,
-      textAlign: 'center',
-    },
-    versionText: {
-      fontSize: 16,
-      color: Colors.lightText,
-      textAlign: 'center',
-      marginTop: 5,
-    },
-    divider: {
-      height: 1,
-      backgroundColor: Colors.mediumGray,
-      marginVertical: 20,
-    },
-    sectionTitle: {
-      fontSize: 18,
-      fontWeight: 'bold',
-      color: Colors.dark,
-      marginTop: 15,
-      marginBottom: 10,
-    },
-    bodyText: {
-      fontSize: 16,
-      lineHeight: 24,
-      color: Colors.dark,
-      marginBottom: 15,
-    },
-    featureItem: {
-      marginBottom: 15,
-    },
-    featureTitle: {
-      fontSize: 16,
-      fontWeight: 'bold',
-      color: Colors.dark,
-      marginBottom: 5,
-    },
-    contactButton: {
-      backgroundColor: Colors.primary,
-      padding: 15,
-      borderRadius: 8,
-      alignItems: 'center',
-      marginTop: 20,
-    },
-    buttonText: {
-      color: Colors.white,
-      fontWeight: 'bold',
-      fontSize: 16,
-    },
-  });
+  const [activeSection, setActiveSection] = useState('sobre');
+  
+  // Dimensões da tela
+  // const { width } = Dimensions.get('window');
+
+  // Funções para lidar com links externos
+  const handleOpenWebsite = () => {
+    Linking.openURL('https://curriculobot.app');
+  };
+
+  const handleContactSupport = () => {
+    Linking.openURL('mailto:suporte@curriculobot.app');
+  };
+
+  const handleSocialMedia = (platform) => {
+    let url = '';
+    switch (platform) {
+      case 'linkedin':
+        url = 'https://linkedin.com/company/curriculobot';
+        break;
+      case 'twitter':
+        url = 'https://twitter.com/curriculobot';
+        break;
+      case 'instagram':
+        url = 'https://instagram.com/curriculobot';
+        break;
+    }
+    
+    if (url) Linking.openURL(url);
+  };
+
+  // Renderização das seções de conteúdo
+  const renderSectionIndicator = () => (
+    <View style={styles.sectionIndicator}>
+      <TouchableOpacity 
+        style={[
+          styles.sectionTab, 
+          activeSection === 'sobre' && styles.activeSection
+        ]}
+        onPress={() => setActiveSection('sobre')}
+      >
+        <Text style={[
+          styles.sectionTabText,
+          activeSection === 'sobre' && styles.activeSectionText
+        ]}>
+          Sobre
+        </Text>
+      </TouchableOpacity>
+      
+      <TouchableOpacity 
+        style={[
+          styles.sectionTab, 
+          activeSection === 'recursos' && styles.activeSection
+        ]}
+        onPress={() => setActiveSection('recursos')}
+      >
+        <Text style={[
+          styles.sectionTabText,
+          activeSection === 'recursos' && styles.activeSectionText
+        ]}>
+          Recursos
+        </Text>
+      </TouchableOpacity>
+      
+      <TouchableOpacity 
+        style={[
+          styles.sectionTab, 
+          activeSection === 'versao' && styles.activeSection
+        ]}
+        onPress={() => setActiveSection('versao')}
+      >
+        <Text style={[
+          styles.sectionTabText,
+          activeSection === 'versao' && styles.activeSectionText
+        ]}>
+          Versão
+        </Text>
+      </TouchableOpacity>
+    </View>
+  );
 
   return (
-    <SafeAreaView style={localStyles.container}>
-      <StatusBar barStyle="light-content" backgroundColor={Colors.dark} />
-
-      <View style={localStyles.header}>
-        <TouchableOpacity
-          style={localStyles.backButton}
-          onPress={() => navigation.goBack()}
-        >
-          <Text style={localStyles.backButtonText}>‹</Text>
-        </TouchableOpacity>
-        <Text style={localStyles.headerTitle}>Sobre o App</Text>
-      </View>
-
-      <ScrollView style={localStyles.contentContainer}>
-        <View style={localStyles.aboutCard}>
-          <Text style={localStyles.appTitle}>CurriculoBot Premium</Text>
-          <Text style={localStyles.versionText}>Versão 1.0.0</Text>
-
-          <View style={localStyles.divider} />
-
-          <Text style={localStyles.sectionTitle}>O que é o CurriculoBot?</Text>
-          <Text style={localStyles.bodyText}>
-            CurriculoBot é um assistente inteligente que ajuda você a criar, gerenciar e analisar
-            currículos profissionais utilizando inteligência artificial de múltiplos provedores.
-          </Text>
-
-          <Text style={localStyles.sectionTitle}>Recursos</Text>
-          <View style={localStyles.featureItem}>
-            <Text style={localStyles.featureTitle}>• Criação Guiada</Text>
-            <Text style={localStyles.bodyText}>
-              Interface conversacional que simplifica a criação do seu currículo.
-            </Text>
-          </View>
-
-          <View style={localStyles.featureItem}>
-            <Text style={localStyles.featureTitle}>• Análise com IA</Text>
-            <Text style={localStyles.bodyText}>
-              Análise profissional do seu currículo usando diferentes IAs como Google Gemini, OpenAI e Claude.
-            </Text>
-          </View>
-
-          <View style={localStyles.featureItem}>
-            <Text style={localStyles.featureTitle}>• Dicas Personalizadas</Text>
-            <Text style={localStyles.bodyText}>
-              Recomendações de melhorias, cursos e vagas adequadas ao seu perfil.
-            </Text>
-          </View>
-
-          <Text style={localStyles.sectionTitle}>Contato</Text>
-          <Text style={localStyles.bodyText}>
-            Email: suporte@curriculobot.app
-          </Text>
-          <Text style={localStyles.bodyText}>
-            Website: www.curriculobot.app
-          </Text>
-
+    <SafeAreaView style={styles.container}>
+      <StatusBar barStyle="light-content" backgroundColor={Colors.primary} />
+      
+      <ScrollView style={styles.scrollView}>
+        {/* Cabeçalho Principal */}
+        <View style={styles.header}>
           <TouchableOpacity
-            style={localStyles.contactButton}
-            onPress={() => {
-              Alert.alert('Obrigado', 'Agradecemos por usar o CurriculoBot!');
-            }}
+            style={styles.backButtonTop}
+            onPress={() => navigation.goBack()}
           >
-            <Text style={localStyles.buttonText}>Entre em Contato</Text>
+            <Text style={styles.backButtonTopText}>‹</Text>
           </TouchableOpacity>
+        </View>
+
+        {/* Hero Section */}
+        <View style={styles.heroContainer}>
+          <View style={styles.logoContainer}>
+            <View style={styles.logoBackground}>
+              <Text style={styles.logoIcon}>📝</Text>
+            </View>
+          </View>
+          <Text style={styles.appTitle}>CurriculoBot Premium</Text>
+          <Text style={styles.appSubtitle}>Versão 1.2.0</Text>
+          <View style={styles.premiumBadge}>
+            <Text style={styles.premiumBadgeText}>PREMIUM</Text>
+          </View>
+        </View>
+
+        {/* Indicador de seções */}
+        {renderSectionIndicator()}
+
+        {/* Conteúdo principal */}
+        <View style={styles.contentContainer}>
+          {activeSection === 'sobre' && (
+            <View style={styles.sectionContent}>
+              <Text style={styles.sectionTitle}>O que é o CurriculoBot?</Text>
+              <Text style={styles.sectionDescription}>
+                CurriculoBot é um assistente inteligente que ajuda você a criar, gerenciar e analisar
+                currículos profissionais utilizando inteligência artificial de múltiplos provedores.
+              </Text>
+              
+              <Text style={styles.sectionDescription}>
+                Desenvolvido por uma equipe de especialistas da Estacio de Florianopolis, o CurriculoBot utiliza
+                algoritmos avançados para personalizar seu currículo de acordo com as melhores práticas
+                do mercado de trabalho atual.
+              </Text>
+              
+              <View style={styles.infoCardContainer}>
+                <View style={styles.infoCard}>
+                  <Text style={styles.infoCardNumber}>1+</Text>
+                  <Text style={styles.infoCardText}>Usuários</Text>
+                </View>
+                
+                <View style={styles.infoCard}>
+                  <Text style={styles.infoCardNumber}>10+</Text>
+                  <Text style={styles.infoCardText}>Currículos</Text>
+                </View>
+                
+                <View style={styles.infoCard}>
+                  <Text style={styles.infoCardNumber}>98%</Text>
+                  <Text style={styles.infoCardText}>Satisfação</Text>
+                </View>
+              </View>
+            </View>
+          )}
+          
+          {activeSection === 'recursos' && (
+            <View style={styles.sectionContent}>
+              <Text style={styles.sectionTitle}>Recursos Premium</Text>
+              
+              <View style={styles.featureItem}>
+                <View style={styles.featureIconContainer}>
+                  <Text style={styles.featureIcon}>🤖</Text>
+                </View>
+                <View style={styles.featureTextContainer}>
+                  <Text style={styles.featureTitle}>Criação Guiada por IA</Text>
+                  <Text style={styles.featureDescription}>
+                    Interface conversacional intuitiva que simplifica a criação do seu currículo profissional.
+                  </Text>
+                </View>
+              </View>
+              
+              <View style={styles.featureItem}>
+                <View style={styles.featureIconContainer}>
+                  <Text style={styles.featureIcon}>📊</Text>
+                </View>
+                <View style={styles.featureTextContainer}>
+                  <Text style={styles.featureTitle}>Análise Avançada</Text>
+                  <Text style={styles.featureDescription}>
+                    Análise profissional do seu currículo usando inteligência artificial de várias fontes.
+                  </Text>
+                </View>
+              </View>
+              
+              <View style={styles.featureItem}>
+                <View style={styles.featureIconContainer}>
+                  <Text style={styles.featureIcon}>🌟</Text>
+                </View>
+                <View style={styles.featureTextContainer}>
+                  <Text style={styles.featureTitle}>Dicas Personalizadas</Text>
+                  <Text style={styles.featureDescription}>
+                    Recomendações de melhorias, cursos e vagas personalizadas ao seu perfil.
+                  </Text>
+                </View>
+              </View>
+              
+              <View style={styles.featureItem}>
+                <View style={styles.featureIconContainer}>
+                  <Text style={styles.featureIcon}>📝</Text>
+                </View>
+                <View style={styles.featureTextContainer}>
+                  <Text style={styles.featureTitle}>Múltiplos Templates</Text>
+                  <Text style={styles.featureDescription}>
+                    Escolha entre diversos modelos profissionais para personalizar seu currículo.
+                  </Text>
+                </View>
+              </View>
+              
+              <View style={styles.featureItem}>
+                <View style={styles.featureIconContainer}>
+                  <Text style={styles.featureIcon}>🔎</Text>
+                </View>
+                <View style={styles.featureTextContainer}>
+                  <Text style={styles.featureTitle}>Busca de Vagas</Text>
+                  <Text style={styles.featureDescription}>
+                    Encontre oportunidades alinhadas com seu perfil profissional.
+                  </Text>
+                </View>
+              </View>
+            </View>
+          )}
+          
+          {activeSection === 'versao' && (
+            <View style={styles.sectionContent}>
+              <Text style={styles.sectionTitle}>Detalhes da Versão</Text>
+              
+              <View style={styles.versionCard}>
+                <View style={styles.versionHeader}>
+                  <Text style={styles.versionNumber}>1.2.0</Text>
+                  <Text style={styles.versionDate}>Maio 2025</Text>
+                </View>
+                
+                <View style={styles.versionFeatureList}>
+                  <Text style={styles.versionFeatureTitle}>Novos recursos:</Text>
+                  
+                  <View style={styles.versionFeatureItem}>
+                    <View style={styles.versionFeatureDot} />
+                    <Text style={styles.versionFeatureText}>
+                      Análise avançada de carreira com visualização gráfica
+                    </Text>
+                  </View>
+                  
+                  <View style={styles.versionFeatureItem}>
+                    <View style={styles.versionFeatureDot} />
+                    <Text style={styles.versionFeatureText}>
+                      Integração com novas IAs (Claude, Perplexity, DeepSeek)
+                    </Text>
+                  </View>
+                  
+                  <View style={styles.versionFeatureItem}>
+                    <View style={styles.versionFeatureDot} />
+                    <Text style={styles.versionFeatureText}>
+                      Busca de vagas com compatibilidade por perfil
+                    </Text>
+                  </View>
+                  
+                  <View style={styles.versionFeatureItem}>
+                    <View style={styles.versionFeatureDot} />
+                    <Text style={styles.versionFeatureText}>
+                      Novos templates de currículo
+                    </Text>
+                  </View>
+                  
+                  <View style={styles.versionFeatureItem}>
+                    <View style={styles.versionFeatureDot} />
+                    <Text style={styles.versionFeatureText}>
+                      Interface redesenhada para melhor experiência
+                    </Text>
+                  </View>
+                </View>
+              </View>
+              
+              <View style={styles.versionPrevious}>
+                <Text style={styles.versionPreviousTitle}>Versões anteriores</Text>
+                
+                <View style={styles.versionPreviousItem}>
+                  <Text style={styles.versionPreviousNumber}>1.1.0</Text>
+                  <Text style={styles.versionPreviousDate}>Fevereiro 2025</Text>
+                </View>
+                
+                <View style={styles.versionPreviousItem}>
+                  <Text style={styles.versionPreviousNumber}>1.0.0</Text>
+                  <Text style={styles.versionPreviousDate}>Dezembro 2024</Text>
+                </View>
+              </View>
+            </View>
+          )}
+          
+          {/* Informações de contato */}
+          <View style={styles.contactSection}>
+            <Text style={styles.contactTitle}>Entre em Contato</Text>
+            
+            <TouchableOpacity 
+              style={styles.contactButton}
+              onPress={handleOpenWebsite}
+            >
+              <Text style={styles.contactButtonIcon}>🌐</Text>
+              <Text style={styles.contactButtonText}>www.curriculobot.app</Text>
+            </TouchableOpacity>
+            
+            <TouchableOpacity 
+              style={styles.contactButton}
+              onPress={handleContactSupport}
+            >
+              <Text style={styles.contactButtonIcon}>✉️</Text>
+              <Text style={styles.contactButtonText}>suporte@curriculobot.app</Text>
+            </TouchableOpacity>
+            
+            <View style={styles.socialMediaContainer}>
+              <TouchableOpacity 
+                style={styles.socialButton}
+                onPress={() => handleSocialMedia('linkedin')}
+              >
+                <Text style={styles.socialButtonText}>in</Text>
+              </TouchableOpacity>
+              
+              <TouchableOpacity 
+                style={styles.socialButton}
+                onPress={() => handleSocialMedia('twitter')}
+              >
+                <Text style={styles.socialButtonText}>𝕏</Text>
+              </TouchableOpacity>
+              
+              <TouchableOpacity 
+                style={styles.socialButton}
+                onPress={() => handleSocialMedia('instagram')}
+              >
+                <Text style={styles.socialButtonText}>📷</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+          
+          {/* Rodapé */}
+          <View style={styles.footer}>
+            <Text style={styles.footerText}>© 2025 CurriculoBot Premium</Text>
+            <Text style={styles.footerText}>Todos os direitos reservados</Text>
+          </View>
         </View>
       </ScrollView>
     </SafeAreaView>
@@ -13052,9 +13212,435 @@ const styles = StyleSheet.create({
     fontSize: 14,
   },
 
+  container: {
+    flex: 1,
+    backgroundColor: '#f5f7fa',
+  },
+  scrollView: {
+    flex: 1,
+  },
+  // Cabeçalho animado
+  animatedHeader: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    zIndex: 100,
+    backgroundColor: Colors.primary,
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 15,
+    elevation: 4,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.2,
+    shadowRadius: 3,
+  },
+  headerTitle: {
+    color: '#fff',
+    fontSize: 18,
+    fontWeight: 'bold',
+  },
+  // Cabeçalho estático
+  header: {
+    height: 60,
+    justifyContent: 'center',
+    paddingHorizontal: 15,
+  },
+  backButton: {
+    marginRight: 10,
+    width: 30,
+    height: 30,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  backButtonText: {
+    fontSize: 24,
+    color: '#fff',
+  },
+  backButtonTop: {
+    width: 30,
+    height: 30,
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: Colors.primary,
+    borderRadius: 15,
+  },
+  backButtonTopText: {
+    fontSize: 22,
+    color: '#fff',
+    fontWeight: 'bold',
+  },
+  // Seção Hero
+  heroContainer: {
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingTop: 20,
+    paddingBottom: 40,
+    backgroundColor: Colors.primary,
+    borderBottomLeftRadius: 30,
+    borderBottomRightRadius: 30,
+    ...Platform.select({
+      ios: {
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 10 },
+        shadowOpacity: 0.2,
+        shadowRadius: 15,
+      },
+      android: {
+        elevation: 8,
+      },
+    }),
+  },
+  logoContainer: {
+    marginBottom: 20,
+  },
+  logoBackground: {
+    width: 100,
+    height: 100,
+    borderRadius: 50,
+    backgroundColor: 'rgba(255, 255, 255, 0.2)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    borderWidth: 3,
+    borderColor: 'rgba(255, 255, 255, 0.5)',
+  },
+  logoIcon: {
+    fontSize: 48,
+  },
+  appTitle: {
+    fontSize: 28,
+    fontWeight: 'bold',
+    color: '#fff',
+    marginBottom: 10,
+    letterSpacing: 0.5,
+  },
+  appSubtitle: {
+    fontSize: 16,
+    color: 'rgba(255, 255, 255, 0.8)',
+    marginBottom: 15,
+  },
+  premiumBadge: {
+    backgroundColor: '#FFD700',
+    paddingHorizontal: 15,
+    paddingVertical: 6,
+    borderRadius: 20,
+  },
+  premiumBadgeText: {
+    fontWeight: 'bold',
+    fontSize: 14,
+    color: '#000',
+  },
+  // Indicador de seções
+  sectionIndicator: {
+    flexDirection: 'row',
+    backgroundColor: '#fff',
+    margin: 20,
+    marginTop: -25,
+    borderRadius: 10,
+    height: 50,
+    justifyContent: 'space-around',
+    alignItems: 'center',
+    ...Platform.select({
+      ios: {
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 2 },
+        shadowOpacity: 0.1,
+        shadowRadius: 5,
+      },
+      android: {
+        elevation: 4,
+      },
+    }),
+  },
+  sectionTab: {
+    flex: 1,
+    height: '100%',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  activeSection: {
+    borderBottomWidth: 3,
+    borderBottomColor: Colors.primary,
+  },
+  sectionTabText: {
+    fontSize: 16,
+    fontWeight: '500',
+    color: '#999',
+  },
+  activeSectionText: {
+    color: Colors.primary,
+    fontWeight: 'bold',
+  },
+  // Container de conteúdo
+  contentContainer: {
+    flex: 1,
+    paddingHorizontal: 20,
+    paddingBottom: 40,
+  },
+  // Seções de conteúdo
+  sectionContent: {
+    marginBottom: 30,
+  },
+  sectionTitle: {
+    fontSize: 22,
+    fontWeight: 'bold',
+    color: '#333',
+    marginBottom: 15,
+    paddingBottom: 5,
+    borderBottomWidth: 2,
+    borderBottomColor: 'rgba(0,188,212,0.3)',
+  },
+  sectionDescription: {
+    fontSize: 16,
+    lineHeight: 24,
+    color: '#555',
+    marginBottom: 20,
+    textAlign: 'justify',
+  },
+  // Cards de informação
+  infoCardContainer: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    marginVertical: 20,
+  },
+  infoCard: {
+    width: '30%',
+    backgroundColor: Colors.primary,
+    padding: 15,
+    borderRadius: 10,
+    alignItems: 'center',
+    ...Platform.select({
+      ios: {
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 3 },
+        shadowOpacity: 0.1,
+        shadowRadius: 5,
+      },
+      android: {
+        elevation: 3,
+      },
+    }),
+  },
+  infoCardNumber: {
+    fontSize: 20,
+    fontWeight: 'bold',
+    color: '#fff',
+    marginBottom: 5,
+  },
+  infoCardText: {
+    fontSize: 12,
+    color: 'rgba(255, 255, 255, 0.8)',
+  },
+  // Itens de recursos
+  featureItem: {
+    flexDirection: 'row',
+    marginBottom: 25,
+    backgroundColor: '#fff',
+    padding: 15,
+    borderRadius: 10,
+    ...Platform.select({
+      ios: {
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 2 },
+        shadowOpacity: 0.05,
+        shadowRadius: 3,
+      },
+      android: {
+        elevation: 2,
+      },
+    }),
+  },
+  featureIconContainer: {
+    width: 50,
+    height: 50,
+    borderRadius: 25,
+    backgroundColor: 'rgba(0,188,212,0.1)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginRight: 15,
+  },
+  featureIcon: {
+    fontSize: 24,
+  },
+  featureTextContainer: {
+    flex: 1,
+  },
+  featureTitle: {
+    fontSize: 18,
+    fontWeight: 'bold',
+    color: '#333',
+    marginBottom: 5,
+  },
+  featureDescription: {
+    fontSize: 14,
+    color: '#666',
+    lineHeight: 20,
+  },
+  // Seção de versão
+  versionCard: {
+    backgroundColor: '#fff',
+    borderRadius: 10,
+    padding: 20,
+    marginBottom: 20,
+    ...Platform.select({
+      ios: {
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 2 },
+        shadowOpacity: 0.05,
+        shadowRadius: 3,
+      },
+      android: {
+        elevation: 3,
+      },
+    }),
+  },
+  versionHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 15,
+    paddingBottom: 10,
+    borderBottomWidth: 1,
+    borderBottomColor: '#eee',
+  },
+  versionNumber: {
+    fontSize: 20,
+    fontWeight: 'bold',
+    color: Colors.primary,
+  },
+  versionDate: {
+    fontSize: 14,
+    color: '#888',
+  },
+  versionFeatureList: {
+    marginTop: 10,
+  },
+  versionFeatureTitle: {
+    fontSize: 16,
+    fontWeight: 'bold',
+    color: '#333',
+    marginBottom: 10,
+  },
+  versionFeatureItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 12,
+  },
+  versionFeatureDot: {
+    width: 8,
+    height: 8,
+    borderRadius: 4,
+    backgroundColor: Colors.primary,
+    marginRight: 10,
+  },
+  versionFeatureText: {
+    fontSize: 15,
+    color: '#444',
+    flex: 1,
+  },
+  versionPrevious: {
+    backgroundColor: '#f8f8f8',
+    borderRadius: 10,
+    padding: 15,
+  },
+  versionPreviousTitle: {
+    fontSize: 16,
+    fontWeight: 'bold',
+    color: '#555',
+    marginBottom: 10,
+  },
+  versionPreviousItem: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    paddingVertical: 8,
+    borderBottomWidth: 1,
+    borderBottomColor: '#eee',
+  },
+  versionPreviousNumber: {
+    fontSize: 15,
+    fontWeight: '500',
+    color: '#444',
+  },
+  versionPreviousDate: {
+    fontSize: 14,
+    color: '#888',
+  },
+  // Seção de contato
+  contactSection: {
+    backgroundColor: '#fff',
+    padding: 20,
+    borderRadius: 10,
+    marginTop: 20,
+    marginBottom: 30,
+    ...Platform.select({
+      ios: {
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 2 },
+        shadowOpacity: 0.05,
+        shadowRadius: 4,
+      },
+      android: {
+        elevation: 2,
+      },
+    }),
+  },
+  contactTitle: {
+    fontSize: 18,
+    fontWeight: 'bold',
+    color: '#333',
+    marginBottom: 15,
+    textAlign: 'center',
+  },
+  contactButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: 'rgba(0,188,212,0.1)',
+    padding: 12,
+    borderRadius: 8,
+    marginBottom: 12,
+  },
+  contactButtonIcon: {
+    fontSize: 20,
+    marginRight: 10,
+  },
+  contactButtonText: {
+    fontSize: 15,
+    color: Colors.primary,
+    fontWeight: '500',
+  },
+  socialMediaContainer: {
+    flexDirection: 'row',
+    justifyContent: 'center',
+    marginTop: 15,
+  },
+  socialButton: {
+    width: 45,
+    height: 45,
+    borderRadius: 22.5,
+    backgroundColor: Colors.primary,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginHorizontal: 10,
+  },
+  socialButtonText: {
+    fontSize: 18,
+    color: '#fff',
+    fontWeight: 'bold',
+  },
+  // Rodapé
+  footer: {
+    alignItems: 'center',
+    marginTop: 20,
+    marginBottom: 10,
+  },
+  footerText: {
+    fontSize: 12,
+    color: '#999',
+    marginBottom: 3,
+  },
 
   ...additionalStyles  // Novos estilos adicionados
-
 
 });
 
