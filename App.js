@@ -23,7 +23,6 @@ import Markdown from 'react-native-markdown-display';
 import { NavigationContainer } from '@react-navigation/native';
 import { createStackNavigator } from '@react-navigation/stack';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
-// import { Slider, Switch } from '@react-native-community/slider';
 import { Ionicons } from 'react-native-vector-icons/Ionicons';
 import axios from 'axios';
 
@@ -3216,229 +3215,6 @@ const salvarIAAPIKey = async (tipoIA, apiKey) => {
     return false;
   }
 };
-
-// Função aprimorada para buscar vagas com Gemini
-// const buscarVagasComGemini = async (curriculoData) => {
-//   try {
-//     // Obter API key do Gemini
-//     const apiKey = await getIAAPIKey('GEMINI');
-
-//     if (!apiKey) {
-//       throw new Error("API key do Google Gemini não configurada");
-//     }
-
-//     // Formatar dados relevantes do currículo para o prompt
-//     const cv = curriculoData.data;
-
-//     // Extrair informações chave do currículo
-//     const area = cv.informacoes_pessoais?.area || '';
-//     const nome = `${cv.informacoes_pessoais?.nome || ''} ${cv.informacoes_pessoais?.sobrenome || ''}`.trim();
-
-//     // Extrair competências e palavras-chave do currículo
-//     const habilidades = new Set();
-
-//     // De projetos
-//     if (cv.projetos && cv.projetos.length > 0) {
-//       cv.projetos.forEach(projeto => {
-//         if (projeto.habilidades) {
-//           projeto.habilidades.split(',').forEach(hab => {
-//             habilidades.add(hab.trim());
-//           });
-//         }
-//       });
-//     }
-
-//     // De experiências
-//     const experiencias = [];
-//     if (cv.experiencias && cv.experiencias.length > 0) {
-//       cv.experiencias.forEach(exp => {
-//         experiencias.push({
-//           cargo: exp.cargo,
-//           empresa: exp.empresa,
-//           descricao: exp.descricao
-//         });
-
-//         // Extrair palavras-chave das descrições de experiência
-//         if (exp.descricao) {
-//           const palavrasChave = exp.descricao
-//             .split(/[\s,;.]+/)
-//             .filter(palavra => 
-//               palavra.length > 4 && 
-//               !['sobre', 'como', 'para', 'onde', 'quando', 'quem', 'porque', 'então'].includes(palavra.toLowerCase())
-//             );
-
-//           palavrasChave.forEach(palavra => habilidades.add(palavra));
-//         }
-//       });
-//     }
-
-//     // De formação
-//     const formacoes = [];
-//     if (cv.formacoes_academicas && cv.formacoes_academicas.length > 0) {
-//       cv.formacoes_academicas.forEach(formacao => {
-//         formacoes.push({
-//           diploma: formacao.diploma,
-//           area: formacao.area_estudo,
-//           instituicao: formacao.instituicao
-//         });
-
-//         // Adicionar área de estudo às habilidades
-//         if (formacao.area_estudo) {
-//           habilidades.add(formacao.area_estudo);
-//         }
-//       });
-//     }
-
-//     // De idiomas
-//     const idiomas = [];
-//     if (cv.idiomas && cv.idiomas.length > 0) {
-//       cv.idiomas.forEach(idioma => {
-//         idiomas.push({
-//           idioma: idioma.nome,
-//           nivel: idioma.nivel
-//         });
-//       });
-//     }
-
-//     // Prompt melhorado para garantir informações completas e links funcionais
-//     const promptText = `
-// Você é um recrutador e especialista em RH com 15 anos de experiência no mercado brasileiro.
-
-// TAREFA: Analisar o perfil profissional abaixo e recomendar 5 vagas reais que estão abertas atualmente no mercado de trabalho brasileiro. Essas vagas devem ser adequadas para o perfil do candidato com base em suas habilidades, experiência e formação.
-
-// PERFIL DO CANDIDATO:
-// Nome: ${nome}
-// Área de atuação: ${area}
-// ${experiencias.length > 0 ? `
-// Experiências profissionais:
-// ${experiencias.map(exp => `- ${exp.cargo} na empresa ${exp.empresa}`).join('\n')}
-// ` : ''}
-
-// ${formacoes.length > 0 ? `
-// Formação acadêmica:
-// ${formacoes.map(form => `- ${form.diploma} em ${form.area} - ${form.instituicao}`).join('\n')}
-// ` : ''}
-
-// ${idiomas.length > 0 ? `
-// Idiomas:
-// ${idiomas.map(idioma => `- ${idioma.idioma}: ${idioma.nivel}`).join('\n')}
-// ` : ''}
-
-// Principais competências e palavras-chave:
-// ${Array.from(habilidades).slice(0, 15).join(', ')}
-
-// INSTRUÇÕES ESPECÍFICAS:
-// 1. Encontre 5 vagas reais que existem atualmente no mercado brasileiro (2025)
-// 2. As vagas devem ser compatíveis com o perfil, experiência e senioridade do candidato
-
-// 3. Para cada vaga, forneça OBRIGATORIAMENTE todas estas informações:
-//    - Título da vaga (cargo específico)
-//    - Nome da empresa
-//    - Localização (cidade/estado ou remoto)
-//    - Faixa salarial estimada (baseada em sua expertise de mercado)
-//    - 5 principais requisitos/qualificações exigidos
-//    - 3 diferenciais da vaga
-//    - Link completo e clicável para a vaga (URL completa para LinkedIn, Glassdoor, Indeed, etc.)
-//    - Breve descrição das responsabilidades (2-3 frases)
-//    - Avaliação de compatibilidade com o perfil (porcentagem de 0-100% e justificativa)
-
-// 4. IMPORTANTE SOBRE OS LINKS: Forneça URLs completos e funcionais no formato [Site da Vaga](https://www.exemplo.com) 
-//    - Use o formato markdown para links, garantindo que sejam clicáveis
-//    - Os links devem apontar para plataformas reais como LinkedIn, Glassdoor, Indeed, Catho, etc.
-//    - Cada vaga DEVE ter pelo menos um link funcional
-
-// 5. As vagas devem variar em termos de empresas e possibilidades, mostrando diferentes opções no mercado
-// 6. Priorize vagas publicadas nos últimos 30 dias
-// 7. Formate a resposta de forma estruturada usando markdown para facilitar a leitura
-// 8. Inclua uma análise final com recomendações sobre como o candidato pode se destacar ao aplicar para estas vagas
-
-// FORMATO DE RESPOSTA:
-// # Vagas Recomendadas para ${nome}
-
-// ## Vaga 1: [Título da Vaga] - [Empresa]
-// **Localização:** [Cidade/Estado ou Remoto]  
-// **Faixa Salarial:** R$ [valor] - R$ [valor]  
-
-// ### Descrição:
-// [2-3 frases sobre as responsabilidades]
-
-// ### Requisitos:
-// - [Requisito 1]
-// - [Requisito 2]
-// - [Requisito 3]
-// - [Requisito 4]
-// - [Requisito 5]
-
-// ### Diferenciais:
-// - [Diferencial 1]
-// - [Diferencial 2]
-// - [Diferencial 3]
-
-// ### Link da Vaga:
-// [Nome da Plataforma](URL completa da vaga)
-
-// ### Compatibilidade:
-// **[XX]%** - [Justificativa breve]
-
-// [Repetir o formato acima para as 5 vagas]
-
-// ## Recomendações para se destacar
-// [3-5 dicas personalizadas]
-
-// IMPORTANTE: Todas as vagas informadas devem ser REAIS e ATUAIS (2025), baseando-se em sua base de conhecimento sobre o mercado de trabalho brasileiro atual. Não crie vagas fictícias e SEMPRE forneça TODAS as informações solicitadas, sem omitir nenhum campo.
-// `;
-
-//     console.log('Enviando prompt para busca de vagas:', promptText);
-
-//     // Preparar a requisição para o Gemini
-//     const endpoint = `${IA_APIS.GEMINI.endpoint}?key=${apiKey}`;
-//     const requestBody = {
-//       contents: [{ parts: [{ text: promptText }] }],
-//       generationConfig: {
-//         temperature: 0.2,  // Baixa temperatura para resultados mais factuais
-//         maxOutputTokens: 4000,  // Aumentado para garantir conteúdo completo
-//         topP: 0.8,
-//         topK: 40
-//       }
-//     };
-
-//     // Fazer a chamada para o Gemini
-//     const response = await axios.post(endpoint, requestBody, {
-//       headers: { 'Content-Type': 'application/json' },
-//       timeout: 30000  // Aumentado para 30 segundos
-//     });
-
-//     // Processar a resposta
-//     if (response.data?.candidates?.[0]?.content?.parts?.[0]?.text) {
-//       const resultado = response.data.candidates[0].content.parts[0].text;
-
-//       // Armazenar no cache
-//       try {
-//         const cacheKey = `vagas_${JSON.stringify(curriculoData).slice(0, 50)}`;
-//         await AsyncStorage.setItem(cacheKey, JSON.stringify({
-//           resultado: resultado,
-//           timestamp: new Date().toISOString()
-//         }));
-//       } catch (cacheError) {
-//         console.log('Erro ao salvar busca de vagas no cache:', cacheError.message);
-//       }
-
-//       return {
-//         success: true,
-//         vagas: resultado,
-//         timestamp: new Date().toISOString()
-//       };
-//     } else {
-//       throw new Error('Formato de resposta inesperado do Gemini');
-//     }
-//   } catch (error) {
-//     console.error('Erro ao buscar vagas:', error);
-//     return {
-//       success: false,
-//       error: error.message || 'Erro ao buscar vagas com IA'
-//     };
-//   }
-// };
 
 // Função atualizada para buscar vagas com opção de forçar atualização
 const buscarVagasComGemini = async (curriculoData, forceRefresh = false) => {
@@ -9115,105 +8891,94 @@ const HomeScreen = ({ navigation }) => {
             </TouchableOpacity>
           </View>
 
+          {/* NOVA SEÇÃO: Ações Principais */}
           <View style={styles.featureSection}>
-            <Text style={styles.featureSectionTitle}>Criar Currículo</Text>
-            <View style={styles.featureCard}>
-              <Text style={styles.featureTitle}>Novo Currículo</Text>
-              <Text style={styles.featureDescription}>
-                Crie um currículo do zero através de uma conversa intuitiva com nosso assistente.
-              </Text>
+            <Text style={styles.featureSectionTitle}>Ações Principais</Text>
+            <View style={styles.mainActionsContainer}>
+              {/* Botão "Novo Currículo" */}
               <TouchableOpacity
-                style={styles.primaryButton}
+                style={styles.mainActionButton}
                 onPress={() => navigation.navigate('Chatbot')}
                 activeOpacity={0.7}
               >
-                <Text style={styles.primaryButtonText}>Começar Agora</Text>
+                <View style={styles.mainActionIconContainer}>
+                  <Text style={styles.mainActionIcon}>📄</Text>
+                </View>
+                <Text style={styles.mainActionText}>Novo Currículo</Text>
               </TouchableOpacity>
-            </View>
-          </View>
-
-          <View style={styles.featureSection}>
-            <Text style={styles.featureSectionTitle}>Análise com IA</Text>
-            <View style={styles.featureCard}>
-              <Text style={styles.featureTitle}>Analise seu Currículo</Text>
-              <Text style={styles.featureDescription}>
-                Use nossa inteligência artificial para analisar seu currículo, receber pontuação, dicas de melhorias, sugestões de carreira e muito mais.
-              </Text>
+              
+              {/* Botão "Analise seu Currículo" */}
               <TouchableOpacity
-                style={styles.secondaryButton}
+                style={styles.mainActionButton}
                 onPress={() => navigation.navigate('CurriculosAnalise')}
                 activeOpacity={0.7}
               >
-                <Text style={styles.secondaryButtonText}>Analisar Currículo</Text>
+                <View style={styles.mainActionIconContainer}>
+                  <Text style={styles.mainActionIcon}>📊</Text>
+                </View>
+                <Text style={styles.mainActionText}>Analise seu Currículo</Text>
+              </TouchableOpacity>
+              
+              {/* Botão "Gerenciar Currículos" */}
+              <TouchableOpacity
+                style={styles.mainActionButton}
+                onPress={() => navigation.navigate('MeusCurriculos')}
+                activeOpacity={0.7}
+              >
+                <View style={styles.mainActionIconContainer}>
+                  <Text style={styles.mainActionIcon}>📂</Text>
+                </View>
+                <Text style={styles.mainActionText}>Gerenciar Currículos</Text>
+              </TouchableOpacity>
+              
+              {/* Botão "Configurar IAs" */}
+              <TouchableOpacity
+                style={styles.mainActionButton}
+                onPress={navegarParaConfiguracoesIA}
+                activeOpacity={0.7}
+              >
+                <View style={styles.mainActionIconContainer}>
+                  <Text style={styles.mainActionIcon}>🔧</Text>
+                </View>
+                <Text style={styles.mainActionText}>Configurar IAs</Text>
               </TouchableOpacity>
             </View>
           </View>
 
+          {/* Seção de Informações do Aplicativo */}
           <View style={styles.featureSection}>
-            <Text style={styles.featureSectionTitle}>Seus Currículos</Text>
-            <TouchableOpacity
-              style={[styles.featureCard, styles.compactCard]}
-              onPress={() => navigation.navigate('MeusCurriculos')}
-              activeOpacity={0.7}
-            >
-              <Text style={styles.featureTitle}>Gerenciar Currículos</Text>
-              <Text style={styles.featureDescription}>
-                Visualize, edite e compartilhe seus currículos salvos.
-              </Text>
-            </TouchableOpacity>
-          </View>
-
-          <View style={styles.featureSection}>
-            <Text style={styles.featureSectionTitle}>Configurações</Text>
-            <TouchableOpacity
-              style={[
-                styles.featureCard, 
-                styles.compactCard,
-                { borderLeftWidth: 3, borderLeftColor: Colors.primary } // Destaque visual
-              ]}
-              onPress={navegarParaConfiguracoesIA}
-              activeOpacity={0.6} // Feedback mais claro ao pressionar
-              hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }} // Área de toque aumentada
-            >
-              <View style={styles.cardIconContainer}>
-                <Text style={styles.cardIcon}>🔑</Text>
-              </View>
-              <Text style={styles.featureTitle}>Configurar IAs</Text>
-              <Text style={styles.featureDescription}>
-                Escolha qual IA usar para análise e configure suas chaves de API.
-              </Text>
-              <View style={[
-                styles.configHintContainer,
-                { backgroundColor: 'rgba(0, 188, 212, 0.15)' } // Cor mais visível
-              ]}>
-                <Text style={[
-                  styles.configHintText,
-                  { fontWeight: '500' } // Texto mais destacado
-                ]}>
-                  Adicione suas chaves API para desbloquear recursos avançados
-                </Text>
-              </View>
-            </TouchableOpacity>
-          </View>
-
-          {/* Seção Sobre */}
-          <View style={styles.featureSection}>
-            <Text style={styles.featureSectionTitle}>Sobre o App</Text>
+            <Text style={styles.featureSectionTitle}>Sobre o Aplicativo</Text>
             <TouchableOpacity
               style={[styles.featureCard, styles.compactCard]}
               onPress={() => navigation.navigate('SobreApp')}
               activeOpacity={0.7}
             >
-              <Text style={styles.featureTitle}>CurriculoBot Premium</Text>
+              <View style={{flexDirection: 'row', alignItems: 'center', marginBottom: 10}}>
+                <View style={{
+                  width: 40,
+                  height: 40,
+                  borderRadius: 20,
+                  backgroundColor: Colors.primary,
+                  justifyContent: 'center',
+                  alignItems: 'center',
+                  marginRight: 10,
+                }}>
+                  <Text style={{ fontSize: 20, color: Colors.white }}>ℹ️</Text>
+                </View>
+                <Text style={styles.featureTitle}>CurriculoBot Premium</Text>
+              </View>
               <Text style={styles.featureDescription}>
                 Versão: 1.2.0
               </Text>
               <Text style={styles.featureDescription}>
                 Este aplicativo utiliza tecnologia de inteligência artificial para ajudar na criação e análise de currículos.
               </Text>
-              <View style={styles.moreInfoButton}>
-                <Text style={styles.moreInfoButtonText}>Ver mais informações</Text>
-              </View>
+              <TouchableOpacity 
+                style={styles.premiumButton}
+                onPress={() => navigation.navigate('SobreApp')}
+              >
+                <Text style={styles.premiumButtonText}>Saiba Mais</Text>
+              </TouchableOpacity>
             </TouchableOpacity>
           </View>
 
@@ -9223,6 +8988,73 @@ const HomeScreen = ({ navigation }) => {
       </View>
     </SafeAreaView>
   );
+};
+
+const additionalStyles = {
+  // Estilo para container dos botões principais
+  mainActionsContainer: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    justifyContent: 'space-between',
+    marginBottom: 10,
+  },
+  // Estilo para os botões principais
+  mainActionButton: {
+    backgroundColor: Colors.primary,
+    width: '48%', // Dois botões por linha
+    borderRadius: 10,
+    padding: 16,
+    alignItems: 'center',
+    marginBottom: 15,
+    ...Platform.select({
+      ios: {
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 3 },
+        shadowOpacity: 0.2,
+        shadowRadius: 4,
+      },
+      android: {
+        elevation: 3,
+      },
+    }),
+  },
+  // Estilo para o container do ícone
+  mainActionIconContainer: {
+    width: 50,
+    height: 50,
+    borderRadius: 25,
+    backgroundColor: 'rgba(255, 255, 255, 0.2)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginBottom: 10,
+  },
+  // Estilo para o ícone
+  mainActionIcon: {
+    fontSize: 24,
+    color: Colors.white,
+  },
+  // Estilo para o texto do botão
+  mainActionText: {
+    color: Colors.white,
+    fontWeight: 'bold',
+    fontSize: 14,
+    textAlign: 'center',
+  },
+  // Botão premium
+  premiumButton: {
+    backgroundColor: Colors.primary,
+    paddingVertical: 10,
+    paddingHorizontal: 15,
+    borderRadius: 8,
+    alignItems: 'center',
+    alignSelf: 'flex-start',
+    marginTop: 10,
+  },
+  premiumButtonText: {
+    color: Colors.white,
+    fontWeight: 'bold',
+    fontSize: 14,
+  },
 };
 
 // Adicione estas funções no mesmo escopo que as outras funções auxiliares (junto com getUniqueId, formatDate, etc.)
@@ -13219,6 +13051,10 @@ const styles = StyleSheet.create({
     fontWeight: 'bold',
     fontSize: 14,
   },
+
+
+  ...additionalStyles  // Novos estilos adicionados
+
 
 });
 
