@@ -10810,22 +10810,59 @@ const RegisterScreen = ({ navigation }) => {
   );
 };
 
-// Modificação no HomeScreen - Ajuste na função de navegação para configuração de IAs
+// Modificação do HomeScreen para adicionar a funcionalidade de Conhecimento
+
 const HomeScreen = ({ navigation }) => {
   const { user, logout } = useAuth();
   const [curriculos, setCurriculos] = useState([]);
   const [loadingCurriculos, setLoadingCurriculos] = useState(true);
   const [temProgressoSalvo, setTemProgressoSalvo] = useState(false);
   const [ultimoProgressoData, setUltimoProgressoData] = useState(null);
-
+  
+  // Estados para a nova funcionalidade de Conhecimento
+  const [showKnowledgeModal, setShowKnowledgeModal] = useState(false);
+  const [selectedTopic, setSelectedTopic] = useState(null);
+  const [generatingContent, setGeneratingContent] = useState(false);
+  const [generatedContent, setGeneratedContent] = useState(null);
+  const [savedKnowledge, setSavedKnowledge] = useState([]);
+  const [showContentPreview, setShowContentPreview] = useState(false);
+  const [relatedTopics, setRelatedTopics] = useState([]);
+  
+  // Lista de tópicos de carreira
+  const careerTopics = [
+    { id: 'resume-writing', title: 'Técnicas de Escrita de Currículo', icon: '📝' },
+    { id: 'interview-tips', title: 'Dicas para Entrevistas de Emprego', icon: '🗣️' },
+    { id: 'networking', title: 'Networking Profissional', icon: '🔗' },
+    { id: 'personal-branding', title: 'Marca Pessoal', icon: '🌟' },
+    { id: 'career-transition', title: 'Transição de Carreira', icon: '🔄' },
+    { id: 'remote-work', title: 'Trabalho Remoto', icon: '🏠' },
+    { id: 'salary-negotiation', title: 'Negociação Salarial', icon: '💰' },
+    { id: 'linkedin-optimization', title: 'Otimização de Perfil LinkedIn', icon: '👔' },
+    { id: 'technical-interviews', title: 'Entrevistas Técnicas', icon: '💻' },
+    { id: 'soft-skills', title: 'Habilidades Interpessoais', icon: '🤝' },
+    { id: 'portfolio-building', title: 'Construção de Portfólio', icon: '📊' },
+    { id: 'leadership', title: 'Desenvolvimento de Liderança', icon: '👑' },
+    { id: 'freelancing', title: 'Trabalho Freelance', icon: '🚀' },
+    { id: 'career-planning', title: 'Planejamento de Carreira', icon: '📈' },
+    { id: 'industry-trends', title: 'Tendências do Mercado', icon: '📊' },
+    { id: 'work-life-balance', title: 'Equilíbrio Vida-Trabalho', icon: '⚖️' },
+    { id: 'mentorship', title: 'Mentoria Profissional', icon: '🧠' },
+    { id: 'startup-careers', title: 'Carreiras em Startups', icon: '🚀' },
+    { id: 'digital-nomad', title: 'Nômade Digital', icon: '🌍' },
+    { id: 'career-coaching', title: 'Coaching de Carreira', icon: '🏆' },
+  ];
+  
+  // Funções e hooks existentes
   useEffect(() => {
     carregarCurriculos();
     verificarProgressoSalvo();
+    carregarConhecimentosSalvos();
 
     // Atualizar quando a tela ganhar foco
     const unsubscribe = navigation.addListener('focus', () => {
       carregarCurriculos();
       verificarProgressoSalvo();
+      carregarConhecimentosSalvos();
     });
 
     return unsubscribe;
@@ -10850,7 +10887,7 @@ const HomeScreen = ({ navigation }) => {
         const dataProgresso = new Date(progresso.timestamp);
         const agora = new Date();
         const diferencaHoras = (agora - dataProgresso) / (1000 * 60 * 60);
-
+        
         if (diferencaHoras < 24) {
           setTemProgressoSalvo(true);
           setUltimoProgressoData(dataProgresso);
@@ -10867,24 +10904,36 @@ const HomeScreen = ({ navigation }) => {
       setTemProgressoSalvo(false);
     }
   };
+  
+  // Nova função para carregar conhecimentos salvos
+  const carregarConhecimentosSalvos = async () => {
+    try {
+      const conhecimentos = await AsyncStorage.getItem(`conhecimentos_${user.id}`);
+      if (conhecimentos) {
+        setSavedKnowledge(JSON.parse(conhecimentos));
+      }
+    } catch (error) {
+      console.error('Erro ao carregar conhecimentos salvos:', error);
+    }
+  };
 
   // Função para formatar tempo relativo (ex: "2 horas atrás")
   const formatarTempoRelativo = (data) => {
     if (!data) return '';
-
+    
     const agora = new Date();
     const diff = agora - data; // diferença em milissegundos
-
+    
     // Converter para minutos
     const minutos = Math.floor(diff / (1000 * 60));
-
+    
     if (minutos < 1) return 'agora mesmo';
     if (minutos < 60) return `${minutos} ${minutos === 1 ? 'minuto' : 'minutos'} atrás`;
-
+    
     // Converter para horas
     const horas = Math.floor(minutos / 60);
     if (horas < 24) return `${horas} ${horas === 1 ? 'hora' : 'horas'} atrás`;
-
+    
     // Converter para dias
     const dias = Math.floor(horas / 24);
     return `${dias} ${dias === 1 ? 'dia' : 'dias'} atrás`;
@@ -10892,7 +10941,6 @@ const HomeScreen = ({ navigation }) => {
 
   // Função para navegar para a tela de configuração de IAs
   const navegarParaConfiguracoesIA = () => {
-    // Usa navegação entre tabs - navega primeiro para a tab Config, depois para a tela ConfiguracoesIA
     navigation.navigate('Config', { screen: 'ConfiguracoesIA' });
   };
 
@@ -10920,6 +10968,584 @@ const HomeScreen = ({ navigation }) => {
 
     navigation.navigate('SelecionarCurriculo');
   };
+  
+  // Novas funções para a funcionalidade de Conhecimento
+  
+  // Abrir modal de conhecimento
+  const handleOpenKnowledgeModal = () => {
+    setShowKnowledgeModal(true);
+    setSelectedTopic(null);
+    setGeneratedContent(null);
+    setShowContentPreview(false);
+  };
+  
+  // Selecionar um tópico
+  const handleSelectTopic = async (topic) => {
+    setSelectedTopic(topic);
+    setGeneratingContent(true);
+    setShowContentPreview(true);
+    
+    try {
+      // Verificar se já existe conteúdo salvo para este tópico
+      const existingContent = savedKnowledge.find(k => k.topicId === topic.id);
+      
+      if (existingContent) {
+        // Usar conteúdo existente
+        setGeneratedContent(existingContent.content);
+        setRelatedTopics(existingContent.relatedTopics || []);
+        setGeneratingContent(false);
+      } else {
+        // Gerar novo conteúdo com IA
+        await generateContentWithAI(topic);
+      }
+    } catch (error) {
+      console.error('Erro ao processar tópico:', error);
+      Alert.alert('Erro', 'Não foi possível gerar conteúdo para este tópico.');
+      setGeneratingContent(false);
+    }
+  };
+  
+  // Gerar conteúdo com IA
+  const generateContentWithAI = async (topic) => {
+    try {
+      // Obter API key da IA
+      const apiKey = await getIAAPIKey('GEMINI');
+      
+      if (!apiKey) {
+        throw new Error("API key do Gemini não configurada");
+      }
+      
+      // Construir o prompt para a IA
+      const promptText = `
+Crie um guia profissional detalhado sobre "${topic.title}" para desenvolvimento de carreira.
+
+Estruture o conteúdo no formato Markdown com as seguintes seções:
+
+# ${topic.title}
+
+## Introdução
+[Uma introdução abrangente ao tópico e sua importância no desenvolvimento profissional]
+
+## Principais Conceitos
+[Explicação dos conceitos fundamentais relacionados a este tópico]
+
+## Estratégias Práticas
+[4-6 estratégias concretas e acionáveis]
+
+## Erros Comuns a Evitar
+[3-5 erros frequentes e como evitá-los]
+
+## Exemplos de Sucesso
+[2-3 exemplos ou casos de profissionais/empresas que se destacam nesta área]
+
+## Recursos Recomendados
+[5-7 livros, cursos, ferramentas ou sites para aprofundamento]
+
+## Passos para Implementação
+[Um guia passo a passo para aplicar este conhecimento]
+
+## Tendências Futuras
+[Tendências emergentes nesta área para 2024-2025]
+
+## Conclusão
+[Síntese dos pontos-chave e próximos passos recomendados]
+
+Forneça conteúdo detalhado, prático e atualizado, adequado para profissionais que buscam desenvolvimento de carreira no Brasil.
+`;
+      
+      // Chamar a API do Gemini
+      const endpoint = `${IA_APIS.GEMINI.endpoint}?key=${apiKey}`;
+      const requestBody = {
+        contents: [{ parts: [{ text: promptText }] }],
+        generationConfig: {
+          temperature: 0.2,
+          maxOutputTokens: 4000,
+          topP: 0.8,
+          topK: 40
+        }
+      };
+
+      const response = await axios.post(endpoint, requestBody, {
+        headers: { 'Content-Type': 'application/json' },
+        timeout: 30000
+      });
+      
+      if (response.data?.candidates?.[0]?.content?.parts?.[0]?.text) {
+        const content = response.data.candidates[0].content.parts[0].text;
+        
+        // Gerar tópicos relacionados
+        const relatedTopicsPrompt = `
+Com base no seguinte conteúdo sobre "${topic.title}", sugira 5 tópicos relacionados que complementariam este conhecimento para desenvolvimento de carreira.
+
+Forneça apenas os títulos dos tópicos, sem explicações adicionais, no formato:
+1. [Tópico 1]
+2. [Tópico 2]
+3. [Tópico 3]
+4. [Tópico 4]
+5. [Tópico 5]
+
+Conteúdo:
+${content.substring(0, 1000)}...
+`;
+
+        const relatedResponse = await axios.post(endpoint, {
+          contents: [{ parts: [{ text: relatedTopicsPrompt }] }],
+          generationConfig: {
+            temperature: 0.3,
+            maxOutputTokens: 1000,
+            topP: 0.8,
+            topK: 40
+          }
+        }, {
+          headers: { 'Content-Type': 'application/json' },
+          timeout: 15000
+        });
+        
+        let relatedTopicsList = [];
+        
+        if (relatedResponse.data?.candidates?.[0]?.content?.parts?.[0]?.text) {
+          const topicsText = relatedResponse.data.candidates[0].content.parts[0].text;
+          // Extrair tópicos da resposta
+          const topicsLines = topicsText.split('\n').filter(line => line.trim().match(/^\d+\.\s+/));
+          relatedTopicsList = topicsLines.map(line => {
+            const topic = line.replace(/^\d+\.\s+/, '').trim();
+            return {
+              id: 'related-' + Date.now() + '-' + Math.random().toString(36).substring(2, 9),
+              title: topic,
+              icon: '📚'
+            };
+          });
+        }
+        
+        // Salvar o conteúdo gerado
+        const newKnowledge = {
+          id: 'k-' + Date.now().toString(),
+          topicId: topic.id,
+          title: topic.title,
+          content: content,
+          relatedTopics: relatedTopicsList,
+          timestamp: new Date().toISOString()
+        };
+        
+        const updatedKnowledge = [...savedKnowledge, newKnowledge];
+        await AsyncStorage.setItem(`conhecimentos_${user.id}`, JSON.stringify(updatedKnowledge));
+        setSavedKnowledge(updatedKnowledge);
+        
+        // Atualizar estados
+        setGeneratedContent(content);
+        setRelatedTopics(relatedTopicsList);
+      } else {
+        throw new Error('Formato de resposta inesperado do Gemini');
+      }
+      
+    } catch (error) {
+      console.error('Erro ao gerar conteúdo com IA:', error);
+      Alert.alert('Erro', 'Não foi possível gerar o conteúdo. Tente novamente mais tarde.');
+    } finally {
+      setGeneratingContent(false);
+    }
+  };
+  
+  // Salvar o conteúdo gerado
+  const saveGeneratedContent = async () => {
+    if (!selectedTopic || !generatedContent) return;
+    
+    try {
+      // Verificar se já existe
+      const existingIndex = savedKnowledge.findIndex(k => k.topicId === selectedTopic.id);
+      
+      if (existingIndex >= 0) {
+        // Atualizar existente
+        const updatedKnowledge = [...savedKnowledge];
+        updatedKnowledge[existingIndex] = {
+          ...updatedKnowledge[existingIndex],
+          content: generatedContent,
+          relatedTopics: relatedTopics,
+          timestamp: new Date().toISOString()
+        };
+        
+        await AsyncStorage.setItem(`conhecimentos_${user.id}`, JSON.stringify(updatedKnowledge));
+        setSavedKnowledge(updatedKnowledge);
+      } else {
+        // Adicionar novo
+        const newKnowledge = {
+          id: 'k-' + Date.now().toString(),
+          topicId: selectedTopic.id,
+          title: selectedTopic.title,
+          content: generatedContent,
+          relatedTopics: relatedTopics,
+          timestamp: new Date().toISOString()
+        };
+        
+        const updatedKnowledge = [...savedKnowledge, newKnowledge];
+        await AsyncStorage.setItem(`conhecimentos_${user.id}`, JSON.stringify(updatedKnowledge));
+        setSavedKnowledge(updatedKnowledge);
+      }
+      
+      Alert.alert('Sucesso', 'Conteúdo salvo com sucesso!');
+      setShowKnowledgeModal(false);
+    } catch (error) {
+      console.error('Erro ao salvar conteúdo:', error);
+      Alert.alert('Erro', 'Não foi possível salvar o conteúdo.');
+    }
+  };
+  
+  // Compartilhar o conteúdo gerado
+  const shareGeneratedContent = async () => {
+    if (!generatedContent) return;
+    
+    try {
+      await Share.share({
+        message: generatedContent,
+        title: selectedTopic?.title || 'Conhecimento de Carreira'
+      });
+    } catch (error) {
+      console.error('Erro ao compartilhar:', error);
+      Alert.alert('Erro', 'Não foi possível compartilhar o conteúdo.');
+    }
+  };
+  
+  // Renderizar o modal de conhecimento
+  const renderKnowledgeModal = () => {
+    if (!showKnowledgeModal) return null;
+    
+    return (
+      <View style={{
+        position: 'absolute',
+        left: 0,
+        right: 0,
+        top: 0,
+        bottom: 0,
+        backgroundColor: 'rgba(0, 0, 0, 0.5)',
+        justifyContent: 'center',
+        alignItems: 'center',
+        zIndex: 1000,
+      }}>
+        <View style={{
+          width: '90%',
+          height: '90%',
+          backgroundColor: Colors.white,
+          borderRadius: 15,
+          overflow: 'hidden',
+          ...Platform.select({
+            ios: {
+              shadowColor: '#000',
+              shadowOffset: { width: 0, height: 5 },
+              shadowOpacity: 0.3,
+              shadowRadius: 10,
+            },
+            android: {
+              elevation: 10,
+            },
+          }),
+        }}>
+          {/* Header do modal */}
+          <View style={{
+            flexDirection: 'row',
+            justifyContent: 'space-between',
+            alignItems: 'center',
+            padding: 15,
+            borderBottomWidth: 1,
+            borderBottomColor: Colors.mediumGray,
+            backgroundColor: Colors.primary,
+          }}>
+            <Text style={{ fontSize: 18, fontWeight: 'bold', color: Colors.white }}>
+              Biblioteca de Conhecimento
+            </Text>
+            <TouchableOpacity onPress={() => setShowKnowledgeModal(false)}>
+              <Text style={{ fontSize: 24, color: Colors.white }}>×</Text>
+            </TouchableOpacity>
+          </View>
+          
+          {/* Conteúdo do modal */}
+          <View style={{ flex: 1, flexDirection: 'row' }}>
+            {/* Sidebar de tópicos */}
+            <View style={{
+              width: showContentPreview ? '30%' : '100%',
+              borderRightWidth: showContentPreview ? 1 : 0,
+              borderRightColor: Colors.mediumGray,
+              backgroundColor: '#f5f5f5',
+            }}>
+              <ScrollView>
+                <View style={{ padding: 10 }}>
+                  <Text style={{ fontSize: 16, fontWeight: 'bold', marginBottom: 10, color: Colors.dark }}>
+                    Tópicos de Carreira
+                  </Text>
+                  
+                  {/* Lista de tópicos */}
+                  {careerTopics.map(topic => (
+                    <TouchableOpacity
+                      key={topic.id}
+                      style={{
+                        flexDirection: 'row',
+                        alignItems: 'center',
+                        padding: 12,
+                        backgroundColor: selectedTopic?.id === topic.id ? '#e3f2fd' : Colors.white,
+                        borderRadius: 8,
+                        marginBottom: 8,
+                        borderLeftWidth: 3,
+                        borderLeftColor: selectedTopic?.id === topic.id ? Colors.primary : 'transparent',
+                      }}
+                      onPress={() => handleSelectTopic(topic)}
+                    >
+                      <Text style={{ fontSize: 20, marginRight: 10 }}>{topic.icon}</Text>
+                      <Text style={{
+                        fontSize: 14,
+                        color: Colors.dark,
+                        flex: 1,
+                        fontWeight: selectedTopic?.id === topic.id ? 'bold' : 'normal',
+                      }}>
+                        {topic.title}
+                      </Text>
+                    </TouchableOpacity>
+                  ))}
+                  
+                  {/* Lista de conhecimentos salvos */}
+                  {savedKnowledge.length > 0 && (
+                    <View style={{ marginTop: 20 }}>
+                      <Text style={{ fontSize: 16, fontWeight: 'bold', marginBottom: 10, color: Colors.dark }}>
+                        Conteúdos Salvos
+                      </Text>
+                      
+                      {savedKnowledge.map(knowledge => {
+                        // Encontrar o tópico original
+                        const originalTopic = careerTopics.find(t => t.id === knowledge.topicId);
+                        
+                        return (
+                          <TouchableOpacity
+                            key={knowledge.id}
+                            style={{
+                              flexDirection: 'row',
+                              alignItems: 'center',
+                              padding: 12,
+                              backgroundColor: selectedTopic?.id === originalTopic?.id ? '#e3f2fd' : '#e8f5e9',
+                              borderRadius: 8,
+                              marginBottom: 8,
+                              borderLeftWidth: 3,
+                              borderLeftColor: Colors.success,
+                            }}
+                            onPress={() => handleSelectTopic(originalTopic || { id: knowledge.topicId, title: knowledge.title, icon: '📚' })}
+                          >
+                            <Text style={{ fontSize: 20, marginRight: 10 }}>
+                              {originalTopic?.icon || '📚'}
+                            </Text>
+                            <View style={{ flex: 1 }}>
+                              <Text style={{
+                                fontSize: 14,
+                                color: Colors.dark,
+                                fontWeight: 'bold',
+                              }}>
+                                {knowledge.title}
+                              </Text>
+                              <Text style={{ fontSize: 12, color: Colors.lightText }}>
+                                Salvo: {formatarTempoRelativo(new Date(knowledge.timestamp))}
+                              </Text>
+                            </View>
+                          </TouchableOpacity>
+                        );
+                      })}
+                    </View>
+                  )}
+                </View>
+              </ScrollView>
+            </View>
+            
+            {/* Área de visualização do conteúdo */}
+            {showContentPreview && (
+              <View style={{ flex: 1, backgroundColor: Colors.white }}>
+                {generatingContent ? (
+                  <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}>
+                    <ActivityIndicator size="large" color={Colors.primary} />
+                    <Text style={{ marginTop: 20, textAlign: 'center', color: Colors.dark }}>
+                      Gerando conteúdo sobre {selectedTopic?.title}...
+                    </Text>
+                    <Text style={{ marginTop: 10, textAlign: 'center', color: Colors.lightText, paddingHorizontal: 20 }}>
+                      Nossa IA está criando um guia completo. Isso pode levar alguns instantes.
+                    </Text>
+                  </View>
+                ) : generatedContent ? (
+                  <View style={{ flex: 1 }}>
+                    <ScrollView style={{ flex: 1, padding: 15 }}>
+                      <Markdown
+                        style={{
+                          body: { fontSize: 16, lineHeight: 24, color: Colors.dark },
+                          heading1: {
+                            fontSize: 24,
+                            fontWeight: 'bold',
+                            marginBottom: 15,
+                            color: Colors.dark,
+                            borderBottomWidth: 1,
+                            borderBottomColor: Colors.mediumGray,
+                            paddingBottom: 5,
+                          },
+                          heading2: {
+                            fontSize: 20,
+                            fontWeight: 'bold',
+                            marginBottom: 10,
+                            marginTop: 20,
+                            color: Colors.dark
+                          },
+                          heading3: {
+                            fontSize: 18,
+                            fontWeight: 'bold',
+                            marginTop: 15,
+                            marginBottom: 5,
+                            color: Colors.dark
+                          },
+                          paragraph: {
+                            fontSize: 16,
+                            lineHeight: 24,
+                            marginBottom: 10,
+                            color: Colors.dark
+                          },
+                          list_item: {
+                            marginBottom: 5,
+                            flexDirection: 'row',
+                            alignItems: 'flex-start',
+                          },
+                          bullet_list: {
+                            marginVertical: 10,
+                          },
+                          strong: {
+                            fontWeight: 'bold',
+                          },
+                          em: {
+                            fontStyle: 'italic',
+                          },
+                          ordered_list: {
+                            marginVertical: 10,
+                          },
+                          hr: {
+                            backgroundColor: Colors.mediumGray,
+                            height: 1,
+                            marginVertical: 15,
+                          },
+                          blockquote: {
+                            borderLeftWidth: 3,
+                            borderLeftColor: Colors.primary,
+                            paddingLeft: 10,
+                            marginVertical: 10,
+                            backgroundColor: Colors.lightGray,
+                            padding: 10,
+                            borderRadius: 5,
+                          },
+                        }}
+                      >
+                        {generatedContent}
+                      </Markdown>
+                      
+                      {/* Tópicos relacionados */}
+                      {relatedTopics && relatedTopics.length > 0 && (
+                        <View style={{
+                          marginTop: 30,
+                          padding: 15,
+                          backgroundColor: '#f5f5f5',
+                          borderRadius: 10,
+                          marginBottom: 20,
+                        }}>
+                          <Text style={{
+                            fontSize: 18,
+                            fontWeight: 'bold',
+                            marginBottom: 15,
+                            color: Colors.dark,
+                          }}>
+                            Tópicos Relacionados
+                          </Text>
+                          
+                          {relatedTopics.map((topic, index) => (
+                            <TouchableOpacity
+                              key={index}
+                              style={{
+                                flexDirection: 'row',
+                                alignItems: 'center',
+                                padding: 12,
+                                backgroundColor: Colors.white,
+                                borderRadius: 8,
+                                marginBottom: 8,
+                                borderLeftWidth: 3,
+                                borderLeftColor: Colors.primary,
+                              }}
+                              onPress={() => {
+                                // Criar um novo tópico baseado nesta sugestão
+                                const newTopic = {
+                                  id: topic.id,
+                                  title: topic.title,
+                                  icon: '📚'
+                                };
+                                handleSelectTopic(newTopic);
+                              }}
+                            >
+                              <Text style={{ fontSize: 20, marginRight: 10 }}>📚</Text>
+                              <Text style={{ fontSize: 14, color: Colors.dark, flex: 1 }}>
+                                {topic.title}
+                              </Text>
+                              <Text style={{ fontSize: 20, color: Colors.primary }}>❯</Text>
+                            </TouchableOpacity>
+                          ))}
+                        </View>
+                      )}
+                    </ScrollView>
+                    
+                    {/* Barra de ações */}
+                    <View style={{
+                      flexDirection: 'row',
+                      padding: 15,
+                      borderTopWidth: 1,
+                      borderTopColor: Colors.mediumGray,
+                      justifyContent: 'space-between',
+                    }}>
+                      <TouchableOpacity
+                        style={{
+                          backgroundColor: Colors.primary,
+                          paddingVertical: 10,
+                          paddingHorizontal: 15,
+                          borderRadius: 8,
+                          flex: 1,
+                          alignItems: 'center',
+                          marginRight: 8,
+                        }}
+                        onPress={saveGeneratedContent}
+                      >
+                        <Text style={{ color: Colors.white, fontWeight: 'bold' }}>
+                          Salvar
+                        </Text>
+                      </TouchableOpacity>
+                      
+                      <TouchableOpacity
+                        style={{
+                          backgroundColor: Colors.secondary,
+                          paddingVertical: 10,
+                          paddingHorizontal: 15,
+                          borderRadius: 8,
+                          flex: 1,
+                          alignItems: 'center',
+                          marginLeft: 8,
+                        }}
+                        onPress={shareGeneratedContent}
+                      >
+                        <Text style={{ color: Colors.white, fontWeight: 'bold' }}>
+                          Compartilhar
+                        </Text>
+                      </TouchableOpacity>
+                    </View>
+                  </View>
+                ) : (
+                  <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center', padding: 20 }}>
+                    <Text style={{ fontSize: 18, fontWeight: 'bold', marginBottom: 10, textAlign: 'center' }}>
+                      Selecione um tópico para gerar conteúdo
+                    </Text>
+                    <Text style={{ textAlign: 'center', color: Colors.lightText }}>
+                      Escolha um dos tópicos disponíveis na lista ao lado para que a IA gere um guia profissional sobre o assunto.
+                    </Text>
+                  </View>
+                )}
+              </View>
+            )}
+          </View>
+        </View>
+      </View>
+    );
+  };
 
   return (
     <SafeAreaView style={styles.homeContainer}>
@@ -10946,7 +11572,86 @@ const HomeScreen = ({ navigation }) => {
         >
           <Text style={styles.welcomeText}>Olá, {user?.nome || 'visitante'}!</Text>
 
-          {/* NOVA FUNCIONALIDADE: Card de Currículo em Progresso */}
+          {/* NOVA SEÇÃO: Botão de Conhecimento */}
+          <View style={styles.featureSection}>
+            <Text style={styles.featureSectionTitle}>Desenvolvimento Profissional</Text>
+            <TouchableOpacity
+              style={[styles.featureCard, {
+                backgroundColor: '#e1f5fe',
+                borderLeftWidth: 4,
+                borderLeftColor: '#03a9f4',
+              }]}
+              onPress={handleOpenKnowledgeModal}
+              activeOpacity={0.7}
+            >
+              <View style={{
+                flexDirection: 'row',
+                alignItems: 'center',
+                marginBottom: 10,
+              }}>
+                <View style={{
+                  width: 50,
+                  height: 50,
+                  borderRadius: 25,
+                  backgroundColor: '#03a9f4',
+                  justifyContent: 'center',
+                  alignItems: 'center',
+                  marginRight: 15,
+                }}>
+                  <Text style={{ fontSize: 24, color: Colors.white }}>🧠</Text>
+                </View>
+                <Text style={{
+                  fontSize: 20,
+                  fontWeight: 'bold',
+                  color: Colors.dark,
+                  flex: 1,
+                }}>
+                  Biblioteca de Conhecimento
+                </Text>
+              </View>
+
+              <Text style={{ color: '#0277bd', marginBottom: 15, lineHeight: 22 }}>
+                Explore guias profissionais detalhados sobre desenvolvimento de carreira, 
+                técnicas de entrevista, networking e muito mais. Conteúdo gerado por IA 
+                para impulsionar sua trajetória profissional.
+              </Text>
+
+              <View style={{
+                backgroundColor: '#03a9f4',
+                paddingVertical: 12,
+                paddingHorizontal: 20,
+                borderRadius: 8,
+                alignSelf: 'flex-start',
+                marginTop: 5,
+                flexDirection: 'row',
+                alignItems: 'center',
+              }}>
+                <Text style={{ color: Colors.white, fontWeight: 'bold', marginRight: 5 }}>
+                  Explorar Conhecimento
+                </Text>
+                <Text style={{ color: Colors.white, fontSize: 18 }}>→</Text>
+              </View>
+              
+              {/* Badge com número de conteúdos salvos */}
+              {savedKnowledge.length > 0 && (
+                <View style={{
+                  position: 'absolute',
+                  top: 15,
+                  right: 15,
+                  backgroundColor: '#03a9f4',
+                  paddingVertical: 3,
+                  paddingHorizontal: 8,
+                  borderRadius: 12,
+                }}>
+                  <Text style={{ color: Colors.white, fontSize: 12, fontWeight: 'bold' }}>
+                    {savedKnowledge.length} Guia{savedKnowledge.length !== 1 ? 's' : ''}
+                  </Text>
+                </View>
+              )}
+            </TouchableOpacity>
+          </View>
+
+          {/* Card de Currículo em Progresso */}
           {temProgressoSalvo && (
             <View style={styles.curriculoProgressoCard}>
               <View style={styles.curriculoProgressoHeader}>
@@ -10962,11 +11667,11 @@ const HomeScreen = ({ navigation }) => {
                   </Text>
                 </View>
               </View>
-
+              
               <Text style={styles.curriculoProgressoTexto}>
                 Você tem um currículo em andamento. Deseja continuar de onde parou?
               </Text>
-
+              
               <TouchableOpacity
                 style={styles.curriculoProgressoBotao}
                 onPress={continuarCurriculo}
@@ -10989,7 +11694,7 @@ const HomeScreen = ({ navigation }) => {
                 borderLeftColor: Colors.success,
               }]}
               onPress={navegarParaBuscaVagas}
-              activeOpacity={0.7} // Feedback visual mais claro
+              activeOpacity={0.7}
             >
               <View style={{
                 flexDirection: 'row',
@@ -11036,7 +11741,7 @@ const HomeScreen = ({ navigation }) => {
             </TouchableOpacity>
           </View>
 
-          {/* NOVA SEÇÃO: Ações Principais */}
+          {/* SEÇÃO: Ações Principais */}
           <View style={styles.featureSection}>
             <Text style={styles.featureSectionTitle}>Ações Principais</Text>
             <View style={styles.mainActionsContainer}>
@@ -11051,7 +11756,7 @@ const HomeScreen = ({ navigation }) => {
                 </View>
                 <Text style={styles.mainActionText}>Novo Currículo</Text>
               </TouchableOpacity>
-
+              
               {/* Botão "Analise seu Currículo" */}
               <TouchableOpacity
                 style={styles.mainActionButton}
@@ -11063,7 +11768,7 @@ const HomeScreen = ({ navigation }) => {
                 </View>
                 <Text style={styles.mainActionText}>Analise seu Currículo</Text>
               </TouchableOpacity>
-
+              
               {/* Botão "Gerenciar Currículos" */}
               <TouchableOpacity
                 style={styles.mainActionButton}
@@ -11075,7 +11780,7 @@ const HomeScreen = ({ navigation }) => {
                 </View>
                 <Text style={styles.mainActionText}>Gerenciar Currículos</Text>
               </TouchableOpacity>
-
+              
               {/* Botão "Configurar IAs" */}
               <TouchableOpacity
                 style={styles.mainActionButton}
@@ -11098,7 +11803,7 @@ const HomeScreen = ({ navigation }) => {
               onPress={() => navigation.navigate('SobreApp')}
               activeOpacity={0.7}
             >
-              <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 10 }}>
+              <View style={{flexDirection: 'row', alignItems: 'center', marginBottom: 10}}>
                 <View style={{
                   width: 40,
                   height: 40,
@@ -11118,7 +11823,7 @@ const HomeScreen = ({ navigation }) => {
               <Text style={styles.featureDescription}>
                 Este aplicativo utiliza tecnologia de inteligência artificial para ajudar na criação e análise de currículos.
               </Text>
-              <TouchableOpacity
+              <TouchableOpacity 
                 style={styles.premiumButton}
                 onPress={() => navigation.navigate('SobreApp')}
               >
@@ -11131,6 +11836,9 @@ const HomeScreen = ({ navigation }) => {
           <View style={{ height: 30 }} />
         </ScrollView>
       </View>
+      
+      {/* Modal de Conhecimento */}
+      {renderKnowledgeModal()}
     </SafeAreaView>
   );
 };
@@ -14954,27 +15662,6 @@ const SelecionarCurriculoScreen = ({ navigation }) => {
   );
 };
 
-// Modificar o AppNavigator para adicionar a rota "SobreApp"
-// const AppNavigator = () => (
-//   <AppStack.Navigator
-//     screenOptions={{
-//       headerShown: false
-//     }}
-//   >
-//     <AppStack.Screen name="Home" component={HomeScreen} />
-//     <AppStack.Screen name="Chatbot" component={ChatbotScreen} />
-//     <AppStack.Screen name="MeusCurriculos" component={MeusCurriculosScreen} />
-//     <AppStack.Screen name="PreviewCV" component={PreviewCVScreen} />
-//     <AppStack.Screen name="CurriculosAnalise" component={CurriculosAnaliseScreen} />
-//     <AppStack.Screen name="AnaliseCV" component={AnaliseCVScreen} />
-//     <AppStack.Screen name="ConfiguracoesIA" component={ConfiguracoesIAScreen} />
-//     <AppStack.Screen name="SobreApp" component={SobreAppScreen} />
-//     {/* Nova rota para seleção de currículo */}
-//     <AppStack.Screen name="SelecionarCurriculo" component={SelecionarCurriculoScreen} />
-//     <AppStack.Screen name="BuscaVagas" component={BuscaVagasScreen} />
-//   </AppStack.Navigator>
-// );
-
 // Controlador de Rotas
 const RootStack = createStackNavigator();
 
@@ -17382,6 +18069,595 @@ const styles = StyleSheet.create({
   callDetailsConfigValue: {
     fontSize: 14,
     color: Colors.dark,
+  },
+
+   // Estilos do Conhecimento
+  conhecimentoContainer: {
+    flex: 1,
+    padding: 20,
+    backgroundColor: '#f8f9fc',
+  },
+  conhecimentoTitle: {
+    fontSize: 24,
+    fontWeight: 'bold',
+    color: Colors.dark,
+    marginBottom: 10,
+  },
+  conhecimentoSubtitle: {
+    fontSize: 16,
+    color: Colors.lightText,
+    marginBottom: 25,
+  },
+  categoriasGrid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    justifyContent: 'space-between',
+  },
+  categoriaCard: {
+    width: '48%',
+    backgroundColor: Colors.white,
+    borderRadius: 10,
+    padding: 20,
+    marginBottom: 15,
+    alignItems: 'center',
+    justifyContent: 'center',
+    ...Platform.select({
+      ios: {
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 2 },
+        shadowOpacity: 0.1,
+        shadowRadius: 4,
+      },
+      android: {
+        elevation: 2,
+      },
+    }),
+  },
+  categoriaIcon: {
+    fontSize: 36,
+    marginBottom: 10,
+  },
+  categoriaNome: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: Colors.dark,
+    textAlign: 'center',
+  },
+  meusConhecimentosButton: {
+    backgroundColor: Colors.primary,
+    borderRadius: 8,
+    padding: 15,
+    alignItems: 'center',
+    marginTop: 20,
+  },
+  meusConhecimentosButtonText: {
+    color: Colors.white,
+    fontWeight: 'bold',
+    fontSize: 16,
+  },
+  topicoHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 20,
+  },
+  topicoHeaderTitle: {
+    fontSize: 20,
+    fontWeight: 'bold',
+    color: Colors.dark,
+    marginLeft: 10,
+  },
+  topicosContainer: {
+    marginTop: 10,
+  },
+  topicoItem: {
+    backgroundColor: Colors.white,
+    borderRadius: 8,
+    padding: 16,
+    marginBottom: 10,
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    ...Platform.select({
+      ios: {
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 1 },
+        shadowOpacity: 0.1,
+        shadowRadius: 2,
+      },
+      android: {
+        elevation: 1,
+      },
+    }),
+  },
+  topicoNome: {
+    fontSize: 16,
+    fontWeight: '500',
+    color: Colors.dark,
+  },
+  topicoArrow: {
+    fontSize: 20,
+    color: Colors.primary,
+  },
+  reviewContainer: {
+    flex: 1,
+    backgroundColor: '#f8f9fc',
+  },
+  reviewHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    padding: 15,
+    backgroundColor: Colors.white,
+    borderBottomWidth: 1,
+    borderBottomColor: Colors.mediumGray,
+  },
+  reviewHeaderTitle: {
+    fontSize: 20,
+    fontWeight: 'bold',
+    color: Colors.dark,
+    marginLeft: 10,
+  },
+  reviewTitleContainer: {
+    backgroundColor: Colors.white,
+    padding: 15,
+    margin: 15,
+    borderRadius: 8,
+    ...Platform.select({
+      ios: {
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 1 },
+        shadowOpacity: 0.1,
+        shadowRadius: 2,
+      },
+      android: {
+        elevation: 1,
+      },
+    }),
+  },
+  reviewTitleInput: {
+    fontSize: 18,
+    fontWeight: 'bold',
+    color: Colors.dark,
+  },
+  topicosSection: {
+    backgroundColor: Colors.white,
+    padding: 15,
+    margin: 15,
+    marginTop: 0,
+    borderRadius: 8,
+    ...Platform.select({
+      ios: {
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 1 },
+        shadowOpacity: 0.1,
+        shadowRadius: 2,
+      },
+      android: {
+        elevation: 1,
+      },
+    }),
+  },
+  topicosHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 10,
+  },
+  topicosTitle: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: Colors.dark,
+  },
+  topicosActions: {
+    flexDirection: 'row',
+  },
+  topicoActionButton: {
+    backgroundColor: '#f0f0f0',
+    paddingVertical: 6,
+    paddingHorizontal: 12,
+    borderRadius: 15,
+    marginLeft: 8,
+  },
+  topicoActionButtonText: {
+    fontSize: 12,
+    color: Colors.dark,
+  },
+  topicosPreview: {
+    flexDirection: 'row',
+    marginTop: 5,
+  },
+  topicoChip: {
+    backgroundColor: Colors.primary,
+    paddingVertical: 6,
+    paddingHorizontal: 12,
+    borderRadius: 15,
+    marginRight: 8,
+  },
+  topicoChipText: {
+    fontSize: 12,
+    color: Colors.white,
+  },
+  conteudoPreviewContainer: {
+    backgroundColor: Colors.white,
+    padding: 15,
+    margin: 15,
+    marginTop: 0,
+    borderRadius: 8,
+    ...Platform.select({
+      ios: {
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 1 },
+        shadowOpacity: 0.1,
+        shadowRadius: 2,
+      },
+      android: {
+        elevation: 1,
+      },
+    }),
+  },
+  conteudoPreviewTitle: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: Colors.dark,
+    marginBottom: 10,
+  },
+  conteudoPreview: {
+    backgroundColor: '#f9f9f9',
+    padding: 15,
+    borderRadius: 8,
+    maxHeight: 300,
+  },
+  conteudoPreviewText: {
+    fontSize: 14,
+    lineHeight: 20,
+    color: Colors.dark,
+  },
+  reviewActions: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    padding: 15,
+    margin: 15,
+    marginTop: 0,
+  },
+  reviewActionButton: {
+    backgroundColor: '#f0f0f0',
+    paddingVertical: 12,
+    paddingHorizontal: 20,
+    borderRadius: 8,
+    flex: 1,
+    alignItems: 'center',
+    marginHorizontal: 5,
+  },
+  reviewActionPrimary: {
+    backgroundColor: Colors.primary,
+  },
+  reviewActionButtonText: {
+    fontSize: 14,
+    fontWeight: 'bold',
+    color: Colors.dark,
+  },
+  
+  // Estilos do Modal de Tópico Personalizado
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0,0,0,0.5)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    padding: 20,
+  },
+  modalContent: {
+    backgroundColor: Colors.white,
+    borderRadius: 10,
+    padding: 20,
+    width: '100%',
+    ...Platform.select({
+      ios: {
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 2 },
+        shadowOpacity: 0.25,
+        shadowRadius: 3.84,
+      },
+      android: {
+        elevation: 5,
+      },
+    }),
+  },
+  modalTitle: {
+    fontSize: 18,
+    fontWeight: 'bold',
+    color: Colors.dark,
+    marginBottom: 10,
+  },
+  modalSubtitle: {
+    fontSize: 14,
+    color: Colors.lightText,
+    marginBottom: 15,
+  },
+  modalInput: {
+    backgroundColor: '#f5f5f5',
+    borderRadius: 8,
+    padding: 12,
+    borderWidth: 1,
+    borderColor: Colors.mediumGray,
+    marginBottom: 20,
+  },
+  modalActions: {
+    flexDirection: 'row',
+    justifyContent: 'flex-end',
+  },
+  modalButton: {
+    paddingVertical: 10,
+    paddingHorizontal: 15,
+    borderRadius: 5,
+    marginLeft: 10,
+  },
+  modalButtonCancel: {
+    backgroundColor: '#f0f0f0',
+  },
+  modalButtonConfirm: {
+    backgroundColor: Colors.primary,
+  },
+  modalButtonTextCancel: {
+    color: Colors.dark,
+  },
+  modalButtonTextConfirm: {
+    color: Colors.white,
+    fontWeight: 'bold',
+  },
+  
+  // Estilos dos Detalhes de Conhecimento
+  conhecimentoDetails: {
+    flex: 1,
+    backgroundColor: '#f8f9fc',
+  },
+  conhecimentoDetailsTitle: {
+    fontSize: 22,
+    fontWeight: 'bold',
+    color: Colors.dark,
+    padding: 15,
+  },
+  conhecimentoDetailsDate: {
+    fontSize: 14,
+    color: Colors.lightText,
+    paddingHorizontal: 15,
+    marginTop: -10,
+    marginBottom: 15,
+  },
+  topicosNav: {
+    backgroundColor: Colors.white,
+    paddingVertical: 10,
+    paddingHorizontal: 5,
+  },
+  topicoNavItem: {
+    paddingVertical: 8,
+    paddingHorizontal: 15,
+    borderRadius: 20,
+    marginHorizontal: 5,
+    backgroundColor: '#f0f0f0',
+  },
+  topicoNavItemActive: {
+    backgroundColor: Colors.primary,
+  },
+  topicoNavText: {
+    fontSize: 14,
+    color: Colors.dark,
+  },
+  topicoNavTextActive: {
+    color: Colors.white,
+    fontWeight: 'bold',
+  },
+  conhecimentoConteudo: {
+    flex: 1,
+    backgroundColor: Colors.white,
+    margin: 15,
+    padding: 15,
+    borderRadius: 8,
+    ...Platform.select({
+      ios: {
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 1 },
+        shadowOpacity: 0.1,
+        shadowRadius: 2,
+      },
+      android: {
+        elevation: 1,
+      },
+    }),
+  },
+  conhecimentoConteudoText: {
+    fontSize: 16,
+    lineHeight: 24,
+    color: Colors.dark,
+  },
+  shareButton: {
+    padding: 10,
+  },
+  shareButtonText: {
+    fontSize: 20,
+    color: Colors.white,
+  },
+  
+  // Estilos da Lista de Conhecimentos
+  searchContainer: {
+    backgroundColor: Colors.white,
+    margin: 15,
+    padding: 10,
+    borderRadius: 8,
+    flexDirection: 'row',
+    alignItems: 'center',
+    ...Platform.select({
+      ios: {
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 1 },
+        shadowOpacity: 0.1,
+        shadowRadius: 2,
+      },
+      android: {
+        elevation: 1,
+      },
+    }),
+  },
+  searchInput: {
+    flex: 1,
+    fontSize: 16,
+    color: Colors.dark,
+  },
+  searchClear: {
+    padding: 5,
+  },
+  searchClearText: {
+    fontSize: 20,
+    color: Colors.lightText,
+  },
+  emptyContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    padding: 20,
+  },
+  emptyTitle: {
+    fontSize: 20,
+    fontWeight: 'bold',
+    color: Colors.dark,
+    marginBottom: 10,
+  },
+  emptyText: {
+    fontSize: 16,
+    color: Colors.lightText,
+    textAlign: 'center',
+    marginBottom: 20,
+  },
+  emptyButton: {
+    backgroundColor: Colors.primary,
+    paddingVertical: 12,
+    paddingHorizontal: 20,
+    borderRadius: 8,
+  },
+  emptyButtonText: {
+    color: Colors.white,
+    fontWeight: 'bold',
+    fontSize: 16,
+  },
+  fabButton: {
+    position: 'absolute',
+    bottom: 20,
+    right: 20,
+    width: 56,
+    height: 56,
+    borderRadius: 28,
+    backgroundColor: Colors.primary,
+    justifyContent: 'center',
+    alignItems: 'center',
+    ...Platform.select({
+      ios: {
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 4 },
+        shadowOpacity: 0.3,
+        shadowRadius: 4,
+      },
+      android: {
+        elevation: 6,
+      },
+    }),
+  },
+  fabButtonText: {
+    fontSize: 26,
+    color: Colors.white,
+  },
+  conhecimentoListItem: {
+    backgroundColor: Colors.white,
+    borderRadius: 8,
+    padding: 15,
+    marginBottom: 15,
+    ...Platform.select({
+      ios: {
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 1 },
+        shadowOpacity: 0.1,
+        shadowRadius: 2,
+      },
+      android: {
+        elevation: 1,
+      },
+    }),
+  },
+  conhecimentoListItemHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 5,
+  },
+  conhecimentoListItemTitle: {
+    fontSize: 18,
+    fontWeight: 'bold',
+    color: Colors.dark,
+    flex: 1,
+  },
+  conhecimentoListItemDelete: {
+    padding: 5,
+  },
+  conhecimentoListItemDeleteText: {
+    fontSize: 20,
+    color: Colors.danger,
+  },
+  conhecimentoListItemDate: {
+    fontSize: 12,
+    color: Colors.lightText,
+    marginBottom: 10,
+  },
+  conhecimentoListItemPreview: {
+    fontSize: 14,
+    color: Colors.dark,
+    marginBottom: 10,
+  },
+  conhecimentoListItemTopicos: {
+    flexDirection: 'row',
+    marginTop: 5,
+  },
+  conhecimentoListItemTopico: {
+    backgroundColor: Colors.primary,
+    paddingVertical: 4,
+    paddingHorizontal: 10,
+    borderRadius: 15,
+    marginRight: 8,
+  },
+  conhecimentoListItemTopicoText: {
+    fontSize: 12,
+    color: Colors.white,
+  },
+  conhecimentoListItemTopicoMore: {
+    backgroundColor: '#f0f0f0',
+    paddingVertical: 4,
+    paddingHorizontal: 10,
+    borderRadius: 15,
+  },
+  conhecimentoListItemTopicoMoreText: {
+    fontSize: 12,
+    color: Colors.dark,
+  },
+  
+  // Estilos do Chatbot (Mock)
+  chatbotContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    padding: 20,
+  },
+  chatbotText: {
+    fontSize: 16,
+    color: Colors.dark,
+    textAlign: 'center',
+    marginBottom: 20,
+  },
+  chatbotButton: {
+    backgroundColor: Colors.primary,
+    paddingVertical: 12,
+    paddingHorizontal: 20,
+    borderRadius: 8,
+  },
+  chatbotButtonText: {
+    color: Colors.white,
+    fontWeight: 'bold',
+    fontSize: 16,
   },
 
   ...additionalStyles  // Novos estilos adicionados
