@@ -18,11 +18,13 @@ import {
   Switch,
   Image,
   Animated,
-  useCallback,
   Dimensions,
-  RefreshControl,
-  Easing
+  RefreshControl
 } from 'react-native';
+import ColorsModule from './styles/colors';
+import styles from './styles/styles';
+import HeaderColors from './styles/HeaderColors'
+const Colors = ColorsModule.Colors;
 import { Ionicons, MaterialIcons, FontAwesome5 } from '@expo/vector-icons';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import Markdown from 'react-native-markdown-display';
@@ -32,7 +34,6 @@ import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import axios from 'axios';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
-// Adicione no início do arquivo, junto com os imports
 axios.interceptors.request.use(request => {
   console.log('Starting Request', JSON.stringify(request, null, 2));
   return request;
@@ -48,24 +49,6 @@ axios.interceptors.response.use(response => {
   return Promise.reject(error);
 });
 
-// Definição de cores e estilos globais
-const Colors = {
-  primary: '#00BCD4',
-  secondary: '#3F51B5',
-  dark: '#263238',
-  light: '#ECEFF1',
-  white: '#FFFFFF',
-  lightText: '#757575',
-  danger: '#F44336',
-  success: '#4CAF50',
-  warning: '#FFC107',
-  info: '#2196F3',
-  lightGray: '#f5f5f5',
-  mediumGray: '#e0e0e0',
-  divider: 'rgba(0, 0, 0, 0.1)'
-};
-
-// Constantes para APIs de IAs
 const IA_APIS = {
   GEMINI: {
     nome: 'Google Gemini',
@@ -164,6 +147,9 @@ const DashboardScreen = ({ navigation }) => {
   // Carregar lista de currículos para o seletor de análise
   const carregarCurriculos = async () => {
     try {
+      // Verificar se o usuário ainda está logado antes de continuar
+      if (!user || !user.id) return;
+      
       const cvs = await AsyncStorage.getItem(`curriculos_${user.id}`);
       const curriculos = cvs ? JSON.parse(cvs) : [];
       setCurriculosList(curriculos);
@@ -174,6 +160,9 @@ const DashboardScreen = ({ navigation }) => {
 
   const carregarDados = async () => {
     try {
+      // Verificar se o usuário ainda está logado antes de continuar
+      if (!user || !user.id) return;
+      
       setLoading(true);
 
       // Carregar dados dos currículos
@@ -247,6 +236,9 @@ const DashboardScreen = ({ navigation }) => {
   };
 
   const navegarParaBuscarVagas = () => {
+    // Verificar se o usuário ainda está logado antes de continuar
+    if (!user || !user.id) return;
+    
     // Verificar se há currículos antes
     AsyncStorage.getItem(`curriculos_${user.id}`).then(cvs => {
       const curriculos = cvs ? JSON.parse(cvs) : [];
@@ -270,6 +262,9 @@ const DashboardScreen = ({ navigation }) => {
   };
 
   const navegarParaAnalisarCV = () => {
+    // Verificar se o usuário ainda está logado antes de continuar
+    if (!user || !user.id) return;
+    
     // Verificar se há currículos antes
     AsyncStorage.getItem(`curriculos_${user.id}`).then(cvs => {
       const curriculos = cvs ? JSON.parse(cvs) : [];
@@ -299,6 +294,9 @@ const DashboardScreen = ({ navigation }) => {
   // FUNÇÃO: Realizar análise de carreira com IA
   const realizarAnaliseCarreira = async (curriculoId) => {
     try {
+      // Verificar se o usuário ainda está logado antes de continuar
+      if (!user || !user.id) return;
+      
       setCareerAnalysisLoading(true);
 
       // Encontrar o currículo selecionado
@@ -550,8 +548,6 @@ Garanta que a resposta esteja em JSON válido para ser processada programaticame
             borderWidth: 2,
             borderColor: 'rgba(0, 188, 212, 0.7)',
             backgroundColor: 'rgba(0, 188, 212, 0.2)',
-            // Aqui precisaríamos de SVG ou uma biblioteca de gráficos real para criar
-            // uma forma poligonal baseada nos pontos. Esta é uma simplificação visual.
             borderRadius: 75,
             opacity: 0.5,
           }} />
@@ -1114,7 +1110,7 @@ Garanta que a resposta esteja em JSON válido para ser processada programaticame
                     // Simulação de exportação
                     Alert.alert(
                       "Exportar Análise",
-                      "Esta funcionalidade estará disponível em breve. A análise completa poderá ser exportada em PDF.",
+                      "Esta funcionalidade estará disponível em uma atualização futura. A análise completa poderá ser exportada em PDF.",
                       [{ text: "OK" }]
                     );
                   }}
@@ -1175,6 +1171,18 @@ Garanta que a resposta esteja em JSON válido para ser processada programaticame
     if (score >= 4) return 'Perfil em desenvolvimento, com áreas para melhoria';
     return 'Perfil iniciante com necessidade de desenvolvimento';
   };
+
+  // Verificar se user é null antes de renderizar o conteúdo principal
+  if (!user) {
+    return (
+      <SafeAreaView style={styles.container}>
+        <View style={styles.loadingContainer}>
+          <ActivityIndicator size="large" color={Colors.primary} />
+          <Text style={{ marginTop: 10 }}>Carregando...</Text>
+        </View>
+      </SafeAreaView>
+    );
+  }
 
   return (
     <SafeAreaView style={styles.container}>
@@ -1507,7 +1515,6 @@ Garanta que a resposta esteja em JSON válido para ser processada programaticame
   );
 };
 
-// Nova tela: DadosMercadoScreen.js
 const DadosMercadoScreen = ({ navigation, route }) => {
   const { user } = useAuth();
   const [loading, setLoading] = useState(true);
@@ -1903,7 +1910,6 @@ Forneça uma resposta estruturada e objetiva, apenas com informações verificá
   );
 };
 
-// Nova tela: GraficosRegionaisScreen.js
 const GraficosRegionaisScreen = ({ navigation, route }) => {
   const { user } = useAuth();
   const [loading, setLoading] = useState(true);
@@ -2472,8 +2478,6 @@ Forneça apenas informações factuais e verificáveis, focando especificamente 
     </SafeAreaView>
   );
 };
-
-// Modificação do ConfiguracoesAvancadasScreen para implementar a funcionalidade completa de "Ver Detalhes de Uso"
 
 const ConfiguracoesAvancadasScreen = ({ navigation }) => {
   const [iaConfigs, setIaConfigs] = useState({});
@@ -5182,7 +5186,6 @@ const Tab = createBottomTabNavigator();
 
 const HomeStack = createStackNavigator();
 
-// Função para renderizar ícones na Tab Bar sem depender de biblioteca externa
 const renderTabBarIcon = (route, focused, color, size) => {
   // Usar emojis ou caracteres unicode em vez de ícones
   if (route.name === 'Home') {
@@ -5197,53 +5200,10 @@ const renderTabBarIcon = (route, focused, color, size) => {
   return null;
 };
 
-// Componente de Slider personalizado para substituir o @react-native-community/slider
-const CustomSlider = ({ value, onValueChange, minimumValue, maximumValue, step, style }) => {
-  const [localValue, setLocalValue] = useState(value);
-
-  // Lista de valores possíveis baseados em step
-  const values = [];
-  for (let i = minimumValue; i <= maximumValue; i += step) {
-    values.push(i);
-  }
-
-  // Quando o valor local muda, chamamos o callback
-  useEffect(() => {
-    if (localValue !== value) {
-      onValueChange && onValueChange(localValue);
-    }
-  }, [localValue]);
-
-  return (
-    <View style={[{ flex: 1, height: 40, flexDirection: 'row', alignItems: 'center' }, style]}>
-      <ScrollView
-        horizontal
-        showsHorizontalScrollIndicator={false}
-        contentContainerStyle={{ paddingHorizontal: 10 }}
-      >
-        {values.map((val) => (
-          <TouchableOpacity
-            key={val}
-            style={{
-              padding: 8,
-              marginHorizontal: 2,
-              backgroundColor: val <= localValue ? Colors.primary : Colors.lightGray,
-              borderRadius: 4,
-            }}
-            onPress={() => setLocalValue(val)}
-          >
-            <Text style={{ color: val <= localValue ? Colors.white : Colors.dark, fontSize: 12 }}>
-              {val.toFixed(1)}
-            </Text>
-          </TouchableOpacity>
-        ))}
-      </ScrollView>
-    </View>
-  );
-};
-
+// Modificar o HomeStackScreen no App.js para incluir as novas rotas
 const HomeStackScreen = () => (
   <HomeStack.Navigator screenOptions={{ headerShown: false }}>
+    {/* Rotas existentes */}
     <HomeStack.Screen name="HomeMain" component={HomeScreen} />
     <HomeStack.Screen name="Chatbot" component={ChatbotScreen} />
     <HomeStack.Screen name="MeusCurriculos" component={MeusCurriculosScreen} />
@@ -5254,15 +5214,20 @@ const HomeStackScreen = () => (
     <HomeStack.Screen name="BuscaVagas" component={BuscaVagasScreen} />
     <HomeStack.Screen name="SobreApp" component={SobreAppScreen} />
     <HomeStack.Screen name="ConfiguracoesIA" component={ConfiguracoesIAScreen} />
-
-    {/* Novas telas */}
+    <HomeStack.Screen name="EditarCurriculo" component={EditarCurriculoScreen} />
+    
+    {/* Novas rotas para simulação de entrevista */}
+    <HomeStack.Screen name="SimularEntrevista" component={SimularEntrevistaScreen} />
+    <HomeStack.Screen name="EntrevistaSimulada" component={EntrevistaSimuladaScreen} />
+    
+    {/* Outras rotas */}
     <HomeStack.Screen name="DadosMercado" component={DadosMercadoScreen} />
     <HomeStack.Screen name="GraficosRegionais" component={GraficosRegionaisScreen} />
   </HomeStack.Navigator>
 );
 
-// Não precisa de Stack para o Dashboard pois ele não navega para outras telas
 const DashboardStack = createStackNavigator();
+
 const DashboardStackScreen = () => (
   <DashboardStack.Navigator screenOptions={{ headerShown: false }}>
     <DashboardStack.Screen name="DashboardMain" component={DashboardScreen} />
@@ -5278,6 +5243,7 @@ const DashboardStackScreen = () => (
 );
 
 const ConfigStack = createStackNavigator();
+
 const ConfigStackScreen = () => (
   <ConfigStack.Navigator screenOptions={{ headerShown: false }}>
     <ConfigStack.Screen name="ConfigMain" component={ConfiguracoesScreen} />
@@ -5288,15 +5254,14 @@ const ConfigStackScreen = () => (
   </ConfigStack.Navigator>
 );
 
-// Stack para Configurações Avançadas
 const ConfigAvStack = createStackNavigator();
+
 const ConfigAvStackScreen = () => (
   <ConfigAvStack.Navigator screenOptions={{ headerShown: false }}>
     <ConfigAvStack.Screen name="ConfigAvMain" component={ConfiguracoesAvancadasScreen} />
   </ConfigAvStack.Navigator>
 );
 
-// Tab Navigator para usuários autenticados
 const TabNavigator = () => (
   <Tab.Navigator
     screenOptions={({ route }) => ({
@@ -5337,14 +5302,12 @@ const TabNavigator = () => (
   </Tab.Navigator>
 );
 
-// Modificar o AppNavigator para usar o TabNavigator
 const AppNavigator = () => (
   <AppStack.Navigator screenOptions={{ headerShown: false }}>
     <AppStack.Screen name="MainTabs" component={TabNavigator} />
   </AppStack.Navigator>
 );
 
-// Funções para gerenciar API keys das IAs
 const getIAAPIKey = async (tipoIA) => {
   try {
     const savedKey = await AsyncStorage.getItem(`ia_api_key_${tipoIA}`);
@@ -5366,7 +5329,6 @@ const salvarIAAPIKey = async (tipoIA, apiKey) => {
   }
 };
 
-// Função atualizada para buscar vagas com opção de forçar atualização
 const buscarVagasComGemini = async (curriculoData, forceRefresh = false) => {
   try {
     // Verificar cache apenas se não estiver forçando atualização
@@ -5619,294 +5581,6 @@ IMPORTANTE: Todas as vagas informadas devem ser REAIS e ATUAIS (2025), baseando-
   }
 };
 
-// Tela de Busca de Vagas
-// const BuscaVagasScreen = ({ route, navigation }) => {
-//   const { curriculoData } = route.params;
-//   const [loading, setLoading] = useState(true);
-//   const [error, setError] = useState(null);
-//   const [vagasResultado, setVagasResultado] = useState(null);
-//   const [loadingProgress, setLoadingProgress] = useState(0);
-
-//   useEffect(() => {
-//     // Simular progresso durante a busca para feedback visual
-//     const progressInterval = setInterval(() => {
-//       setLoadingProgress(prev => {
-//         const newProgress = prev + (0.1 * Math.random());
-//         return newProgress > 0.9 ? 0.9 : newProgress;
-//       });
-//     }, 800);
-
-//     // Iniciar a busca de vagas
-//     buscarVagas();
-
-//     return () => clearInterval(progressInterval);
-//   }, []);
-
-//   const buscarVagas = async () => {
-//     try {
-//       // Verificar o cache primeiro
-//       const cacheKey = `vagas_${JSON.stringify(curriculoData).slice(0, 50)}`;
-//       const cachedResult = await AsyncStorage.getItem(cacheKey);
-
-//       if (cachedResult) {
-//         const parsed = JSON.parse(cachedResult);
-//         const cacheAge = new Date() - new Date(parsed.timestamp);
-//         const cacheValidHours = 24;
-
-//         if (cacheAge < cacheValidHours * 60 * 60 * 1000) {
-//           console.log(`Usando resultado em cache para busca de vagas`);
-//           setVagasResultado(parsed.resultado);
-//           setLoading(false);
-//           setLoadingProgress(1);
-//           return;
-//         }
-//       }
-
-//       // Se não tem cache válido, fazer a busca
-//       const resultado = await buscarVagasComGemini(curriculoData);
-
-//       if (resultado.success) {
-//         setVagasResultado(resultado.vagas);
-//       } else {
-//         setError(resultado.error);
-//       }
-//     } catch (error) {
-//       console.error('Erro na busca de vagas:', error);
-//       setError('Não foi possível completar a busca de vagas. Tente novamente mais tarde.');
-//     } finally {
-//       setLoading(false);
-//       setLoadingProgress(1);
-//     }
-//   };
-
-//   const handleTryAgain = () => {
-//     setLoading(true);
-//     setError(null);
-//     setLoadingProgress(0.1);
-//     buscarVagas();
-//   };
-
-//   const handleShare = async () => {
-//     try {
-//       await Share.share({
-//         message: vagasResultado,
-//         title: 'Vagas recomendadas para seu perfil'
-//       });
-//     } catch (error) {
-//       console.error('Erro ao compartilhar:', error);
-//       Alert.alert('Erro', 'Não foi possível compartilhar as vagas.');
-//     }
-//   };
-
-//   return (
-//     <SafeAreaView style={styles.container}>
-//       <StatusBar barStyle="light-content" backgroundColor={Colors.dark} />
-
-//       <View style={styles.header}>
-//         <TouchableOpacity
-//           style={styles.backButton}
-//           onPress={() => navigation.goBack()}
-//         >
-//           <Text style={styles.backButtonText}>‹</Text>
-//         </TouchableOpacity>
-//         <Text style={styles.headerTitle}>Vagas para Você</Text>
-//       </View>
-
-//       {loading ? (
-//         <View style={styles.loadingContainer}>
-//           <Text style={{
-//             fontSize: 18,
-//             fontWeight: 'bold',
-//             color: Colors.dark,
-//             marginBottom: 20,
-//             textAlign: 'center'
-//           }}>
-//             Buscando vagas personalizadas
-//           </Text>
-
-//           <View style={{
-//             width: '80%',
-//             height: 10,
-//             backgroundColor: Colors.lightGray,
-//             borderRadius: 5,
-//             marginBottom: 20
-//           }}>
-//             <View style={{
-//               width: `${loadingProgress * 100}%`,
-//               height: '100%',
-//               backgroundColor: Colors.primary,
-//               borderRadius: 5
-//             }} />
-//           </View>
-
-//           <View style={{
-//             backgroundColor: 'rgba(0, 188, 212, 0.1)',
-//             padding: 15,
-//             borderRadius: 8,
-//             marginTop: 20,
-//             maxWidth: '90%'
-//           }}>
-//             <Text style={{ textAlign: 'center', color: Colors.dark }}>
-//               Nossa IA está analisando seu perfil e buscando vagas que correspondam às suas qualificações e objetivos de carreira.
-//             </Text>
-//           </View>
-//         </View>
-//       ) : error ? (
-//         <View style={styles.errorContainer}>
-//           <Text style={styles.errorText}>{error}</Text>
-//           <TouchableOpacity
-//             style={styles.retryButton}
-//             onPress={handleTryAgain}
-//           >
-//             <Text style={styles.retryButtonText}>Tentar Novamente</Text>
-//           </TouchableOpacity>
-//         </View>
-//       ) : (
-//         <View style={{ flex: 1 }}>
-//           <ScrollView style={{ padding: 15 }}>
-//             {/* Título e informações */}
-//             <View style={{
-//               backgroundColor: Colors.white,
-//               borderRadius: 10,
-//               padding: 15,
-//               marginBottom: 15,
-//               ...Platform.select({
-//                 ios: {
-//                   shadowColor: '#000',
-//                   shadowOffset: { width: 0, height: 2 },
-//                   shadowOpacity: 0.1,
-//                   shadowRadius: 4,
-//                 },
-//                 android: {
-//                   elevation: 2,
-//                 },
-//               }),
-//             }}>
-//               <Text style={{
-//                 fontSize: 18,
-//                 fontWeight: 'bold',
-//                 marginBottom: 8,
-//                 color: Colors.dark,
-//               }}>
-//                 Vagas Personalizadas para Seu Perfil
-//               </Text>
-
-//               <Text style={{
-//                 fontSize: 14,
-//                 color: Colors.lightText,
-//                 marginBottom: 10,
-//               }}>
-//                 Com base nas informações do seu currículo, encontramos estas vagas que correspondem ao seu perfil profissional.
-//               </Text>
-//             </View>
-
-//             {/* Resultados da IA */}
-//             <View style={{
-//               backgroundColor: Colors.white,
-//               borderRadius: 10,
-//               padding: 15,
-//               marginBottom: 15,
-//               ...Platform.select({
-//                 ios: {
-//                   shadowColor: '#000',
-//                   shadowOffset: { width: 0, height: 2 },
-//                   shadowOpacity: 0.1,
-//                   shadowRadius: 4,
-//                 },
-//                 android: {
-//                   elevation: 2,
-//                 },
-//               }),
-//             }}>
-//               <Markdown
-//                 style={{
-//                   body: { fontSize: 16, lineHeight: 24, color: Colors.dark },
-//                   heading1: { 
-//                     fontSize: 22, 
-//                     fontWeight: 'bold', 
-//                     marginBottom: 10, 
-//                     color: Colors.dark,
-//                     borderBottomWidth: 1,
-//                     borderBottomColor: Colors.mediumGray,
-//                     paddingBottom: 5,
-//                   },
-//                   heading2: { 
-//                     fontSize: 20, 
-//                     fontWeight: 'bold', 
-//                     marginBottom: 10,
-//                     marginTop: 15,
-//                     color: Colors.dark 
-//                   },
-//                   heading3: { 
-//                     fontSize: 18, 
-//                     fontWeight: 'bold', 
-//                     marginTop: 10,
-//                     marginBottom: 5,
-//                     color: Colors.dark 
-//                   },
-//                   paragraph: { 
-//                     fontSize: 16, 
-//                     lineHeight: 24,
-//                     marginBottom: 10,
-//                     color: Colors.dark 
-//                   },
-//                   list_item: {
-//                     marginBottom: 5,
-//                     flexDirection: 'row',
-//                     alignItems: 'flex-start',
-//                   },
-//                   bullet_list: {
-//                     marginVertical: 10,
-//                   },
-//                   strong: {
-//                     fontWeight: 'bold',
-//                   },
-//                   em: {
-//                     fontStyle: 'italic',
-//                   },
-//                   link: {
-//                     color: Colors.primary,
-//                     textDecorationLine: 'underline',
-//                   },
-//                 }}
-//               >
-//                 {vagasResultado}
-//               </Markdown>
-//             </View>
-//           </ScrollView>
-
-//           {/* Botão para compartilhar */}
-//           <View style={{
-//             padding: 15,
-//             backgroundColor: Colors.white,
-//             borderTopWidth: 1,
-//             borderTopColor: Colors.mediumGray,
-//           }}>
-//             <TouchableOpacity
-//               style={{
-//                 backgroundColor: Colors.primary,
-//                 paddingVertical: 12,
-//                 borderRadius: 8,
-//                 alignItems: 'center',
-//               }}
-//               onPress={handleShare}
-//             >
-//               <Text style={{
-//                 color: Colors.white,
-//                 fontWeight: 'bold',
-//                 fontSize: 16,
-//               }}>
-//                 Compartilhar Vagas
-//               </Text>
-//             </TouchableOpacity>
-//           </View>
-//         </View>
-//       )}
-//     </SafeAreaView>
-//   );
-// };
-
-// Tela de Busca de Vagas com botão de atualização
 const BuscaVagasScreen = ({ route, navigation }) => {
   const { curriculoData } = route.params;
   const [loading, setLoading] = useState(true);
@@ -6437,132 +6111,7 @@ const BuscaVagasScreen = ({ route, navigation }) => {
   );
 };
 
-// Função auxiliar para obter fonte da API key
-const getApiKeySourceForIA = async (tipoIA) => {
-  switch (tipoIA) {
-    // No caso do Gemini dentro da função chamarIAAPI
-    case 'GEMINI':
-      return await tentarComRetry(async () => {
-        // Lista de modelos disponíveis em ordem de preferência
-        const modelos = [
-          'gemini-2.0-flash',       // Mais rápido, nova versão
-          'gemini-2.0-pro',         // Mais capacidade, nova versão
-          'gemini-1.5-flash',       // Fallback
-          'gemini-1.5-pro',         // Fallback
-          'gemini-pro'              // Versão original, para compatibilidade
-        ];
-
-        // Construir URLs para todos os modelos e versões da API
-        const endpoints = [];
-
-        // Adicionar endpoints v1beta (mais recentes)
-        modelos.forEach(modelo => {
-          endpoints.push(`https://generativelanguage.googleapis.com/v1beta/models/${modelo}:generateContent?key=${apiKey}`);
-        });
-
-        // Adicionar endpoints v1 (estáveis)
-        modelos.forEach(modelo => {
-          endpoints.push(`https://generativelanguage.googleapis.com/v1/models/${modelo}:generateContent?key=${apiKey}`);
-        });
-
-        let lastError = null;
-
-        // Tentar cada endpoint até encontrar um que funcione
-        for (const endpoint of endpoints) {
-          try {
-            console.log(`Tentando endpoint Gemini: ${endpoint}`);
-
-            // Preparar requisição no formato correto conforme documentação
-            const requestBody = {
-              contents: [
-                {
-                  parts: [
-                    { text: promptText }
-                  ]
-                }
-              ],
-              generationConfig: {
-                temperature: 0.7,
-                maxOutputTokens: 800,
-                topK: 40,
-                topP: 0.95
-              },
-              safetySettings: [
-                {
-                  category: "HARM_CATEGORY_HARASSMENT",
-                  threshold: "BLOCK_MEDIUM_AND_ABOVE"
-                }
-              ]
-            };
-
-            // Configurar requisição com headers adequados
-            const config = {
-              headers: {
-                'Content-Type': 'application/json',
-                'Accept': 'application/json'
-              },
-              timeout: 15000
-            };
-
-            // Fazer a requisição
-            const response = await axios.post(endpoint, requestBody, config);
-
-            // Verificar resposta corretamente
-            if (response.status === 200) {
-              // Checar cada possível caminho de resposta (algumas APIs têm formatos ligeiramente diferentes)
-              if (response.data?.candidates?.[0]?.content?.parts?.[0]?.text) {
-                console.log('Resposta do Gemini obtida via caminho normal');
-                return response.data.candidates[0].content.parts[0].text;
-              }
-
-              if (response.data?.candidates?.[0]?.output) {
-                console.log('Resposta do Gemini obtida via caminho alternativo');
-                return response.data.candidates[0].output;
-              }
-
-              if (response.data?.candidates?.[0]?.text) {
-                console.log('Resposta do Gemini obtida via caminho simplificado');
-                return response.data.candidates[0].text;
-              }
-
-              // Se chegamos aqui, encontramos um endpoint que funciona mas formato inesperado
-              console.log('Formato de resposta inesperado do Gemini, mas status 200');
-              console.log('Resposta completa:', JSON.stringify(response.data));
-
-              // Tente extrair algum texto útil como fallback
-              const respString = JSON.stringify(response.data);
-              if (respString.length > 0) {
-                return `Análise recebida em formato não reconhecido. Dados brutos: ${respString.substring(0, 500)}...`;
-              }
-            }
-          } catch (error) {
-            console.log(`Erro no endpoint ${endpoint}:`, error.message);
-            if (error.response) {
-              console.log('Detalhes do erro:', error.response.status, error.response.data);
-            }
-            lastError = error;
-            // Continue tentando o próximo endpoint
-          }
-        }
-
-        // Se chegou aqui, nenhum endpoint funcionou
-        throw lastError || new Error('Todos os endpoints do Gemini falharam');
-      });
-    case 'OPENAI':
-      return 'https://platform.openai.com/api-keys';
-    case 'CLAUDE':
-      return 'https://console.anthropic.com/settings/keys';
-    case 'PERPLEXITY':
-      return 'https://www.perplexity.ai/settings/api';
-    default:
-      return 'Site oficial da IA';
-  }
-};
-
-// Contexto de Autenticação
 const AuthContext = createContext();
-
-// No arquivo onde você definiu AuthProvider e o contexto de Auth
 
 const AuthProvider = ({ children }) => {
   const [user, setUser] = useState(null);
@@ -6684,7 +6233,6 @@ const AuthProvider = ({ children }) => {
 
 const useAuth = () => useContext(AuthContext);
 
-// Função para chamar diferentes APIs de IA
 const chamarIAAPI = async (tipoIA, apiKey, promptText) => {
   const MAX_RETRIES = 2;
 
@@ -6932,7 +6480,6 @@ const chamarIAAPI = async (tipoIA, apiKey, promptText) => {
   }
 };
 
-// Função de geração de análise local (fallback)
 const gerarAnaliseLocal = (curriculoData, tipoAnalise) => {
   try {
     // Extrair dados relevantes para personalizar a análise
@@ -7195,7 +6742,6 @@ O currículo apresenta um profissional ${pontuacaoFinal > 7 ? 'bem qualificado' 
   }
 };
 
-// Função atualizada para analisar currículo com múltiplas IAs
 const analisarCurriculoComIA = async (curriculoData, tipoAnalise, tipoIA = 'GEMINI', forceOffline = false) => {
   // Validação de entrada
   if (!curriculoData) {
@@ -7411,7 +6957,6 @@ const analisarCurriculoComIA = async (curriculoData, tipoAnalise, tipoIA = 'GEMI
   }
 };
 
-// Componentes
 const ChatMessage = ({ message, isUser, time }) => (
   <View style={[
     styles.messageContainer,
@@ -7426,8 +6971,6 @@ const ChatMessage = ({ message, isUser, time }) => (
     <Text style={styles.messageTime}>{time}</Text>
   </View>
 );
-
-// Substitua todo o componente ChatOptions por esta versão completa:
 
 const ChatOptions = ({ options, onSelect }) => {
   if (!options || options.length === 0) return null;
@@ -7471,25 +7014,6 @@ const ChatOptions = ({ options, onSelect }) => {
   );
 };
 
-const curriculumTemplates = [
-  { id: 'modern', name: 'Moderno', color: '#00BCD4', icon: '📱' },
-  { id: 'classic', name: 'Clássico', color: '#263238', icon: '📄' },
-  { id: 'creative', name: 'Criativo', color: '#9C27B0', icon: '🎨' },
-  { id: 'professional', name: 'Profissional', color: '#3F51B5', icon: '💼' },
-  { id: 'minimalist', name: 'Minimalista', color: '#607D8B', icon: '🔍' },
-  { id: 'elegant', name: 'Elegante', color: '#795548', icon: '✨' },
-  { id: 'corporate', name: 'Corporativo', color: '#0277BD', icon: '🏢' },
-  { id: 'tech', name: 'Tecnologia', color: '#00838F', icon: '💻' },
-  { id: 'academic', name: 'Acadêmico', color: '#4527A0', icon: '🎓' },
-  { id: 'bold', name: 'Destaque', color: '#D32F2F', icon: '🔆' },
-  { id: 'pastel', name: 'Tons Pastel', color: '#81C784', icon: '🌈' },
-  { id: 'dark', name: 'Escuro', color: '#212121', icon: '🌑' },
-  { id: 'light', name: 'Claro', color: '#ECEFF1', icon: '☀️' },
-  { id: 'startup', name: 'Startup', color: '#FF5722', icon: '🚀' },
-  { id: 'international', name: 'Internacional', color: '#2196F3', icon: '🌎' },
-  { id: 'executive', name: 'Executivo', color: '#455A64', icon: '👔' }
-];
-
 const CurriculumPreview = ({ data, templateStyle = 'modern' }) => {
   if (!data || !data.informacoes_pessoais) {
     return (
@@ -7504,7 +7028,6 @@ const CurriculumPreview = ({ data, templateStyle = 'modern' }) => {
   // Definição de estilos baseados no template selecionado
   const getTemplateStyles = () => {
     switch (templateStyle) {
-      // 1. Clássico
       case 'classic':
         return {
           container: {
@@ -7549,668 +7072,6 @@ const CurriculumPreview = ({ data, templateStyle = 'modern' }) => {
           }
         };
 
-      // 2. Criativo
-      case 'creative':
-        return {
-          container: {
-            backgroundColor: '#f8f9fa',
-            padding: 15,
-          },
-          header: {
-            backgroundColor: Colors.primary,
-            padding: 15,
-            borderRadius: 10,
-            marginBottom: 15,
-          },
-          name: {
-            fontSize: 26,
-            fontWeight: 'bold',
-            color: Colors.white,
-          },
-          contact: {
-            color: Colors.white,
-            marginBottom: 5,
-          },
-          sectionTitle: {
-            fontSize: 18,
-            fontWeight: 'bold',
-            color: Colors.white,
-            backgroundColor: Colors.primary,
-            paddingVertical: 5,
-            paddingHorizontal: 10,
-            borderRadius: 5,
-            marginBottom: 10,
-          },
-          itemTitle: {
-            fontSize: 16,
-            fontWeight: 'bold',
-            color: Colors.primary,
-          },
-          accent: Colors.primary,
-          itemBorder: {
-            borderLeftWidth: 4,
-            borderLeftColor: Colors.primary,
-            paddingLeft: 10,
-          }
-        };
-
-      // 3. Profissional
-      case 'professional':
-        return {
-          container: {
-            backgroundColor: Colors.white,
-            padding: 15,
-          },
-          header: {
-            borderLeftWidth: 4,
-            borderLeftColor: Colors.secondary,
-            paddingLeft: 10,
-            marginBottom: 15,
-          },
-          name: {
-            fontSize: 24,
-            fontWeight: 'bold',
-            color: Colors.secondary,
-          },
-          contact: {
-            color: Colors.dark,
-            marginBottom: 5,
-          },
-          sectionTitle: {
-            fontSize: 18,
-            fontWeight: 'bold',
-            color: Colors.secondary,
-            marginBottom: 10,
-            paddingBottom: 5,
-          },
-          itemTitle: {
-            fontSize: 16,
-            fontWeight: 'bold',
-            color: Colors.dark,
-          },
-          accent: Colors.secondary,
-          itemBorder: {
-            borderLeftWidth: 2,
-            borderLeftColor: Colors.secondary,
-            paddingLeft: 10,
-          }
-        };
-
-      // 4. Minimalista
-      case 'minimal':
-        return {
-          container: {
-            backgroundColor: Colors.white,
-            padding: 15,
-          },
-          header: {
-            marginBottom: 20,
-            alignItems: 'center',
-          },
-          name: {
-            fontSize: 28,
-            fontWeight: '300', // Fonte mais leve
-            color: Colors.dark,
-            textAlign: 'center',
-            letterSpacing: 1,
-          },
-          contact: {
-            color: Colors.lightText,
-            textAlign: 'center',
-            marginBottom: 5,
-            fontSize: 14,
-          },
-          sectionTitle: {
-            fontSize: 16,
-            fontWeight: '500',
-            color: Colors.dark,
-            marginBottom: 12,
-            textTransform: 'uppercase',
-            letterSpacing: 2,
-          },
-          itemTitle: {
-            fontSize: 16,
-            fontWeight: '500',
-            color: Colors.dark,
-          },
-          accent: Colors.dark,
-          itemBorder: {
-            borderLeftWidth: 0,
-            paddingLeft: 0,
-            marginBottom: 15,
-          }
-        };
-
-      // 5. Executivo
-      case 'executive':
-        return {
-          container: {
-            backgroundColor: '#fafafa',
-            padding: 15,
-            borderWidth: 1,
-            borderColor: '#e0e0e0',
-          },
-          header: {
-            borderBottomWidth: 1,
-            borderBottomColor: '#000',
-            paddingBottom: 15,
-            marginBottom: 15,
-          },
-          name: {
-            fontSize: 24,
-            fontWeight: 'bold',
-            color: '#000',
-            textTransform: 'uppercase',
-            letterSpacing: 3,
-          },
-          contact: {
-            color: '#555',
-            marginTop: 8,
-          },
-          sectionTitle: {
-            fontSize: 16,
-            fontWeight: 'bold',
-            color: '#000',
-            textTransform: 'uppercase',
-            marginBottom: 12,
-            letterSpacing: 1,
-          },
-          itemTitle: {
-            fontSize: 16,
-            fontWeight: 'bold',
-            color: '#333',
-          },
-          accent: '#000',
-          itemBorder: {
-            borderLeftWidth: 0,
-            paddingLeft: 0,
-            paddingBottom: 10,
-            marginBottom: 10,
-            borderBottomWidth: 1,
-            borderBottomColor: '#eee',
-          }
-        };
-
-      // 6. Tecnologia
-      case 'tech':
-        return {
-          container: {
-            backgroundColor: '#f0f4f8',
-            padding: 15,
-            borderRadius: 8,
-          },
-          header: {
-            backgroundColor: '#2d3748',
-            padding: 18,
-            borderRadius: 8,
-            marginBottom: 20,
-          },
-          name: {
-            fontSize: 26,
-            fontWeight: 'bold',
-            color: '#fff',
-            marginBottom: 6,
-          },
-          contact: {
-            color: '#a0aec0',
-            marginBottom: 3,
-          },
-          sectionTitle: {
-            fontSize: 18,
-            fontWeight: 'bold',
-            color: '#2d3748',
-            marginBottom: 12,
-            paddingBottom: 5,
-            borderBottomWidth: 2,
-            borderBottomColor: '#4299e1',
-          },
-          itemTitle: {
-            fontSize: 16,
-            fontWeight: 'bold',
-            color: '#2d3748',
-          },
-          accent: '#4299e1', // Azul tech
-          itemBorder: {
-            borderLeftWidth: 3,
-            borderLeftColor: '#4299e1',
-            paddingLeft: 10,
-            marginBottom: 12,
-            backgroundColor: '#fff',
-            borderRadius: 4,
-            padding: 10,
-            ...Platform.select({
-              ios: {
-                shadowColor: '#000',
-                shadowOffset: { width: 0, height: 1 },
-                shadowOpacity: 0.05,
-                shadowRadius: 1,
-              },
-              android: {
-                elevation: 1,
-              },
-            }),
-          }
-        };
-
-      // 7. Artes Criativas
-      case 'creative-arts':
-        return {
-          container: {
-            backgroundColor: '#fff',
-            padding: 15,
-            borderRadius: 0,
-          },
-          header: {
-            marginBottom: 20,
-            borderBottomWidth: 3,
-            borderBottomColor: '#f06292', // Rosa vibrante
-            paddingBottom: 15,
-          },
-          name: {
-            fontSize: 30,
-            fontWeight: 'bold',
-            color: '#6a1b9a', // Roxo escuro
-            marginBottom: 8,
-            textAlign: 'left',
-          },
-          contact: {
-            color: '#9c27b0', // Roxo médio
-            marginBottom: 5,
-            fontSize: 14,
-          },
-          sectionTitle: {
-            fontSize: 22,
-            fontWeight: '400',
-            color: '#6a1b9a',
-            marginBottom: 15,
-            fontStyle: 'italic',
-          },
-          itemTitle: {
-            fontSize: 18,
-            fontWeight: 'bold',
-            color: '#9c27b0',
-          },
-          accent: '#f06292', // Rosa
-          itemBorder: {
-            borderLeftWidth: 4,
-            borderLeftColor: '#f06292',
-            paddingLeft: 12,
-            marginBottom: 15,
-          }
-        };
-
-      // 8. Acadêmico
-      case 'academic':
-        return {
-          container: {
-            backgroundColor: '#fff',
-            padding: 20,
-            borderWidth: 1,
-            borderColor: '#d1d1d1',
-          },
-          header: {
-            marginBottom: 25,
-            borderBottomWidth: 1,
-            borderBottomColor: '#333',
-            paddingBottom: 15,
-            alignItems: 'center',
-          },
-          name: {
-            fontSize: 24,
-            fontWeight: 'bold',
-            color: '#333',
-            textAlign: 'center',
-            marginBottom: 5,
-          },
-          contact: {
-            color: '#666',
-            textAlign: 'center',
-            marginBottom: 3,
-            fontSize: 14,
-          },
-          sectionTitle: {
-            fontSize: 18,
-            fontWeight: 'bold',
-            color: '#333',
-            marginBottom: 15,
-            borderBottomWidth: 1,
-            borderBottomColor: '#bbb',
-            paddingBottom: 3,
-          },
-          itemTitle: {
-            fontSize: 16,
-            fontWeight: 'bold',
-            color: '#333',
-          },
-          accent: '#333',
-          itemBorder: {
-            paddingLeft: 0,
-            marginBottom: 18,
-          }
-        };
-
-      // 9. Engenharia
-      case 'engineering':
-        return {
-          container: {
-            backgroundColor: '#fafafa',
-            padding: 15,
-          },
-          header: {
-            backgroundColor: '#263238', // Cinza azulado escuro
-            padding: 18,
-            marginBottom: 18,
-            borderRadius: 3,
-          },
-          name: {
-            fontSize: 24,
-            fontWeight: 'bold',
-            color: '#fff',
-            marginBottom: 5,
-          },
-          contact: {
-            color: '#b0bec5',
-            marginBottom: 3,
-          },
-          sectionTitle: {
-            fontSize: 17,
-            fontWeight: 'bold',
-            color: '#37474f',
-            marginBottom: 12,
-            backgroundColor: '#eceff1',
-            paddingVertical: 5,
-            paddingHorizontal: 10,
-            borderRadius: 3,
-          },
-          itemTitle: {
-            fontSize: 16,
-            fontWeight: 'bold',
-            color: '#37474f',
-          },
-          accent: '#039be5', // Azul claro
-          itemBorder: {
-            borderLeftWidth: 3,
-            borderLeftColor: '#039be5',
-            paddingLeft: 10,
-            marginBottom: 15,
-          }
-        };
-
-      // 10. Marketing
-      case 'marketing':
-        return {
-          container: {
-            backgroundColor: '#fff',
-            padding: 15,
-            borderRadius: 10,
-          },
-          header: {
-            backgroundColor: '#7b1fa2', // Roxo vibrante
-            padding: 18,
-            borderRadius: 10,
-            marginBottom: 20,
-            ...Platform.select({
-              ios: {
-                shadowColor: '#000',
-                shadowOffset: { width: 0, height: 3 },
-                shadowOpacity: 0.2,
-                shadowRadius: 4,
-              },
-              android: {
-                elevation: 4,
-              },
-            }),
-          },
-          name: {
-            fontSize: 26,
-            fontWeight: 'bold',
-            color: '#fff',
-            marginBottom: 5,
-          },
-          contact: {
-            color: '#e1bee7',
-            marginBottom: 3,
-          },
-          sectionTitle: {
-            fontSize: 18,
-            fontWeight: 'bold',
-            color: '#7b1fa2',
-            marginBottom: 15,
-            paddingBottom: 5,
-            borderBottomWidth: 2,
-            borderBottomColor: '#ba68c8',
-          },
-          itemTitle: {
-            fontSize: 17,
-            fontWeight: 'bold',
-            color: '#7b1fa2',
-          },
-          accent: '#ba68c8', // Roxo mais claro
-          itemBorder: {
-            borderLeftWidth: 0,
-            marginBottom: 15,
-            backgroundColor: '#f3e5f5',
-            borderRadius: 8,
-            padding: 10,
-          }
-        };
-
-      // 11. Legal/Jurídico
-      case 'legal':
-        return {
-          container: {
-            backgroundColor: '#fff',
-            padding: 18,
-            borderWidth: 1,
-            borderColor: '#ccc',
-          },
-          header: {
-            marginBottom: 20,
-            paddingBottom: 15,
-            borderBottomWidth: 1,
-            borderBottomColor: '#01579b', // Azul escuro
-          },
-          name: {
-            fontSize: 24,
-            fontWeight: 'bold',
-            color: '#01579b',
-            marginBottom: 5,
-          },
-          contact: {
-            color: '#333',
-            marginBottom: 3,
-          },
-          sectionTitle: {
-            fontSize: 17,
-            fontWeight: 'bold',
-            color: '#01579b',
-            marginBottom: 12,
-            paddingBottom: 4,
-            borderBottomWidth: 1,
-            borderBottomColor: '#ccc',
-          },
-          itemTitle: {
-            fontSize: 16,
-            fontWeight: 'bold',
-            color: '#01579b',
-          },
-          accent: '#01579b',
-          itemBorder: {
-            paddingLeft: 0,
-            marginBottom: 15,
-          }
-        };
-
-      // 12. Médico/Saúde
-      case 'medical':
-        return {
-          container: {
-            backgroundColor: '#fff',
-            padding: 15,
-            borderRadius: 3,
-          },
-          header: {
-            backgroundColor: '#e3f2fd', // Azul bem claro
-            padding: 15,
-            borderRadius: 3,
-            marginBottom: 18,
-            borderLeftWidth: 5,
-            borderLeftColor: '#0277bd',
-          },
-          name: {
-            fontSize: 24,
-            fontWeight: 'bold',
-            color: '#0277bd', // Azul médio
-            marginBottom: 5,
-          },
-          contact: {
-            color: '#333',
-            marginBottom: 3,
-          },
-          sectionTitle: {
-            fontSize: 17,
-            fontWeight: 'bold',
-            color: '#0277bd',
-            marginBottom: 12,
-            paddingBottom: 5,
-            borderBottomWidth: 1,
-            borderBottomColor: '#bbdefb',
-          },
-          itemTitle: {
-            fontSize: 16,
-            fontWeight: 'bold',
-            color: '#0277bd',
-          },
-          accent: '#0277bd',
-          itemBorder: {
-            borderLeftWidth: 3,
-            borderLeftColor: '#0277bd',
-            paddingLeft: 10,
-            marginBottom: 15,
-          }
-        };
-
-      // 13. Startup
-      case 'startup':
-        return {
-          container: {
-            backgroundColor: '#fafafa',
-            padding: 15,
-            borderRadius: 10,
-          },
-          header: {
-            padding: 15,
-            backgroundColor: '#20232a', // Escuro
-            borderRadius: 10,
-            marginBottom: 20,
-            ...Platform.select({
-              ios: {
-                shadowColor: '#000',
-                shadowOffset: { width: 0, height: 3 },
-                shadowOpacity: 0.2,
-                shadowRadius: 4,
-              },
-              android: {
-                elevation: 3,
-              },
-            }),
-          },
-          name: {
-            fontSize: 28,
-            fontWeight: 'bold',
-            color: '#61dafb', // Azul claro/ciano
-            marginBottom: 5,
-          },
-          contact: {
-            color: '#fff',
-            marginBottom: 3,
-          },
-          sectionTitle: {
-            fontSize: 18,
-            fontWeight: 'bold',
-            color: '#20232a',
-            marginBottom: 15,
-            borderRadius: 4,
-            paddingVertical: 5,
-          },
-          itemTitle: {
-            fontSize: 16,
-            fontWeight: 'bold',
-            color: '#20232a',
-          },
-          accent: '#61dafb', // Azul claro
-          itemBorder: {
-            borderLeftWidth: 3,
-            borderLeftColor: '#61dafb',
-            borderRadius: 4,
-            paddingLeft: 10,
-            marginBottom: 15,
-            backgroundColor: '#fff',
-            ...Platform.select({
-              ios: {
-                shadowColor: '#000',
-                shadowOffset: { width: 0, height: 1 },
-                shadowOpacity: 0.1,
-                shadowRadius: 2,
-              },
-              android: {
-                elevation: 1,
-              },
-            }),
-          }
-        };
-
-      // 14. Modo Escuro
-      case 'dark-mode':
-        return {
-          container: {
-            backgroundColor: '#121212',
-            padding: 15,
-            borderRadius: 10,
-          },
-          header: {
-            marginBottom: 20,
-            padding: 10,
-            borderBottomWidth: 1,
-            borderBottomColor: '#333',
-          },
-          name: {
-            fontSize: 26,
-            fontWeight: 'bold',
-            color: '#fff',
-            marginBottom: 5,
-          },
-          contact: {
-            color: '#aaa',
-            marginBottom: 3,
-          },
-          sectionTitle: {
-            fontSize: 18,
-            fontWeight: 'bold',
-            color: '#bb86fc', // Roxo claro
-            marginBottom: 15,
-            borderBottomWidth: 1,
-            borderBottomColor: '#333',
-            paddingBottom: 5,
-          },
-          itemTitle: {
-            fontSize: 16,
-            fontWeight: 'bold',
-            color: '#fff',
-          },
-          accent: '#bb86fc', // Roxo
-          itemBorder: {
-            borderLeftWidth: 2,
-            borderLeftColor: '#bb86fc',
-            paddingLeft: 10,
-            marginBottom: 15,
-            backgroundColor: '#1e1e1e',
-            padding: 8,
-            borderRadius: 4,
-          }
-        };
-
-      // 15. Elegante
       case 'elegant':
         return {
           container: {
@@ -8262,711 +7123,6 @@ const CurriculumPreview = ({ data, templateStyle = 'modern' }) => {
           itemBorder: {
             paddingLeft: 0,
             marginBottom: 18,
-          }
-        };
-
-      // 16. Compacto
-      case 'compact':
-        return {
-          container: {
-            backgroundColor: '#fff',
-            padding: 12,
-            borderRadius: 5,
-          },
-          header: {
-            marginBottom: 12,
-          },
-          name: {
-            fontSize: 20,
-            fontWeight: 'bold',
-            color: Colors.dark,
-            marginBottom: 3,
-          },
-          contact: {
-            color: Colors.dark,
-            marginBottom: 2,
-            fontSize: 12,
-          },
-          sectionTitle: {
-            fontSize: 15,
-            fontWeight: 'bold',
-            color: Colors.dark,
-            marginBottom: 8,
-            backgroundColor: '#f5f5f5',
-            paddingVertical: 3,
-            paddingHorizontal: 5,
-            borderRadius: 3,
-          },
-          itemTitle: {
-            fontSize: 14,
-            fontWeight: 'bold',
-            color: Colors.dark,
-          },
-          accent: Colors.dark,
-          itemBorder: {
-            borderLeftWidth: 2,
-            borderLeftColor: '#ddd',
-            paddingLeft: 8,
-            marginBottom: 10,
-          }
-        };
-
-      // 17. Duas Colunas
-      case 'two-column':
-        return {
-          container: {
-            backgroundColor: '#fff',
-            padding: 15,
-            flexDirection: 'row',
-          },
-          header: {
-            width: '30%',
-            backgroundColor: '#0d47a1', // Azul escuro
-            padding: 15,
-            alignItems: 'center',
-            justifyContent: 'flex-start',
-            marginRight: 15,
-            borderRadius: 8,
-          },
-          name: {
-            fontSize: 20,
-            fontWeight: 'bold',
-            color: '#fff',
-            marginBottom: 15,
-            textAlign: 'center',
-          },
-          contact: {
-            color: '#fff',
-            marginBottom: 5,
-            fontSize: 12,
-            textAlign: 'center',
-          },
-          sectionTitle: {
-            fontSize: 16,
-            fontWeight: 'bold',
-            color: '#0d47a1',
-            marginBottom: 10,
-            paddingBottom: 3,
-            borderBottomWidth: 1,
-            borderBottomColor: '#ccc',
-          },
-          itemTitle: {
-            fontSize: 15,
-            fontWeight: 'bold',
-            color: '#0d47a1',
-          },
-          accent: '#0d47a1',
-          itemBorder: {
-            borderLeftWidth: 0,
-            paddingLeft: 0,
-            marginBottom: 12,
-          },
-          // Propriedades adicionais específicas para o layout de duas colunas
-          contentColumn: {
-            flex: 1,
-            paddingLeft: 5,
-          },
-          sidebarSection: {
-            marginBottom: 20,
-            paddingHorizontal: 10,
-          },
-          sidebarTitle: {
-            color: '#fff',
-            fontSize: 14,
-            fontWeight: 'bold',
-            marginBottom: 8,
-            textAlign: 'center',
-            borderBottomWidth: 1,
-            borderBottomColor: 'rgba(255,255,255,0.3)',
-            paddingBottom: 5,
-          }
-        };
-
-      // 18. Bold
-      case 'bold':
-        return {
-          container: {
-            backgroundColor: '#fff',
-            padding: 15,
-          },
-          header: {
-            backgroundColor: '#212121', // Quase preto
-            padding: 20,
-            marginBottom: 20,
-            borderRadius: 0,
-          },
-          name: {
-            fontSize: 28,
-            fontWeight: 'bold',
-            color: '#fff',
-            marginBottom: 5,
-            textTransform: 'uppercase',
-          },
-          contact: {
-            color: '#f5f5f5',
-            marginBottom: 3,
-          },
-          sectionTitle: {
-            fontSize: 18,
-            fontWeight: 'bold',
-            color: '#212121',
-            marginBottom: 15,
-            borderLeftWidth: 10,
-            borderLeftColor: '#212121',
-            paddingLeft: 10,
-            paddingVertical: 5,
-            backgroundColor: '#f5f5f5',
-            textTransform: 'uppercase',
-          },
-          itemTitle: {
-            fontSize: 16,
-            fontWeight: 'bold',
-            color: '#212121',
-          },
-          accent: '#212121',
-          itemBorder: {
-            borderLeftWidth: 5,
-            borderLeftColor: '#212121',
-            paddingLeft: 12,
-            marginBottom: 15,
-          }
-        };
-
-      // 19. Pastel
-      case 'pastel':
-        return {
-          container: {
-            backgroundColor: '#fdfafa', // Rosa muito claro
-            padding: 15,
-            borderRadius: 10,
-          },
-          header: {
-            backgroundColor: '#f8bbd0', // Rosa pastel
-            padding: 15,
-            borderRadius: 10,
-            marginBottom: 18,
-            alignItems: 'center',
-          },
-          name: {
-            fontSize: 24,
-            fontWeight: 'bold',
-            color: '#5d4037', // Marrom
-            marginBottom: 5,
-            textAlign: 'center',
-          },
-          contact: {
-            color: '#795548', // Marrom mais claro
-            marginBottom: 3,
-            textAlign: 'center',
-          },
-          sectionTitle: {
-            fontSize: 18,
-            fontWeight: 'bold',
-            color: '#5d4037',
-            marginBottom: 15,
-            padding: 5,
-            borderRadius: 5,
-            textAlign: 'center',
-            backgroundColor: '#f8bbd0',
-          },
-          itemTitle: {
-            fontSize: 16,
-            fontWeight: 'bold',
-            color: '#5d4037',
-          },
-          accent: '#ec407a', // Rosa mais escuro
-          itemBorder: {
-            borderLeftWidth: 3,
-            borderLeftColor: '#f8bbd0',
-            paddingLeft: 10,
-            marginBottom: 15,
-            backgroundColor: '#fff',
-            borderRadius: 8,
-            padding: 8,
-          }
-        };
-
-      // 20. Vintage
-      case 'vintage':
-        return {
-          container: {
-            backgroundColor: '#f8f3e6', // Bege claro
-            padding: 15,
-            borderWidth: 1,
-            borderColor: '#d3c0a9', // Bege mais escuro
-          },
-          header: {
-            marginBottom: 20,
-            borderBottomWidth: 2,
-            borderBottomColor: '#8d6e63', // Marrom médio
-            paddingBottom: 15,
-          },
-          name: {
-            fontSize: 26,
-            fontWeight: 'bold',
-            color: '#5d4037', // Marrom escuro
-            marginBottom: 5,
-            fontStyle: 'italic',
-          },
-          contact: {
-            color: '#795548', // Marrom mais claro
-            marginBottom: 3,
-            fontStyle: 'italic',
-          },
-          sectionTitle: {
-            fontSize: 18,
-            fontWeight: 'bold',
-            color: '#8d6e63',
-            marginBottom: 12,
-            borderBottomWidth: 1,
-            borderBottomColor: '#d3c0a9',
-            paddingBottom: 5,
-            fontStyle: 'italic',
-          },
-          itemTitle: {
-            fontSize: 16,
-            fontWeight: 'bold',
-            color: '#5d4037',
-            fontStyle: 'italic',
-          },
-          accent: '#8d6e63',
-          itemBorder: {
-            borderLeftWidth: 0,
-            paddingLeft: 0,
-            marginBottom: 15,
-          }
-        };
-
-      // 21. Geométrico
-      case 'geometric':
-        return {
-          container: {
-            backgroundColor: '#fff',
-            padding: 15,
-          },
-          header: {
-            backgroundColor: '#3949ab', // Azul escuro
-            padding: 15,
-            marginBottom: 20,
-            borderRadius: 0,
-            borderTopWidth: 5,
-            borderTopColor: '#5c6bc0', // Azul mais claro
-            borderBottomWidth: 5,
-            borderBottomColor: '#283593', // Azul mais escuro
-          },
-          name: {
-            fontSize: 24,
-            fontWeight: 'bold',
-            color: '#fff',
-            marginBottom: 5,
-          },
-          contact: {
-            color: '#c5cae9', // Azul bem claro
-            marginBottom: 3,
-          },
-          sectionTitle: {
-            fontSize: 18,
-            fontWeight: 'bold',
-            color: '#3949ab',
-            marginBottom: 15,
-            paddingLeft: 10,
-            borderLeftWidth: 15,
-            borderLeftColor: '#3949ab',
-            paddingVertical: 5,
-          },
-          itemTitle: {
-            fontSize: 16,
-            fontWeight: 'bold',
-            color: '#3949ab',
-          },
-          accent: '#3949ab',
-          itemBorder: {
-            borderLeftWidth: 0,
-            paddingLeft: 0,
-            marginBottom: 15,
-            padding: 10,
-            backgroundColor: '#f5f5f5',
-            borderRadius: 0,
-            borderTopWidth: 3,
-            borderTopColor: '#3949ab',
-          }
-        };
-
-      // 22. Negócios
-      case 'business':
-        return {
-          container: {
-            backgroundColor: '#fff',
-            padding: 15,
-          },
-          header: {
-            marginBottom: 15,
-            borderBottomWidth: 1,
-            borderBottomColor: '#bdbdbd',
-            paddingBottom: 15,
-          },
-          name: {
-            fontSize: 24,
-            fontWeight: 'bold',
-            color: '#2e3b4e', // Azul escuro corporativo
-            marginBottom: 5,
-          },
-          contact: {
-            color: '#505a64', // Cinza azulado
-            marginBottom: 3,
-          },
-          sectionTitle: {
-            fontSize: 17,
-            fontWeight: 'bold',
-            color: '#2e3b4e',
-            marginBottom: 12,
-            borderBottomWidth: 1,
-            borderBottomColor: '#e0e0e0',
-            paddingBottom: 5,
-          },
-          itemTitle: {
-            fontSize: 16,
-            fontWeight: 'bold',
-            color: '#2e3b4e',
-          },
-          accent: '#2e3b4e',
-          itemBorder: {
-            borderLeftWidth: 0,
-            paddingLeft: 0,
-            marginBottom: 15,
-          }
-        };
-
-      // 23. Minimalista Colorido
-      case 'minimalist-color':
-        return {
-          container: {
-            backgroundColor: '#fff',
-            padding: 15,
-          },
-          header: {
-            marginBottom: 20,
-            alignItems: 'center',
-          },
-          name: {
-            fontSize: 28,
-            fontWeight: '300', // Fonte mais leve
-            color: '#00acc1', // Azul turquesa
-            marginBottom: 5,
-            textAlign: 'center',
-          },
-          contact: {
-            color: '#757575', // Cinza médio
-            marginBottom: 3,
-            textAlign: 'center',
-            fontSize: 14,
-          },
-          sectionTitle: {
-            fontSize: 17,
-            fontWeight: '400',
-            color: '#00acc1',
-            marginBottom: 15,
-            padding: 0,
-            borderBottomWidth: 1,
-            borderBottomColor: '#e0e0e0',
-            paddingBottom: 5,
-          },
-          itemTitle: {
-            fontSize: 16,
-            fontWeight: '500',
-            color: '#00acc1',
-          },
-          accent: '#00acc1',
-          itemBorder: {
-            borderLeftWidth: 0,
-            paddingLeft: 0,
-            marginBottom: 15,
-          }
-        };
-
-      // 24. Gradiente
-      case 'gradient':
-        return {
-          container: {
-            backgroundColor: '#fff',
-            padding: 15,
-          },
-          header: {
-            marginBottom: 20,
-            padding: 15,
-            backgroundColor: '#7b1fa2', // Cor de base para o "gradiente"
-            borderLeftWidth: 15,
-            borderLeftColor: '#9c27b0',
-            borderRightWidth: 15,
-            borderRightColor: '#6a1b9a',
-            borderRadius: 8,
-          },
-          name: {
-            fontSize: 26,
-            fontWeight: 'bold',
-            color: '#fff',
-            marginBottom: 5,
-          },
-          contact: {
-            color: '#e1bee7', // Roxo bem claro
-            marginBottom: 3,
-          },
-          sectionTitle: {
-            fontSize: 18,
-            fontWeight: 'bold',
-            color: '#7b1fa2',
-            marginBottom: 15,
-            padding: 5,
-            borderBottomWidth: 2,
-            borderBottomColor: '#9c27b0',
-            borderRightWidth: 2,
-            borderRightColor: '#6a1b9a',
-          },
-          itemTitle: {
-            fontSize: 16,
-            fontWeight: 'bold',
-            color: '#7b1fa2',
-          },
-          accent: '#9c27b0',
-          itemBorder: {
-            borderLeftWidth: 3,
-            borderLeftColor: '#9c27b0',
-            borderRightWidth: 1,
-            borderRightColor: '#6a1b9a',
-            paddingLeft: 10,
-            marginBottom: 15,
-            backgroundColor: '#fafafa',
-            padding: 8,
-            borderRadius: 4,
-          }
-        };
-
-      // 25. Boxes
-      case 'boxed':
-        return {
-          container: {
-            backgroundColor: '#eef2f5', // Cinza azulado muito claro
-            padding: 15,
-          },
-          header: {
-            backgroundColor: '#fff',
-            padding: 15,
-            marginBottom: 15,
-            borderRadius: 8,
-            ...Platform.select({
-              ios: {
-                shadowColor: '#000',
-                shadowOffset: { width: 0, height: 1 },
-                shadowOpacity: 0.1,
-                shadowRadius: 2,
-              },
-              android: {
-                elevation: 1,
-              },
-            }),
-          },
-          name: {
-            fontSize: 24,
-            fontWeight: 'bold',
-            color: '#455a64',
-            marginBottom: 5,
-          },
-          contact: {
-            color: '#607d8b',
-            marginBottom: 3,
-          },
-          sectionTitle: {
-            fontSize: 18,
-            fontWeight: 'bold',
-            color: '#455a64',
-            marginBottom: 10,
-            backgroundColor: '#fff',
-            padding: 10,
-            borderRadius: 8,
-            borderLeftWidth: 4,
-            borderLeftColor: '#455a64',
-            ...Platform.select({
-              ios: {
-                shadowColor: '#000',
-                shadowOffset: { width: 0, height: 1 },
-                shadowOpacity: 0.1,
-                shadowRadius: 2,
-              },
-              android: {
-                elevation: 1,
-              },
-            }),
-          },
-          itemTitle: {
-            fontSize: 16,
-            fontWeight: 'bold',
-            color: '#455a64',
-          },
-          accent: '#455a64',
-          itemBorder: {
-            paddingLeft: 10,
-            marginBottom: 15,
-            backgroundColor: '#fff',
-            padding: 10,
-            borderRadius: 8,
-            ...Platform.select({
-              ios: {
-                shadowColor: '#000',
-                shadowOffset: { width: 0, height: 1 },
-                shadowOpacity: 0.05,
-                shadowRadius: 1,
-              },
-              android: {
-                elevation: 1,
-              },
-            }),
-          }
-        };
-
-      // 26. Timeline
-      case 'timeline':
-        return {
-          container: {
-            backgroundColor: '#fafafa',
-            padding: 15,
-          },
-          header: {
-            backgroundColor: '#00796b', // Verde escuro
-            padding: 15,
-            marginBottom: 25,
-            borderRadius: 8,
-          },
-          name: {
-            fontSize: 24,
-            fontWeight: 'bold',
-            color: '#fff',
-            marginBottom: 5,
-          },
-          contact: {
-            color: '#b2dfdb', // Verde bem claro
-            marginBottom: 3,
-          },
-          sectionTitle: {
-            fontSize: 18,
-            fontWeight: 'bold',
-            color: '#00796b',
-            marginBottom: 15,
-            borderBottomWidth: 2,
-            borderBottomColor: '#009688',
-            paddingBottom: 5,
-          },
-          itemTitle: {
-            fontSize: 16,
-            fontWeight: 'bold',
-            color: '#00796b',
-          },
-          accent: '#009688',
-          itemBorder: {
-            borderLeftWidth: 2,
-            borderLeftColor: '#009688',
-            paddingLeft: 15,
-            marginBottom: 15,
-            marginLeft: 15,
-            position: 'relative',
-          },
-          // Elementos de Timeline
-          timelineDot: {
-            position: 'absolute',
-            left: -18,
-            top: 0,
-            width: 20,
-            height: 20,
-            borderRadius: 10,
-            backgroundColor: '#009688',
-            justifyContent: 'center',
-            alignItems: 'center',
-            borderWidth: 3,
-            borderColor: '#b2dfdb',
-          }
-        };
-
-      // 27. Infográfico
-      case 'infographic':
-        return {
-          container: {
-            backgroundColor: '#fff',
-            padding: 15,
-          },
-          header: {
-            backgroundColor: '#1565c0', // Azul médio
-            padding: 18,
-            marginBottom: 20,
-            borderRadius: 8,
-            alignItems: 'center',
-            ...Platform.select({
-              ios: {
-                shadowColor: '#000',
-                shadowOffset: { width: 0, height: 2 },
-                shadowOpacity: 0.2,
-                shadowRadius: 3,
-              },
-              android: {
-                elevation: 3,
-              },
-            }),
-          },
-          name: {
-            fontSize: 26,
-            fontWeight: 'bold',
-            color: '#fff',
-            marginBottom: 5,
-            textAlign: 'center',
-          },
-          contact: {
-            color: '#bbdefb', // Azul bem claro
-            marginBottom: 3,
-            textAlign: 'center',
-          },
-          sectionTitle: {
-            fontSize: 18,
-            fontWeight: 'bold',
-            color: '#fff',
-            marginBottom: 15,
-            backgroundColor: '#1976d2',
-            paddingVertical: 8,
-            paddingHorizontal: 15,
-            borderRadius: 20,
-            textAlign: 'center',
-            ...Platform.select({
-              ios: {
-                shadowColor: '#000',
-                shadowOffset: { width: 0, height: 1 },
-                shadowOpacity: 0.2,
-                shadowRadius: 2,
-              },
-              android: {
-                elevation: 2,
-              },
-            }),
-          },
-          itemTitle: {
-            fontSize: 16,
-            fontWeight: 'bold',
-            color: '#1565c0',
-          },
-          accent: '#1976d2',
-          itemBorder: {
-            borderLeftWidth: 0,
-            marginBottom: 15,
-            backgroundColor: '#e3f2fd',
-            padding: 12,
-            borderRadius: 8,
-            ...Platform.select({
-              ios: {
-                shadowColor: '#000',
-                shadowOffset: { width: 0, height: 1 },
-                shadowOpacity: 0.1,
-                shadowRadius: 2,
-              },
-              android: {
-                elevation: 1,
-              },
-            }),
           }
         };
 
@@ -9504,21 +7660,6 @@ const CurriculumPreview = ({ data, templateStyle = 'modern' }) => {
   );
 };
 
-const AnalysisSummaryCard = ({ title, score, description, color }) => (
-  <View style={[styles.analysisCard, { borderLeftColor: color }]}>
-    <View style={styles.analysisCardHeader}>
-      <Text style={styles.analysisCardTitle}>{title}</Text>
-      {score ? (
-        <View style={[styles.scoreContainer, { backgroundColor: color }]}>
-          <Text style={styles.scoreText}>{score}</Text>
-        </View>
-      ) : null}
-    </View>
-    <Text style={styles.analysisCardDescription}>{description}</Text>
-  </View>
-);
-
-// Lógica do Chatbot
 const initialCVData = {
   informacoes_pessoais: {},
   resumo_profissional: "", // Novo campo para resumo/biografia
@@ -9529,10 +7670,12 @@ const initialCVData = {
   idiomas: []
 };
 
-// Processar a mensagem atual baseado na etapa anterior
 const processMessage = (message, currentStep, cvData) => {
   // Se não temos dados do CV ainda, inicializar
   const data = cvData || { ...initialCVData };
+
+  // Para permitir pular campos com "não sei"
+  const isSkipping = ['não sei', 'nao sei', 'n sei', 'ns', 'desconheço', 'desconheco'].includes(message.toLowerCase());
 
   // Processamento baseado na etapa atual
   switch (currentStep) {
@@ -9606,21 +7749,47 @@ const processMessage = (message, currentStep, cvData) => {
       return {
         response: "Excelente! Agora, qual é o seu endereço?",
         nextStep: 'endereco',
-        options: [],
+        options: ['Não sei'],
         cvData: data
       };
 
     case 'endereco':
-      if (!message.trim()) {
+      if (!message.trim() && !isSkipping) {
         return {
           response: "Desculpe, não consegui entender seu endereço. Poderia repetir por favor?",
           nextStep: 'endereco',
-          options: [],
+          options: ['Não sei'],
           cvData: data
         };
       }
 
-      data.informacoes_pessoais.endereco = message.trim();
+      if (!isSkipping) {
+        data.informacoes_pessoais.endereco = message.trim();
+      }
+
+      return {
+        response: "Qual é o seu CEP? (Digite 'não sei' caso não saiba ou prefira não informar)",
+        nextStep: 'cep',
+        options: ['Não sei'],
+        cvData: data
+      };
+
+    case 'cep':
+      if (!isSkipping) {
+        // Validação básica de CEP (formato XXXXX-XXX ou XXXXXXXX)
+        const cepRegex = /^[0-9]{5}-?[0-9]{3}$/;
+        
+        if (cepRegex.test(message.trim())) {
+          data.informacoes_pessoais.cep = message.trim();
+        } else if (message.trim() !== '') {
+          return {
+            response: "O CEP informado parece estar em formato inválido. Por favor, digite novamente no formato XXXXX-XXX ou XXXXXXXX. Ou digite 'não sei' para pular.",
+            nextStep: 'cep',
+            options: ['Não sei'],
+            cvData: data
+          };
+        }
+      }
 
       return {
         response: "Perfeito! Agora, qual é a sua área de atuação profissional?",
@@ -9630,7 +7799,7 @@ const processMessage = (message, currentStep, cvData) => {
       };
 
     case 'area':
-      if (!message.trim()) {
+      if (!message.trim() && !isSkipping) {
         return {
           response: "Desculpe, não consegui entender sua área profissional. Poderia repetir por favor?",
           nextStep: 'area',
@@ -9639,29 +7808,31 @@ const processMessage = (message, currentStep, cvData) => {
         };
       }
 
-      data.informacoes_pessoais.area = message.trim();
+      if (!isSkipping) {
+        data.informacoes_pessoais.area = message.trim();
+      }
 
       return {
-        response: "Você tem um site pessoal ou portfólio? Se sim, qual é o endereço? (Se não tiver, digite 'não')",
+        response: "Você tem um site pessoal ou portfólio? Se sim, qual é o endereço? (Digite 'não sei' se não tiver)",
         nextStep: 'site',
-        options: ['Não'],
+        options: ['Não sei', 'Não tenho'],
         cvData: data
       };
 
     case 'site':
-      if (!['não', 'nao', 'no', 'n'].includes(message.toLowerCase())) {
+      if (!['não', 'nao', 'no', 'n'].includes(message.toLowerCase()) && !isSkipping) {
         data.informacoes_pessoais.site = message.trim();
       }
 
       return {
-        response: "Você tem um perfil no LinkedIn? Se sim, qual é o endereço? (Se não tiver, digite 'não')",
+        response: "Você tem um perfil no LinkedIn? Se sim, qual é o endereço? (Digite 'não sei' se não tiver)",
         nextStep: 'linkedin',
-        options: ['Não'],
+        options: ['Não sei', 'Não tenho'],
         cvData: data
       };
 
     case 'linkedin':
-      if (!['não', 'nao', 'no', 'n'].includes(message.toLowerCase())) {
+      if (!['não', 'nao', 'no', 'n'].includes(message.toLowerCase()) && !isSkipping) {
         data.informacoes_pessoais.linkedin = message.trim();
       }
 
@@ -9670,9 +7841,9 @@ const processMessage = (message, currentStep, cvData) => {
         ['tecnologia', 'tecnologia da informação', 'ti', 'desenvolvimento', 'programação']
           .includes(data.informacoes_pessoais.area.toLowerCase())) {
         return {
-          response: "Você tem uma conta no GitHub? Se sim, qual é o endereço? (Se não tiver, digite 'não')",
+          response: "Você tem uma conta no GitHub? Se sim, qual é o endereço? (Digite 'não sei' se não tiver)",
           nextStep: 'github',
-          options: ['Não'],
+          options: ['Não sei', 'Não tenho'],
           cvData: data
         };
       } else {
@@ -9685,7 +7856,7 @@ const processMessage = (message, currentStep, cvData) => {
       }
 
     case 'github':
-      if (!['não', 'nao', 'no', 'n'].includes(message.toLowerCase())) {
+      if (!['não', 'nao', 'no', 'n'].includes(message.toLowerCase()) && !isSkipping) {
         data.informacoes_pessoais.github = message.trim();
       }
 
@@ -9721,35 +7892,35 @@ const processMessage = (message, currentStep, cvData) => {
         return {
           response: "Vamos adicionar uma formação acadêmica. Qual é a instituição de ensino?",
           nextStep: 'formacao_instituicao',
-          options: [],
+          options: ['Não sei'],
           cvData: data
         };
       } else if (option.includes('experiência') || option.includes('experiencia')) {
         return {
           response: "Vamos adicionar uma experiência profissional. Qual foi o cargo ou posição?",
           nextStep: 'experiencia_cargo',
-          options: [],
+          options: ['Não sei'],
           cvData: data
         };
       } else if (option.includes('curso') || option.includes('certificado')) {
         return {
           response: "Vamos adicionar um curso ou certificado. Qual é o nome do curso?",
           nextStep: 'curso_nome',
-          options: [],
+          options: ['Não sei'],
           cvData: data
         };
       } else if (option.includes('projeto')) {
         return {
           response: "Vamos adicionar um projeto. Qual é o nome do projeto?",
           nextStep: 'projeto_nome',
-          options: [],
+          options: ['Não sei'],
           cvData: data
         };
       } else if (option.includes('idioma')) {
         return {
           response: "Vamos adicionar um idioma. Qual idioma você conhece?",
           nextStep: 'idioma_nome',
-          options: ['Inglês', 'Espanhol', 'Francês', 'Alemão', 'Italiano', 'Mandarim', 'Japonês', 'Outro'],
+          options: ['Inglês', 'Espanhol', 'Francês', 'Alemão', 'Italiano', 'Mandarim', 'Japonês', 'Outro', 'Não sei'],
           cvData: data
         };
       } else {
@@ -9762,24 +7933,24 @@ const processMessage = (message, currentStep, cvData) => {
       }
 
     case 'formacao_instituicao':
-      if (!message.trim()) {
+      if (!message.trim() && !isSkipping) {
         return {
           response: "Por favor, informe o nome da instituição de ensino.",
           nextStep: 'formacao_instituicao',
-          options: [],
+          options: ['Não sei'],
           cvData: data
         };
       }
 
       // Inicializar nova formação acadêmica
       const novaFormacao = {
-        instituicao: message.trim()
+        instituicao: isSkipping ? '' : message.trim()
       };
 
       return {
         response: "Qual diploma ou grau você obteve? (Ex: Bacharel, Tecnólogo, Mestrado)",
         nextStep: 'formacao_diploma',
-        options: ['Bacharel', 'Licenciatura', 'Tecnólogo', 'Mestrado', 'Doutorado', 'Técnico'],
+        options: ['Bacharel', 'Licenciatura', 'Tecnólogo', 'Mestrado', 'Doutorado', 'Técnico', 'Não sei'],
         cvData: {
           ...data,
           formacao_atual: novaFormacao
@@ -9787,64 +7958,72 @@ const processMessage = (message, currentStep, cvData) => {
       };
 
     case 'formacao_diploma':
-      if (!message.trim()) {
+      if (!message.trim() && !isSkipping) {
         return {
           response: "Por favor, informe o tipo de diploma ou grau obtido.",
           nextStep: 'formacao_diploma',
-          options: ['Bacharel', 'Licenciatura', 'Tecnólogo', 'Mestrado', 'Doutorado', 'Técnico'],
+          options: ['Bacharel', 'Licenciatura', 'Tecnólogo', 'Mestrado', 'Doutorado', 'Técnico', 'Não sei'],
           cvData: data
         };
       }
 
-      data.formacao_atual.diploma = message.trim();
+      if (!isSkipping) {
+        data.formacao_atual.diploma = message.trim();
+      }
 
       return {
         response: "Qual foi a área de estudo ou curso?",
         nextStep: 'formacao_area',
-        options: [],
+        options: ['Não sei'],
         cvData: data
       };
 
     case 'formacao_area':
-      if (!message.trim()) {
+      if (!message.trim() && !isSkipping) {
         return {
           response: "Por favor, informe a área de estudo ou curso.",
           nextStep: 'formacao_area',
-          options: [],
+          options: ['Não sei'],
           cvData: data
         };
       }
 
-      data.formacao_atual.area_estudo = message.trim();
+      if (!isSkipping) {
+        data.formacao_atual.area_estudo = message.trim();
+      }
 
       return {
         response: "Qual foi a data de início? (formato: MM/AAAA)",
         nextStep: 'formacao_data_inicio',
-        options: [],
+        options: ['Não sei'],
         cvData: data
       };
 
     case 'formacao_data_inicio':
-      if (!message.trim()) {
+      if (!message.trim() && !isSkipping) {
         return {
           response: "Por favor, informe a data de início no formato MM/AAAA.",
           nextStep: 'formacao_data_inicio',
-          options: [],
+          options: ['Não sei'],
           cvData: data
         };
       }
 
-      data.formacao_atual.data_inicio = message.trim();
+      if (!isSkipping) {
+        data.formacao_atual.data_inicio = message.trim();
+      }
 
       return {
         response: "Qual foi a data de conclusão? (formato: MM/AAAA, ou digite 'cursando' se ainda estiver em andamento)",
         nextStep: 'formacao_data_fim',
-        options: ['Cursando'],
+        options: ['Cursando', 'Não sei'],
         cvData: data
       };
 
     case 'formacao_data_fim':
-      data.formacao_atual.data_fim = message.toLowerCase() === 'cursando' ? 'Atual' : message.trim();
+      if (!isSkipping) {
+        data.formacao_atual.data_fim = message.toLowerCase() === 'cursando' ? 'Atual' : message.trim();
+      }
 
       // Adicionar a formação à lista e limpar a formação atual
       if (!data.formacoes_academicas) {
@@ -9862,24 +8041,24 @@ const processMessage = (message, currentStep, cvData) => {
       };
 
     case 'experiencia_cargo':
-      if (!message.trim()) {
+      if (!message.trim() && !isSkipping) {
         return {
-          response: "Por favor, informe o cargo ou posição ocupada.",
+          response: "Por favor, informe o cargo ou posição ocupada, ou escolha uma das opções abaixo.",
           nextStep: 'experiencia_cargo',
-          options: [],
+          options: ['Voltar para menu principal', 'Não tenho experiência', 'Não sei'],
           cvData: data
         };
       }
 
       // Inicializar nova experiência profissional
       const novaExperiencia = {
-        cargo: message.trim()
+        cargo: isSkipping ? '' : message.trim()
       };
 
       return {
         response: "Em qual empresa ou organização você trabalhou?",
         nextStep: 'experiencia_empresa',
-        options: [],
+        options: ['Não sei'],
         cvData: {
           ...data,
           experiencia_atual: novaExperiencia
@@ -9887,45 +8066,51 @@ const processMessage = (message, currentStep, cvData) => {
       };
 
     case 'experiencia_empresa':
-      if (!message.trim()) {
+      if (!message.trim() && !isSkipping) {
         return {
           response: "Por favor, informe o nome da empresa ou organização.",
           nextStep: 'experiencia_empresa',
-          options: [],
+          options: ['Não sei'],
           cvData: data
         };
       }
 
-      data.experiencia_atual.empresa = message.trim();
+      if (!isSkipping) {
+        data.experiencia_atual.empresa = message.trim();
+      }
 
       return {
         response: "Qual foi a data de início? (formato: MM/AAAA)",
         nextStep: 'experiencia_data_inicio',
-        options: [],
+        options: ['Não sei'],
         cvData: data
       };
 
     case 'experiencia_data_inicio':
-      if (!message.trim()) {
+      if (!message.trim() && !isSkipping) {
         return {
           response: "Por favor, informe a data de início no formato MM/AAAA.",
           nextStep: 'experiencia_data_inicio',
-          options: [],
+          options: ['Não sei'],
           cvData: data
         };
       }
 
-      data.experiencia_atual.data_inicio = message.trim();
+      if (!isSkipping) {
+        data.experiencia_atual.data_inicio = message.trim();
+      }
 
       return {
         response: "Qual foi a data de término? (formato: MM/AAAA, ou digite 'atual' se ainda estiver neste emprego)",
         nextStep: 'experiencia_data_fim',
-        options: ['Atual'],
+        options: ['Atual', 'Não sei'],
         cvData: data
       };
 
     case 'experiencia_data_fim':
-      data.experiencia_atual.data_fim = message.toLowerCase() === 'atual' ? 'Atual' : message.trim();
+      if (!isSkipping) {
+        data.experiencia_atual.data_fim = message.toLowerCase() === 'atual' ? 'Atual' : message.trim();
+      }
 
       // Adicionar a experiência à lista e limpar a experiência atual
       if (!data.experiencias) {
@@ -9944,24 +8129,24 @@ const processMessage = (message, currentStep, cvData) => {
 
     // Curso
     case 'curso_nome':
-      if (!message.trim()) {
+      if (!message.trim() && !isSkipping) {
         return {
           response: "Por favor, informe o nome do curso ou certificado.",
           nextStep: 'curso_nome',
-          options: [],
+          options: ['Não sei'],
           cvData: data
         };
       }
 
       // Inicializar novo curso
       const novoCurso = {
-        nome: message.trim()
+        nome: isSkipping ? '' : message.trim()
       };
 
       return {
         response: "Qual instituição ofereceu este curso?",
         nextStep: 'curso_instituicao',
-        options: [],
+        options: ['Não sei'],
         cvData: {
           ...data,
           curso_atual: novoCurso
@@ -9969,16 +8154,18 @@ const processMessage = (message, currentStep, cvData) => {
       };
 
     case 'curso_instituicao':
-      if (!message.trim()) {
+      if (!message.trim() && !isSkipping) {
         return {
           response: "Por favor, informe o nome da instituição.",
           nextStep: 'curso_instituicao',
-          options: [],
+          options: ['Não sei'],
           cvData: data
         };
       }
 
-      data.curso_atual.instituicao = message.trim();
+      if (!isSkipping) {
+        data.curso_atual.instituicao = message.trim();
+      }
 
       return {
         response: "Qual foi a data de início? (formato: MM/AAAA, ou digite 'não sei' se não lembrar)",
@@ -9988,7 +8175,7 @@ const processMessage = (message, currentStep, cvData) => {
       };
 
     case 'curso_data_inicio':
-      if (message.toLowerCase() !== 'não sei' && message.toLowerCase() !== 'nao sei') {
+      if (message.toLowerCase() !== 'não sei' && message.toLowerCase() !== 'nao sei' && !isSkipping) {
         data.curso_atual.data_inicio = message.trim();
       }
 
@@ -10000,10 +8187,12 @@ const processMessage = (message, currentStep, cvData) => {
       };
 
     case 'curso_data_fim':
-      if (message.toLowerCase() === 'cursando') {
-        data.curso_atual.data_fim = 'Atual';
-      } else if (message.toLowerCase() !== 'não sei' && message.toLowerCase() !== 'nao sei') {
-        data.curso_atual.data_fim = message.trim();
+      if (!isSkipping) {
+        if (message.toLowerCase() === 'cursando') {
+          data.curso_atual.data_fim = 'Atual';
+        } else if (message.toLowerCase() !== 'não sei' && message.toLowerCase() !== 'nao sei') {
+          data.curso_atual.data_fim = message.trim();
+        }
       }
 
       // Adicionar o curso à lista e limpar o curso atual
@@ -10023,24 +8212,24 @@ const processMessage = (message, currentStep, cvData) => {
 
     // Projeto
     case 'projeto_nome':
-      if (!message.trim()) {
+      if (!message.trim() && !isSkipping) {
         return {
           response: "Por favor, informe o nome do projeto.",
           nextStep: 'projeto_nome',
-          options: [],
+          options: ['Não sei'],
           cvData: data
         };
       }
 
       // Inicializar novo projeto
       const novoProjeto = {
-        nome: message.trim()
+        nome: isSkipping ? '' : message.trim()
       };
 
       return {
         response: "Quais habilidades ou tecnologias você utilizou neste projeto? (separadas por vírgula)",
         nextStep: 'projeto_habilidades',
-        options: [],
+        options: ['Não sei'],
         cvData: {
           ...data,
           projeto_atual: novoProjeto
@@ -10048,17 +8237,21 @@ const processMessage = (message, currentStep, cvData) => {
       };
 
     case 'projeto_habilidades':
-      data.projeto_atual.habilidades = message.trim();
+      if (!isSkipping) {
+        data.projeto_atual.habilidades = message.trim();
+      }
 
       return {
         response: "Descreva brevemente este projeto:",
         nextStep: 'projeto_descricao',
-        options: [],
+        options: ['Não sei'],
         cvData: data
       };
 
     case 'projeto_descricao':
-      data.projeto_atual.descricao = message.trim();
+      if (!isSkipping) {
+        data.projeto_atual.descricao = message.trim();
+      }
 
       // Adicionar o projeto à lista e limpar o projeto atual
       if (!data.projetos) {
@@ -10077,24 +8270,24 @@ const processMessage = (message, currentStep, cvData) => {
 
     // Idioma
     case 'idioma_nome':
-      if (!message.trim()) {
+      if (!message.trim() && !isSkipping) {
         return {
           response: "Por favor, informe o idioma.",
           nextStep: 'idioma_nome',
-          options: ['Inglês', 'Espanhol', 'Francês', 'Alemão', 'Italiano', 'Mandarim', 'Japonês', 'Outro'],
+          options: ['Inglês', 'Espanhol', 'Francês', 'Alemão', 'Italiano', 'Mandarim', 'Japonês', 'Outro', 'Não sei'],
           cvData: data
         };
       }
 
       // Inicializar novo idioma
       const novoIdioma = {
-        nome: message.trim()
+        nome: isSkipping ? '' : message.trim()
       };
 
       return {
         response: "Qual é o seu nível neste idioma?",
         nextStep: 'idioma_nivel',
-        options: ['Básico', 'Intermediário', 'Avançado', 'Fluente', 'Nativo'],
+        options: ['Básico', 'Intermediário', 'Avançado', 'Fluente', 'Nativo', 'Não sei'],
         cvData: {
           ...data,
           idioma_atual: novoIdioma
@@ -10102,7 +8295,9 @@ const processMessage = (message, currentStep, cvData) => {
       };
 
     case 'idioma_nivel':
-      data.idioma_atual.nivel = message.trim();
+      if (!isSkipping) {
+        data.idioma_atual.nivel = message.trim();
+      }
 
       // Adicionar o idioma à lista e limpar o idioma atual
       if (!data.idiomas) {
@@ -10147,18 +8342,35 @@ const processMessage = (message, currentStep, cvData) => {
   }
 };
 
-// Gerar timestamp atual
+const ConfirmationButtons = ({ onConfirm, onCorrect }) => {
+  return (
+    <View style={styles.confirmationContainer}>
+      <TouchableOpacity
+        style={[styles.confirmationButton, { backgroundColor: Colors.success }]}
+        onPress={onConfirm}
+      >
+        <Text style={styles.confirmationButtonText}>✓ Confirmar</Text>
+      </TouchableOpacity>
+      
+      <TouchableOpacity
+        style={[styles.confirmationButton, { backgroundColor: Colors.warning }]}
+        onPress={onCorrect}
+      >
+        <Text style={styles.confirmationButtonText}>✗ Corrigir</Text>
+      </TouchableOpacity>
+    </View>
+  );
+};
+
 const getCurrentTime = () => {
   const now = new Date();
   return `${now.getHours().toString().padStart(2, '0')}:${now.getMinutes().toString().padStart(2, '0')}`;
 };
 
-// Gerar ID único
 const getUniqueId = () => {
   return Date.now().toString(36) + Math.random().toString(36).substr(2);
 };
 
-// Salvar currículo no AsyncStorage
 const salvarCurriculo = async (data, userId) => {
   try {
     // Buscar currículos existentes do usuário
@@ -10184,174 +8396,6 @@ const salvarCurriculo = async (data, userId) => {
   }
 };
 
-// Formatador de data
-const formatDate = (dateString) => {
-  try {
-    if (!dateString) return 'Data não disponível';
-    const date = new Date(dateString);
-    return `${date.getDate().toString().padStart(2, '0')}/${(date.getMonth() + 1).toString().padStart(2, '0')}/${date.getFullYear()} ${date.getHours().toString().padStart(2, '0')}:${date.getMinutes().toString().padStart(2, '0')}`;
-  } catch (error) {
-    console.error('Erro ao formatar data:', error);
-    return 'Data inválida';
-  }
-};
-
-// Componente para configuração de IAs
-// const ConfiguracoesIAScreen = ({ navigation }) => {
-//   const [iasSalvas, setIasSalvas] = useState({});
-//   const [iaAtual, setIaAtual] = useState('GEMINI');
-//   const [apiKey, setApiKey] = useState('');
-//   const [isSaving, setIsSaving] = useState(false);
-
-//   useEffect(() => {
-//     carregarConfiguracoes();
-//   }, []);
-
-//   const carregarConfiguracoes = async () => {
-//     try {
-//       // Carregar IA padrão
-//       const defaultIA = await AsyncStorage.getItem('ia_padrao');
-//       if (defaultIA) setIaAtual(defaultIA);
-
-//       // Carregar status das IAs
-//       const iasStatus = {};
-//       for (const [key, value] of Object.entries(IA_APIS)) {
-//         const apiKey = await getIAAPIKey(key);
-//         iasStatus[key] = {
-//           configurada: value.chaveNecessaria ? !!apiKey : true,
-//           apiKey: apiKey
-//         };
-//       }
-
-//       setIasSalvas(iasStatus);
-
-//       // Carregar a API key da IA selecionada
-//       if (defaultIA) {
-//         const currentKey = await getIAAPIKey(defaultIA);
-//         setApiKey(currentKey);
-//       }
-//     } catch (error) {
-//       console.error('Erro ao carregar configurações:', error);
-//       Alert.alert('Erro', 'Não foi possível carregar as configurações das IAs.');
-//     }
-//   };
-
-//   const salvarConfiguracao = async () => {
-//     setIsSaving(true);
-//     try {
-//       // Salvar a IA padrão
-//       await AsyncStorage.setItem('ia_padrao', iaAtual);
-
-//       // Salvar a API key da IA selecionada
-//       await salvarIAAPIKey(iaAtual, apiKey);
-
-//       // Atualizar o estado
-//       const novasIasSalvas = { ...iasSalvas };
-//       novasIasSalvas[iaAtual] = {
-//         configurada: IA_APIS[iaAtual].chaveNecessaria ? !!apiKey : true,
-//         apiKey: apiKey
-//       };
-//       setIasSalvas(novasIasSalvas);
-
-//       Alert.alert('Sucesso', `Configuração de ${IA_APIS[iaAtual].nome} salva com sucesso!`);
-//     } catch (error) {
-//       console.error('Erro ao salvar configuração:', error);
-//       Alert.alert('Erro', 'Não foi possível salvar a configuração.');
-//     } finally {
-//       setIsSaving(false);
-//     }
-//   };
-
-//   const selecionarIA = async (tipoIA) => {
-//     setIaAtual(tipoIA);
-//     const key = await getIAAPIKey(tipoIA);
-//     setApiKey(key || '');
-//   };
-
-//   return (
-//     <SafeAreaView style={styles.container}>
-//       <StatusBar barStyle="light-content" backgroundColor={Colors.dark} />
-
-//       <View style={styles.header}>
-//         <TouchableOpacity
-//           style={styles.backButton}
-//           onPress={() => navigation.goBack()}
-//         >
-//           <Text style={styles.backButtonText}>‹</Text>
-//         </TouchableOpacity>
-//         <Text style={styles.headerTitle}>Configurar IAs</Text>
-//       </View>
-
-//       <ScrollView style={styles.configContent}>
-//         <Text style={styles.configTitle}>Selecione uma IA para configurar:</Text>
-
-//         <View style={styles.iasList}>
-//           {Object.entries(IA_APIS).map(([key, value]) => (
-//             <TouchableOpacity
-//               key={key}
-//               style={[
-//                 styles.iaItem,
-//                 iaAtual === key && styles.iaItemSelected
-//               ]}
-//               onPress={() => selecionarIA(key)}
-//             >
-//               <Text style={[
-//                 styles.iaItemText,
-//                 iaAtual === key && styles.iaItemTextSelected
-//               ]}>
-//                 {value.nome}
-//               </Text>
-//               {iasSalvas[key]?.configurada && (
-//                 <View style={styles.configuredBadge}>
-//                   <Text style={styles.configuredBadgeText}>✓</Text>
-//                 </View>
-//               )}
-//             </TouchableOpacity>
-//           ))}
-//         </View>
-
-//         {IA_APIS[iaAtual]?.chaveNecessaria ? (
-//           <View style={styles.apiKeyContainer}>
-//             <Text style={styles.apiKeyLabel}>
-//               API Key para {IA_APIS[iaAtual]?.nome}:
-//             </Text>
-//             <TextInput
-//               style={styles.apiKeyInput}
-//               value={apiKey}
-//               onChangeText={setApiKey}
-//               placeholder="Insira sua API Key aqui"
-//               secureTextEntry={true}
-//             />
-//             <Text style={styles.apiKeyHelper}>
-//               Você pode obter sua API Key em: {getApiKeySourceForIA(iaAtual)}
-//             </Text>
-//           </View>
-//         ) : (
-//           <View style={styles.noApiKeyContainer}>
-//             <Text style={styles.noApiKeyText}>
-//               {IA_APIS[iaAtual]?.nome} não necessita de API Key.
-//             </Text>
-//           </View>
-//         )}
-
-//         <TouchableOpacity
-//           style={[
-//             styles.saveButton,
-//             (isSaving) && styles.saveButtonDisabled
-//           ]}
-//           onPress={salvarConfiguracao}
-//           disabled={isSaving}
-//         >
-//           {isSaving ? (
-//             <ActivityIndicator size="small" color={Colors.white} />
-//           ) : (
-//             <Text style={styles.saveButtonText}>Salvar Configuração</Text>
-//           )}
-//         </TouchableOpacity>
-//       </ScrollView>
-//     </SafeAreaView>
-//   );
-// };
 const ConfiguracoesIAScreen = ({ navigation }) => {
   const [iasSalvas, setIasSalvas] = useState({});
   const [iaAtual, setIaAtual] = useState('GEMINI');
@@ -10582,7 +8626,6 @@ const ConfiguracoesIAScreen = ({ navigation }) => {
   );
 };
 
-// Telas
 const SplashScreen = ({ navigation }) => {
   useEffect(() => {
     // Simular carregamento
@@ -10605,7 +8648,6 @@ const SplashScreen = ({ navigation }) => {
   );
 };
 
-// Modificações para o LoginScreen
 const LoginScreen = ({ navigation }) => {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -10690,7 +8732,6 @@ const LoginScreen = ({ navigation }) => {
   );
 };
 
-// Modificações para o RegisterScreen
 const RegisterScreen = ({ navigation }) => {
   const [nome, setNome] = useState('');
   const [email, setEmail] = useState('');
@@ -10814,8 +8855,6 @@ const RegisterScreen = ({ navigation }) => {
     </SafeAreaView>
   );
 };
-
-// Modificação do HomeScreen para adicionar a funcionalidade de Conhecimento
 
 const HomeScreen = ({ navigation }) => {
   const { user, logout } = useAuth();
@@ -12224,6 +10263,7 @@ ${content.substring(0, 1500)}...
           </View>
 
           {/* SEÇÃO: Ações Principais */}
+          // Seção: Ações Principais no HomeScreen, modificar o componente existente:
           <View style={styles.featureSection}>
             <Text style={styles.featureSectionTitle}>Ações Principais</Text>
             <View style={styles.mainActionsContainer}>
@@ -12249,6 +10289,18 @@ ${content.substring(0, 1500)}...
                   <Text style={styles.mainActionIcon}>📊</Text>
                 </View>
                 <Text style={styles.mainActionText}>Analise seu Currículo</Text>
+              </TouchableOpacity>
+
+              {/* NOVO BOTÃO: "Simular Entrevista" */}
+              <TouchableOpacity
+                style={styles.mainActionButton}
+                onPress={() => navigation.navigate('SimularEntrevista')}
+                activeOpacity={0.7}
+              >
+                <View style={styles.mainActionIconContainer}>
+                  <Text style={styles.mainActionIcon}>🎯</Text>
+                </View>
+                <Text style={styles.mainActionText}>Simular Entrevista</Text>
               </TouchableOpacity>
 
               {/* Botão "Gerenciar Currículos" */}
@@ -12325,74 +10377,1146 @@ ${content.substring(0, 1500)}...
   return activeScreen === 'home' ? renderHomeScreen() : renderKnowledgeScreen();
 };
 
-const additionalStyles = {
-  // Estilo para container dos botões principais
-  mainActionsContainer: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    justifyContent: 'space-between',
-    marginBottom: 10,
-  },
-  // Estilo para os botões principais
-  mainActionButton: {
-    backgroundColor: Colors.primary,
-    width: '48%', // Dois botões por linha
-    borderRadius: 10,
-    padding: 16,
-    alignItems: 'center',
-    marginBottom: 15,
-    ...Platform.select({
-      ios: {
-        shadowColor: '#000',
-        shadowOffset: { width: 0, height: 3 },
-        shadowOpacity: 0.2,
-        shadowRadius: 4,
-      },
-      android: {
-        elevation: 3,
-      },
-    }),
-  },
-  // Estilo para o container do ícone
-  mainActionIconContainer: {
-    width: 50,
-    height: 50,
-    borderRadius: 25,
-    backgroundColor: 'rgba(255, 255, 255, 0.2)',
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginBottom: 10,
-  },
-  // Estilo para o ícone
-  mainActionIcon: {
-    fontSize: 24,
-    color: Colors.white,
-  },
-  // Estilo para o texto do botão
-  mainActionText: {
-    color: Colors.white,
-    fontWeight: 'bold',
-    fontSize: 14,
-    textAlign: 'center',
-  },
-  // Botão premium
-  premiumButton: {
-    backgroundColor: Colors.primary,
-    paddingVertical: 10,
-    paddingHorizontal: 15,
-    borderRadius: 8,
-    alignItems: 'center',
-    alignSelf: 'flex-start',
-    marginTop: 10,
-  },
-  premiumButtonText: {
-    color: Colors.white,
-    fontWeight: 'bold',
-    fontSize: 14,
-  },
+
+const SimularEntrevistaScreen = ({ navigation }) => {
+  const { user } = useAuth();
+  const [curriculos, setCurriculos] = useState([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    carregarCurriculos();
+  }, []);
+
+  const carregarCurriculos = async () => {
+    try {
+      setLoading(true);
+      const cvs = await AsyncStorage.getItem(`curriculos_${user.id}`);
+      setCurriculos(cvs ? JSON.parse(cvs) : []);
+    } catch (error) {
+      console.error('Erro ao carregar currículos:', error);
+      Alert.alert('Erro', 'Não foi possível carregar seus currículos.');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleIniciarEntrevista = (curriculo) => {
+    navigation.navigate('EntrevistaSimulada', { curriculoData: curriculo });
+  };
+
+  const handleEntrevistaGenerica = () => {
+    navigation.navigate('EntrevistaSimulada', { curriculoData: null });
+  };
+
+  const formatDate = (dateString) => {
+    try {
+      if (!dateString) return 'Data não disponível';
+      const date = new Date(dateString);
+      return `${date.getDate().toString().padStart(2, '0')}/${(date.getMonth() + 1).toString().padStart(2, '0')}/${date.getFullYear()}`;
+    } catch (error) {
+      return 'Data inválida';
+    }
+  };
+
+  // Extrair informações do currículo para exibição
+  const getResumoCurriculo = (curriculo) => {
+    const cv = curriculo.data;
+    const experiencias = cv.experiencias?.length || 0;
+    const formacoes = cv.formacoes_academicas?.length || 0;
+    const area = cv.informacoes_pessoais?.area || 'Não especificada';
+
+    return { experiencias, formacoes, area };
+  };
+
+  return (
+    <SafeAreaView style={styles.container}>
+      <StatusBar barStyle="light-content" backgroundColor={Colors.dark} />
+
+      <View style={styles.header}>
+        <TouchableOpacity
+          style={styles.backButton}
+          onPress={() => navigation.goBack()}
+        >
+          <Text style={styles.backButtonText}>‹</Text>
+        </TouchableOpacity>
+        <Text style={styles.headerTitle}>Simular Entrevista</Text>
+      </View>
+
+      {loading ? (
+        <View style={styles.loadingContainer}>
+          <ActivityIndicator size="large" color={Colors.primary} />
+          <Text style={{ marginTop: 10 }}>Carregando currículos...</Text>
+        </View>
+      ) : (
+        <View style={{ flex: 1, padding: 15 }}>
+          <View style={{
+            backgroundColor: '#e1f5fe',
+            padding: 15,
+            borderRadius: 10,
+            marginBottom: 20,
+            borderLeftWidth: 4,
+            borderLeftColor: Colors.info,
+          }}>
+            <Text style={{
+              fontSize: 18,
+              fontWeight: 'bold',
+              marginBottom: 5,
+              color: Colors.dark,
+            }}>
+              Simulador de Entrevista com IA
+            </Text>
+            <Text style={{
+              fontSize: 14,
+              color: '#01579b',
+              lineHeight: 22,
+            }}>
+              Prepare-se para suas entrevistas de emprego com nosso simulador inteligente. A IA fará perguntas baseadas no seu currículo ou em um formato genérico, avaliará suas respostas e fornecerá feedback para melhorar seu desempenho.
+            </Text>
+          </View>
+
+          {curriculos.length > 0 ? (
+            <>
+              <Text style={{
+                fontSize: 16,
+                fontWeight: 'bold',
+                marginBottom: 10,
+                color: Colors.dark,
+              }}>
+                Selecione um currículo para uma entrevista personalizada:
+              </Text>
+
+              <FlatList
+                data={curriculos}
+                keyExtractor={(item) => item.id}
+                renderItem={({ item }) => {
+                  const resumo = getResumoCurriculo(item);
+
+                  return (
+                    <TouchableOpacity
+                      style={{
+                        backgroundColor: Colors.white,
+                        borderRadius: 10,
+                        marginBottom: 15,
+                        padding: 16,
+                        ...Platform.select({
+                          ios: {
+                            shadowColor: '#000',
+                            shadowOffset: { width: 0, height: 2 },
+                            shadowOpacity: 0.1,
+                            shadowRadius: 3,
+                          },
+                          android: {
+                            elevation: 2,
+                          },
+                        }),
+                        borderLeftWidth: 4,
+                        borderLeftColor: Colors.primary,
+                      }}
+                      onPress={() => handleIniciarEntrevista(item)}
+                    >
+                      <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
+                        <Text style={{
+                          fontSize: 18,
+                          fontWeight: 'bold',
+                          color: Colors.dark,
+                          marginBottom: 5,
+                        }}>
+                          {item.nome || 'Currículo sem nome'}
+                        </Text>
+
+                        <View style={{
+                          backgroundColor: Colors.primary,
+                          paddingVertical: 4,
+                          paddingHorizontal: 8,
+                          borderRadius: 15,
+                        }}>
+                          <Text style={{ color: Colors.white, fontSize: 12 }}>
+                            Selecionar
+                          </Text>
+                        </View>
+                      </View>
+
+                      <Text style={{
+                        fontSize: 14,
+                        color: Colors.lightText,
+                        marginBottom: 10,
+                      }}>
+                        Criado em: {formatDate(item.dataCriacao)}
+                      </Text>
+
+                      <View style={{
+                        backgroundColor: '#f5f5f5',
+                        padding: 10,
+                        borderRadius: 5,
+                        marginTop: 5,
+                      }}>
+                        <Text style={{ color: Colors.dark }}>
+                          <Text style={{ fontWeight: 'bold' }}>Área: </Text>
+                          {resumo.area}
+                        </Text>
+
+                        <View style={{ flexDirection: 'row', marginTop: 5, flexWrap: 'wrap' }}>
+                          <View style={{
+                            backgroundColor: Colors.primary,
+                            paddingVertical: 3,
+                            paddingHorizontal: 8,
+                            borderRadius: 12,
+                            marginRight: 8,
+                            marginBottom: 5,
+                          }}>
+                            <Text style={{ color: Colors.white, fontSize: 12 }}>
+                              {resumo.experiencias} experiência(s)
+                            </Text>
+                          </View>
+
+                          <View style={{
+                            backgroundColor: Colors.secondary,
+                            paddingVertical: 3,
+                            paddingHorizontal: 8,
+                            borderRadius: 12,
+                            marginRight: 8,
+                            marginBottom: 5,
+                          }}>
+                            <Text style={{ color: Colors.white, fontSize: 12 }}>
+                              {resumo.formacoes} formação(ões)
+                            </Text>
+                          </View>
+                        </View>
+                      </View>
+                    </TouchableOpacity>
+                  );
+                }}
+              />
+            </>
+          ) : (
+            <View style={{ alignItems: 'center', marginTop: 20 }}>
+              <Text style={{ textAlign: 'center', marginBottom: 20 }}>
+                Você ainda não tem currículos cadastrados. Crie um currículo primeiro ou use o modo de entrevista genérica.
+              </Text>
+              <TouchableOpacity
+                style={{
+                  backgroundColor: Colors.primary,
+                  paddingVertical: 12,
+                  paddingHorizontal: 20,
+                  borderRadius: 8,
+                  marginBottom: 15,
+                }}
+                onPress={() => navigation.navigate('Chatbot')}
+              >
+                <Text style={{ color: Colors.white, fontWeight: 'bold' }}>
+                  Criar Novo Currículo
+                </Text>
+              </TouchableOpacity>
+            </View>
+          )}
+
+          <View style={{
+            backgroundColor: '#f9fbe7',
+            padding: 15,
+            borderRadius: 10,
+            marginTop: 10,
+            marginBottom: 20,
+            borderLeftWidth: 4,
+            borderLeftColor: '#9e9d24',
+          }}>
+            <Text style={{
+              fontSize: 16,
+              fontWeight: 'bold',
+              marginBottom: 5,
+              color: Colors.dark,
+            }}>
+              Entrevista Genérica
+            </Text>
+            <Text style={{
+              fontSize: 14,
+              color: '#616161',
+              marginBottom: 10,
+            }}>
+              Prefere uma entrevista sem vínculo com um currículo específico? Faça uma simulação com perguntas genéricas para qualquer cargo.
+            </Text>
+            <TouchableOpacity
+              style={{
+                backgroundColor: '#9e9d24',
+                paddingVertical: 10,
+                paddingHorizontal: 15,
+                borderRadius: 8,
+                alignSelf: 'flex-start',
+              }}
+              onPress={handleEntrevistaGenerica}
+            >
+              <Text style={{ color: Colors.white, fontWeight: 'bold' }}>
+                Iniciar Entrevista Genérica
+              </Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      )}
+    </SafeAreaView>
+  );
 };
 
-// Adicione estas funções no mesmo escopo que as outras funções auxiliares (junto com getUniqueId, formatDate, etc.)
+const EntrevistaSimuladaScreen = ({ route, navigation }) => {
+  const { curriculoData } = route.params;
+  const { user } = useAuth();
+  const [entrevistaIniciada, setEntrevistaIniciada] = useState(false);
+  const [carregando, setCarregando] = useState(false);
+  const [perguntaAtual, setPerguntaAtual] = useState(null);
+  const [resposta, setResposta] = useState('');
+  const [historico, setHistorico] = useState([]);
+  const [numeroPergunta, setNumeroPergunta] = useState(0);
+  const [totalPerguntas, setTotalPerguntas] = useState(0);
+  const [feedbackVisible, setFeedbackVisible] = useState(false);
+  const [feedback, setFeedback] = useState('');
+  const [finalizando, setFinalizando] = useState(false);
+  const [concluido, setConcluido] = useState(false);
+  const [avaliacaoFinal, setAvaliacaoFinal] = useState(null);
+  const [tipoCargo, setTipoCargo] = useState('');
+  const [area, setArea] = useState('');
+  
+  const flatListRef = useRef();
+  const respostaInputRef = useRef();
+
+  // Função para iniciar a entrevista
+  const iniciarEntrevista = async () => {
+    try {
+      setCarregando(true);
+      
+      // Verificar se é uma entrevista baseada em currículo ou genérica
+      if (curriculoData) {
+        // Extrair a área e cargo do currículo para personalizar a entrevista
+        const cv = curriculoData.data;
+        const areaDoCV = cv.informacoes_pessoais?.area || '';
+        setArea(areaDoCV);
+        
+        // Determinar o cargo com base na experiência mais recente, se disponível
+        if (cv.experiencias && cv.experiencias.length > 0) {
+          setTipoCargo(cv.experiencias[0].cargo || '');
+        }
+      } else {
+        // Para entrevista genérica, solicitar informações
+        Alert.prompt(
+          "Informações para Entrevista",
+          "Qual cargo ou área você está buscando?",
+          [
+            {
+              text: "Cancelar",
+              onPress: () => navigation.goBack(),
+              style: "cancel"
+            },
+            {
+              text: "Continuar",
+              onPress: input => {
+                setArea(input || "Área não especificada");
+                prepararEntrevista(input);
+              }
+            }
+          ],
+          "plain-text"
+        );
+        return; // Aguardar input do usuário
+      }
+      
+      // Se temos currículo, continuar diretamente
+      prepararEntrevista();
+      
+    } catch (error) {
+      console.error('Erro ao iniciar entrevista:', error);
+      Alert.alert('Erro', 'Não foi possível iniciar a entrevista. Tente novamente.');
+      setCarregando(false);
+    }
+  };
+  
+  // Função para preparar o conjunto de perguntas da entrevista
+  const prepararEntrevista = async (areaInput = null) => {
+    try {
+      setCarregando(true);
+      
+      // Usar área do input para entrevista genérica, ou do currículo para específica
+      const areaFinal = areaInput || area;
+      
+      // Obter API key da IA
+      const apiKey = await getIAAPIKey('GEMINI');
+      
+      if (!apiKey) {
+        throw new Error("API key do Gemini não configurada");
+      }
+      
+      // Construir prompt para gerar perguntas de entrevista
+      let promptText = "";
+      
+      if (curriculoData) {
+        // Formatamos os dados do currículo
+        const cv = curriculoData.data;
+        const experiencias = cv.experiencias?.map(exp => 
+          `${exp.cargo} em ${exp.empresa} (${exp.data_inicio || ''} - ${exp.data_fim || 'atual'}): ${exp.descricao || ''}`
+        ).join('\n') || 'Sem experiências profissionais';
+        
+        const formacoes = cv.formacoes_academicas?.map(form => 
+          `${form.diploma} em ${form.area_estudo} pela ${form.instituicao} (${form.data_inicio || ''} - ${form.data_fim || ''})`
+        ).join('\n') || 'Sem formação acadêmica';
+        
+        const habilidades = cv.projetos?.map(proj => proj.habilidades).filter(Boolean).join(', ') || 'Não especificadas';
+        
+        promptText = `
+Você é um recrutador experiente especializado em entrevistas para a área de ${areaFinal}. Conduza uma entrevista simulada de emprego detalhada e realista para um candidato à posição de ${tipoCargo || areaFinal}.
+
+CURRÍCULO DO CANDIDATO:
+Nome: ${cv.informacoes_pessoais?.nome || ''} ${cv.informacoes_pessoais?.sobrenome || ''}
+Área: ${areaFinal}
+
+Experiências:
+${experiencias}
+
+Formação:
+${formacoes}
+
+Habilidades:
+${habilidades}
+
+INSTRUÇÕES PARA A ENTREVISTA:
+1. Crie exatamente 10 perguntas desafiadoras e realistas baseadas no currículo do candidato
+2. As perguntas devem incluir:
+   - Perguntas comportamentais (situações específicas)
+   - Perguntas técnicas relevantes para a área
+   - Perguntas sobre experiências anteriores
+   - Perguntas sobre soft skills e trabalho em equipe
+   - Pelo menos uma pergunta situacional de resolução de problemas
+   - Pelo menos uma pergunta de motivação profissional
+
+3. Elabore perguntas que um recrutador real faria, usando linguagem profissional
+4. Foque em perguntas que extraiam informações sobre competências, experiências e fit cultural
+5. Use as informações do currículo para personalizar as perguntas
+6. Inclua perguntas sobre possíveis gaps no currículo ou áreas de melhoria
+
+FORMATO DE RESPOSTA:
+Forneça apenas um array JSON de objetos, cada um representando uma pergunta, na seguinte estrutura:
+[
+  {
+    "pergunta": "texto da pergunta 1",
+    "context": "contexto breve sobre por que essa pergunta está sendo feita",
+    "tipo": "comportamental/técnica/experiência/motivacional/situacional"
+  },
+  {
+    "pergunta": "texto da pergunta 2",
+    "context": "contexto breve sobre por que essa pergunta está sendo feita",
+    "tipo": "comportamental/técnica/experiência/motivacional/situacional"
+  }
+]
+
+Apenas retorne o JSON puro, sem texto introdutório ou explicações.
+`;
+      } else {
+        // Prompt para entrevista genérica
+        promptText = `
+Você é um recrutador experiente especializado em entrevistas para a área de ${areaFinal}. Conduza uma entrevista simulada de emprego detalhada e realista para um candidato.
+
+INSTRUÇÕES PARA A ENTREVISTA GENÉRICA:
+1. Crie exatamente 10 perguntas desafiadoras e realistas para uma entrevista de emprego na área de ${areaFinal}
+2. As perguntas devem incluir:
+   - Perguntas comportamentais (situações específicas)
+   - Perguntas técnicas relevantes para a área
+   - Perguntas sobre experiências anteriores
+   - Perguntas sobre soft skills e trabalho em equipe
+   - Pelo menos uma pergunta situacional de resolução de problemas
+   - Pelo menos uma pergunta de motivação profissional
+
+3. Elabore perguntas que um recrutador real faria, usando linguagem profissional
+4. Foque em perguntas que extraiam informações sobre competências, experiências e fit cultural
+5. As perguntas devem ser genéricas o suficiente para qualquer pessoa na área, mas específicas o suficiente para avaliar conhecimentos relevantes
+6. Inclua perguntas típicas de entrevistas para ${areaFinal} baseadas nas melhores práticas do mercado
+
+FORMATO DE RESPOSTA:
+Forneça apenas um array JSON de objetos, cada um representando uma pergunta, na seguinte estrutura:
+[
+  {
+    "pergunta": "texto da pergunta 1",
+    "context": "contexto breve sobre por que essa pergunta está sendo feita",
+    "tipo": "comportamental/técnica/experiência/motivacional/situacional"
+  },
+  {
+    "pergunta": "texto da pergunta 2",
+    "context": "contexto breve sobre por que essa pergunta está sendo feita",
+    "tipo": "comportamental/técnica/experiência/motivacional/situacional"
+  }
+]
+
+Apenas retorne o JSON puro, sem texto introdutório ou explicações.
+`;
+      }
+      
+      // Chamar a API do Gemini para gerar perguntas
+      const endpoint = `${IA_APIS.GEMINI.endpoint}?key=${apiKey}`;
+      const requestBody = {
+        contents: [{ parts: [{ text: promptText }] }],
+        generationConfig: {
+          temperature: 0.2,
+          maxOutputTokens: 4000,
+          topP: 0.8,
+          topK: 40
+        }
+      };
+      
+      const response = await axios.post(endpoint, requestBody, {
+        headers: { 'Content-Type': 'application/json' },
+        timeout: 30000
+      });
+      
+      if (response.data?.candidates?.[0]?.content?.parts?.[0]?.text) {
+        const resultText = response.data.candidates[0].content.parts[0].text;
+        
+        // Extrair o JSON da resposta
+        const jsonMatch = resultText.match(/\[[\s\S]*\]/);
+        if (jsonMatch) {
+          try {
+            const perguntas = JSON.parse(jsonMatch[0]);
+            setTotalPerguntas(perguntas.length);
+            setNumeroPergunta(1);
+            setPerguntaAtual(perguntas[0]);
+            
+            // Adicionar primeira pergunta ao histórico
+            setHistorico([{
+              id: '0',
+              texto: perguntas[0].pergunta,
+              isUser: false,
+              context: perguntas[0].context,
+              tipo: perguntas[0].tipo
+            }]);
+            
+            // Salvar perguntas restantes no estado
+            setEntrevistaIniciada(true);
+            
+            // Armazenar perguntas em AsyncStorage para recuperação caso a app feche
+            await AsyncStorage.setItem(`entrevista_perguntas_${user.id}`, 
+              JSON.stringify({
+                perguntas,
+                timestampInicio: new Date().toISOString(),
+                curriculoId: curriculoData?.id || null,
+                area: areaFinal,
+                tipoCargo: tipoCargo
+              })
+            );
+          } catch (jsonError) {
+            console.error('Erro ao parsear JSON da resposta:', jsonError);
+            throw new Error('Formato de resposta inválido');
+          }
+        } else {
+          throw new Error('Não foi possível extrair perguntas da resposta');
+        }
+      } else {
+        throw new Error('Formato de resposta inesperado do Gemini');
+      }
+    } catch (error) {
+      console.error('Erro ao preparar entrevista:', error);
+      Alert.alert('Erro', 'Não foi possível preparar a entrevista. Tente novamente mais tarde.');
+    } finally {
+      setCarregando(false);
+    }
+  };
+  
+  // Função para processar a resposta do usuário e fornecer feedback
+  const enviarResposta = async () => {
+    if (resposta.trim() === '') return;
+    
+    try {
+      // Adicionar a resposta do usuário ao histórico
+      const novoHistorico = [...historico, {
+        id: `u-${numeroPergunta}`,
+        texto: resposta,
+        isUser: true
+      }];
+      
+      setHistorico(novoHistorico);
+      setResposta('');
+      setCarregando(true);
+      
+      // Obter API key da IA
+      const apiKey = await getIAAPIKey('GEMINI');
+      
+      if (!apiKey) {
+        throw new Error("API key do Gemini não configurada");
+      }
+      
+      // Obter entrevista armazenada
+      const entrevistaJson = await AsyncStorage.getItem(`entrevista_perguntas_${user.id}`);
+      if (!entrevistaJson) {
+        throw new Error("Dados da entrevista não encontrados");
+      }
+      
+      const entrevistaData = JSON.parse(entrevistaJson);
+      const perguntas = entrevistaData.perguntas;
+      
+      // Construir prompt para feedback da resposta
+      const promptText = `
+Você é um recrutador experiente especializado em entrevistas para a área de ${area || entrevistaData.area}.
+
+PERGUNTA DA ENTREVISTA:
+"${perguntaAtual.pergunta}"
+
+Contexto da pergunta: ${perguntaAtual.context}
+Tipo de pergunta: ${perguntaAtual.tipo}
+
+RESPOSTA DO CANDIDATO:
+"${resposta}"
+
+TAREFA:
+Analise a resposta do candidato à pergunta de entrevista acima e forneça um feedback detalhado:
+
+1. Avalie a qualidade da resposta (escala de 1-10)
+2. Identifique pontos fortes da resposta
+3. Identifique pontos fracos ou informações faltantes
+4. Forneça sugestões específicas para melhorar a resposta
+5. Explique o que um recrutador buscaria neste tipo de resposta
+
+FORMATO DE RESPOSTA:
+{
+  "pontuacao": 7,
+  "pontos_fortes": ["ponto forte 1", "ponto forte 2"],
+  "pontos_fracos": ["ponto fraco 1", "ponto fraco 2"],
+  "sugestoes": ["sugestão 1", "sugestão 2"],
+  "explicacao": "Explicação sobre o que um recrutador busca nesta resposta",
+  "resumo": "Um resumo conciso do feedback em um parágrafo"
+}
+
+Retorne apenas o JSON puro, sem texto adicional.
+`;
+      
+      // Chamar a API do Gemini para gerar feedback
+      const endpoint = `${IA_APIS.GEMINI.endpoint}?key=${apiKey}`;
+      const requestBody = {
+        contents: [{ parts: [{ text: promptText }] }],
+        generationConfig: {
+          temperature: 0.3,
+          maxOutputTokens: 2000,
+          topP: 0.8,
+          topK: 40
+        }
+      };
+      
+      const response = await axios.post(endpoint, requestBody, {
+        headers: { 'Content-Type': 'application/json' },
+        timeout: 30000
+      });
+      
+      if (response.data?.candidates?.[0]?.content?.parts?.[0]?.text) {
+        const resultText = response.data.candidates[0].content.parts[0].text;
+        
+        // Extrair o JSON da resposta
+        const jsonMatch = resultText.match(/\{[\s\S]*\}/);
+        if (jsonMatch) {
+          try {
+            const feedbackData = JSON.parse(jsonMatch[0]);
+            
+            // Formatar feedback para exibição
+            const feedbackFormatado = `## Feedback sobre sua resposta
+
+**Pontuação:** ${feedbackData.pontuacao}/10
+
+**Pontos fortes:**
+${feedbackData.pontos_fortes.map(ponto => `- ${ponto}`).join('\n')}
+
+**Pontos a melhorar:**
+${feedbackData.pontos_fracos.map(ponto => `- ${ponto}`).join('\n')}
+
+**Sugestões:**
+${feedbackData.sugestoes.map(sugestao => `- ${sugestao}`).join('\n')}
+
+**O que o recrutador busca:**
+${feedbackData.explicacao}
+
+**Resumo:**
+${feedbackData.resumo}`;
+            
+            setFeedback(feedbackFormatado);
+            setFeedbackVisible(true);
+            
+            // Salvar feedback no histórico de entrevista
+            await AsyncStorage.setItem(`entrevista_feedback_${user.id}_${numeroPergunta}`, 
+              JSON.stringify({
+                pergunta: perguntaAtual.pergunta,
+                resposta: resposta,
+                feedback: feedbackData
+              })
+            );
+            
+          } catch (jsonError) {
+            console.error('Erro ao parsear JSON do feedback:', jsonError);
+            setFeedback("Não foi possível gerar o feedback para sua resposta. Vamos continuar com a próxima pergunta.");
+            setFeedbackVisible(true);
+          }
+        } else {
+          setFeedback("Não foi possível gerar o feedback para sua resposta. Vamos continuar com a próxima pergunta.");
+          setFeedbackVisible(true);
+        }
+      } else {
+        setFeedback("Não foi possível gerar o feedback para sua resposta. Vamos continuar com a próxima pergunta.");
+        setFeedbackVisible(true);
+      }
+    } catch (error) {
+      console.error('Erro ao processar resposta:', error);
+      Alert.alert('Erro', 'Não foi possível processar sua resposta. Tente novamente.');
+    } finally {
+      setCarregando(false);
+    }
+  };
+  
+  // Função para prosseguir para a próxima pergunta
+  const proximaPergunta = async () => {
+    try {
+      setFeedbackVisible(false);
+      setFeedback('');
+      
+      // Obter entrevista armazenada
+      const entrevistaJson = await AsyncStorage.getItem(`entrevista_perguntas_${user.id}`);
+      if (!entrevistaJson) {
+        throw new Error("Dados da entrevista não encontrados");
+      }
+      
+      const entrevistaData = JSON.parse(entrevistaJson);
+      const perguntas = entrevistaData.perguntas;
+      
+      // Verificar se ainda há perguntas
+      if (numeroPergunta < perguntas.length) {
+        // Próxima pergunta
+        const proximoNumero = numeroPergunta + 1;
+        const proximaPergunta = perguntas[proximoNumero - 1];
+        
+        setNumeroPergunta(proximoNumero);
+        setPerguntaAtual(proximaPergunta);
+        
+        // Adicionar próxima pergunta ao histórico
+        setHistorico(prev => [...prev, {
+          id: `${proximoNumero}`,
+          texto: proximaPergunta.pergunta,
+          isUser: false,
+          context: proximaPergunta.context,
+          tipo: proximaPergunta.tipo
+        }]);
+        
+        // Rolar para o fim da lista
+        if (flatListRef.current) {
+          setTimeout(() => {
+            flatListRef.current.scrollToEnd({ animated: true });
+          }, 200);
+        }
+      } else {
+        // Finalizar entrevista
+        setFinalizando(true);
+        gerarAvaliacaoFinal();
+      }
+    } catch (error) {
+      console.error('Erro ao avançar para próxima pergunta:', error);
+      Alert.alert('Erro', 'Não foi possível carregar a próxima pergunta. Tente novamente.');
+    }
+  };
+  
+  // Função para gerar avaliação final da entrevista
+  const gerarAvaliacaoFinal = async () => {
+    try {
+      setCarregando(true);
+      
+      // Obter API key da IA
+      const apiKey = await getIAAPIKey('GEMINI');
+      
+      if (!apiKey) {
+        throw new Error("API key do Gemini não configurada");
+      }
+      
+      // Recuperar todos os feedbacks armazenados
+      const entrevistaJson = await AsyncStorage.getItem(`entrevista_perguntas_${user.id}`);
+      if (!entrevistaJson) {
+        throw new Error("Dados da entrevista não encontrados");
+      }
+      
+      const entrevistaData = JSON.parse(entrevistaJson);
+      const perguntas = entrevistaData.perguntas;
+      
+      // Construir lista de perguntas e respostas
+      let perguntasRespostas = [];
+      
+      for (let i = 1; i <= perguntas.length; i++) {
+        const feedbackJson = await AsyncStorage.getItem(`entrevista_feedback_${user.id}_${i}`);
+        if (feedbackJson) {
+          const feedbackData = JSON.parse(feedbackJson);
+          perguntasRespostas.push({
+            pergunta: feedbackData.pergunta,
+            resposta: feedbackData.resposta,
+            feedback: feedbackData.feedback
+          });
+        }
+      }
+      
+      // Construir prompt para avaliação final
+      const promptText = `
+Você é um recrutador experiente especializado em entrevistas para a área de ${entrevistaData.area || area}.
+
+CONTEXTO:
+Foi conduzida uma entrevista simulada com um candidato para uma posição na área de ${entrevistaData.area || area}${entrevistaData.tipoCargo ? `, com foco em ${entrevistaData.tipoCargo}` : ''}.
+
+RESUMO DA ENTREVISTA:
+${perguntasRespostas.map((item, index) => `
+Pergunta ${index + 1}: "${item.pergunta}"
+Resposta: "${item.resposta}"
+Pontuação: ${item.feedback.pontuacao}/10
+`).join('\n')}
+
+TAREFA:
+Baseado nas respostas do candidato, faça uma avaliação completa de seu desempenho na entrevista:
+
+1. Calcule a pontuação global (média das pontuações individuais)
+2. Identifique os 3-5 principais pontos fortes demonstrados
+3. Identifique as 3-5 principais áreas de melhoria
+4. Forneça 3-5 recomendações específicas para melhorar em futuras entrevistas
+5. Avalie as habilidades de comunicação, estruturação de respostas e confiança do candidato
+6. Dê uma avaliação geral sobre as chances do candidato neste processo seletivo (baixa/média/alta)
+
+FORMATO DE RESPOSTA:
+{
+  "pontuacao_global": 7.5,
+  "pontos_fortes": [
+    {"ponto": "Descrição do ponto forte 1", "exemplo": "Exemplo específico da entrevista"},
+    {"ponto": "Descrição do ponto forte 2", "exemplo": "Exemplo específico da entrevista"}
+  ],
+  "areas_melhoria": [
+    {"area": "Descrição da área 1", "sugestao": "Sugestão específica"},
+    {"area": "Descrição da área 2", "sugestao": "Sugestão específica"}
+  ],
+  "recomendacoes": ["Recomendação 1", "Recomendação 2", "Recomendação 3"],
+  "avaliacao_comunicacao": "Análise da comunicação",
+  "avaliacao_estrutura": "Análise da estrutura das respostas",
+  "avaliacao_confianca": "Análise da confiança demonstrada",
+  "chance_sucesso": "média",
+  "conclusao": "Conclusão geral sobre o desempenho em um parágrafo"
+}
+
+Retorne apenas o JSON puro, sem texto adicional.
+`;
+      
+      // Chamar a API do Gemini para gerar avaliação final
+      const endpoint = `${IA_APIS.GEMINI.endpoint}?key=${apiKey}`;
+      const requestBody = {
+        contents: [{ parts: [{ text: promptText }] }],
+        generationConfig: {
+          temperature: 0.2,
+          maxOutputTokens: 4000,
+          topP: 0.8,
+          topK: 40
+        }
+      };
+      
+      const response = await axios.post(endpoint, requestBody, {
+        headers: { 'Content-Type': 'application/json' },
+        timeout: 30000
+      });
+      
+      if (response.data?.candidates?.[0]?.content?.parts?.[0]?.text) {
+        const resultText = response.data.candidates[0].content.parts[0].text;
+        
+        // Extrair o JSON da resposta
+        const jsonMatch = resultText.match(/\{[\s\S]*\}/);
+        if (jsonMatch) {
+          try {
+            const avaliacaoData = JSON.parse(jsonMatch[0]);
+            setAvaliacaoFinal(avaliacaoData);
+            setConcluido(true);
+            
+            // Salvar avaliação final
+            await AsyncStorage.setItem(`entrevista_avaliacao_${user.id}`, 
+              JSON.stringify({
+                avaliacao: avaliacaoData,
+                timestamp: new Date().toISOString(),
+                area: entrevistaData.area || area,
+                tipoCargo: entrevistaData.tipoCargo || tipoCargo
+              })
+            );
+            
+          } catch (jsonError) {
+            console.error('Erro ao parsear JSON da avaliação final:', jsonError);
+            throw new Error('Formato de resposta inválido');
+          }
+        } else {
+          throw new Error('Não foi possível extrair avaliação final da resposta');
+        }
+      } else {
+        throw new Error('Formato de resposta inesperado do Gemini');
+      }
+    } catch (error) {
+      console.error('Erro ao gerar avaliação final:', error);
+      Alert.alert('Erro', 'Não foi possível gerar a avaliação final da entrevista. Tente novamente mais tarde.');
+    } finally {
+      setCarregando(false);
+    }
+  };
+  
+  // Hook para iniciar a entrevista quando o componente for montado
+  useEffect(() => {
+    if (!entrevistaIniciada && !carregando) {
+      iniciarEntrevista();
+    }
+  }, []);
+  
+  // Função para mapear o nível de chance de sucesso para uma cor
+  const getChanceColor = (chance) => {
+    switch(chance.toLowerCase()) {
+      case 'alta':
+        return Colors.success;
+      case 'média':
+        return Colors.warning;
+      case 'baixa':
+        return Colors.danger;
+      default:
+        return Colors.primary;
+    }
+  };
+  
+  // Renderizar mensagem de entrevista
+  const renderMensagem = ({ item }) => (
+    <View style={[
+      styles.mensagemEntrevista,
+      item.isUser ? styles.mensagemUsuario : styles.mensagemRecrutador
+    ]}>
+      <Text style={[
+        styles.textoMensagem,
+        item.isUser ? styles.textoMensagemUsuario : styles.textoMensagemRecrutador
+      ]}>
+        {item.texto}
+      </Text>
+      {!item.isUser && item.tipo && (
+        <View style={styles.tipoPerguntaBadge}>
+          <Text style={styles.tipoPerguntaTexto}>
+            {item.tipo}
+          </Text>
+        </View>
+      )}
+    </View>
+  );
+  
+  // Renderizar avaliação final
+  const renderAvaliacaoFinal = () => {
+    if (!avaliacaoFinal) return null;
+    
+    return (
+      <ScrollView style={styles.avaliacaoFinalContainer}>
+        <View style={styles.avaliacaoHeader}>
+          <Text style={styles.avaliacaoTitulo}>Avaliação Final da Entrevista</Text>
+          
+          <View style={styles.pontuacaoContainer}>
+            <Text style={styles.pontuacaoLabel}>Pontuação Global</Text>
+            <View style={styles.pontuacaoCircle}>
+              <Text style={styles.pontuacaoValor}>
+                {avaliacaoFinal.pontuacao_global.toFixed(1)}
+              </Text>
+              <Text style={styles.pontuacaoMax}>/10</Text>
+            </View>
+          </View>
+          
+          <View style={[
+            styles.chanceSucessoContainer,
+            { backgroundColor: getChanceColor(avaliacaoFinal.chance_sucesso) }
+          ]}>
+            <Text style={styles.chanceSucessoTexto}>
+              Chance de sucesso: {avaliacaoFinal.chance_sucesso.toUpperCase()}
+            </Text>
+          </View>
+        </View>
+        
+        <View style={styles.secaoAvaliacao}>
+          <Text style={styles.secaoTitulo}>Pontos Fortes</Text>
+          {avaliacaoFinal.pontos_fortes.map((ponto, index) => (
+            <View key={`forte-${index}`} style={styles.pontoItem}>
+              <Text style={styles.pontoTitulo}>{ponto.ponto}</Text>
+              <Text style={styles.pontoExemplo}>{ponto.exemplo}</Text>
+            </View>
+          ))}
+        </View>
+        
+        <View style={styles.secaoAvaliacao}>
+          <Text style={styles.secaoTitulo}>Áreas de Melhoria</Text>
+          {avaliacaoFinal.areas_melhoria.map((area, index) => (
+            <View key={`melhoria-${index}`} style={styles.pontoItem}>
+              <Text style={styles.pontoTitulo}>{area.area}</Text>
+              <Text style={styles.pontoExemplo}>{area.sugestao}</Text>
+            </View>
+          ))}
+        </View>
+        
+        <View style={styles.secaoAvaliacao}>
+          <Text style={styles.secaoTitulo}>Recomendações</Text>
+          {avaliacaoFinal.recomendacoes.map((recomendacao, index) => (
+            <View key={`rec-${index}`} style={styles.recomendacaoItem}>
+              <Text style={styles.recomendacaoNumero}>{index + 1}</Text>
+              <Text style={styles.recomendacaoTexto}>{recomendacao}</Text>
+            </View>
+          ))}
+        </View>
+        
+        <View style={styles.secaoAvaliacao}>
+          <Text style={styles.secaoTitulo}>Avaliação Detalhada</Text>
+          
+          <View style={styles.avaliacaoDetalheItem}>
+            <Text style={styles.avaliacaoDetalheTitulo}>Comunicação:</Text>
+            <Text style={styles.avaliacaoDetalheTexto}>{avaliacaoFinal.avaliacao_comunicacao}</Text>
+          </View>
+          
+          <View style={styles.avaliacaoDetalheItem}>
+            <Text style={styles.avaliacaoDetalheTitulo}>Estrutura das Respostas:</Text>
+            <Text style={styles.avaliacaoDetalheTexto}>{avaliacaoFinal.avaliacao_estrutura}</Text>
+          </View>
+          
+          <View style={styles.avaliacaoDetalheItem}>
+            <Text style={styles.avaliacaoDetalheTitulo}>Confiança:</Text>
+            <Text style={styles.avaliacaoDetalheTexto}>{avaliacaoFinal.avaliacao_confianca}</Text>
+          </View>
+        </View>
+        
+        <View style={styles.conclusaoContainer}>
+          <Text style={styles.conclusaoTitulo}>Conclusão</Text>
+          <Text style={styles.conclusaoTexto}>{avaliacaoFinal.conclusao}</Text>
+        </View>
+        
+        <TouchableOpacity
+          style={styles.botaoEncerrar}
+          onPress={() => navigation.goBack()}
+        >
+          <Text style={styles.textoEncerrar}>Encerrar Entrevista</Text>
+        </TouchableOpacity>
+      </ScrollView>
+    );
+  };
+  
+  return (
+    <SafeAreaView style={styles.container}>
+      <StatusBar barStyle="light-content" backgroundColor={Colors.dark} />
+      
+      <View style={styles.header}>
+        <TouchableOpacity
+          style={styles.backButton}
+          onPress={() => {
+            if (entrevistaIniciada && !concluido) {
+              Alert.alert(
+                "Sair da entrevista",
+                "Tem certeza que deseja sair? Seu progresso será perdido.",
+                [
+                  { text: "Cancelar", style: "cancel" },
+                  { text: "Sair", onPress: () => navigation.goBack() }
+                ]
+              );
+            } else {
+              navigation.goBack();
+            }
+          }}
+        >
+          <Text style={styles.backButtonText}>‹</Text>
+        </TouchableOpacity>
+        <Text style={styles.headerTitle}>
+          {concluido ? 'Resultado da Entrevista' : 'Entrevista Simulada'}
+        </Text>
+      </View>
+      
+      {carregando && !entrevistaIniciada ? (
+        <View style={styles.loadingContainer}>
+          <ActivityIndicator size="large" color={Colors.primary} />
+          <Text style={styles.loadingText}>
+            Preparando sua entrevista{curriculoData ? ' personalizada' : ' genérica'}...
+          </Text>
+        </View>
+      ) : concluido ? (
+        renderAvaliacaoFinal()
+      ) : (
+        <View style={styles.entrevistaContainer}>
+          <View style={styles.progressoContainer}>
+            <View style={styles.progressoTrack}>
+              <View
+                style={[
+                  styles.progressoFill,
+                  { width: `${(numeroPergunta / totalPerguntas) * 100}%` }
+                ]}
+              />
+            </View>
+            <Text style={styles.progressoTexto}>
+              Pergunta {numeroPergunta} de {totalPerguntas}
+            </Text>
+          </View>
+          
+          <FlatList
+            ref={flatListRef}
+            data={historico}
+            keyExtractor={(item) => item.id}
+            renderItem={renderMensagem}
+            contentContainerStyle={styles.mensagensLista}
+            onLayout={() => {
+              if (flatListRef.current) {
+                flatListRef.current.scrollToEnd({ animated: true });
+              }
+            }}
+          />
+          
+          {feedbackVisible ? (
+            <View style={styles.feedbackContainer}>
+              <Text style={styles.feedbackTitulo}>Feedback do Recrutador</Text>
+              
+              <ScrollView style={styles.feedbackScrollView}>
+                <Markdown
+                  style={{
+                    body: { fontSize: 14, lineHeight: 20, color: Colors.dark },
+                    heading2: {
+                      fontSize: 16,
+                      fontWeight: 'bold',
+                      marginBottom: 10,
+                      color: Colors.dark
+                    },
+                    bullet_list: { marginVertical: 5 },
+                    paragraph: { marginBottom: 10 },
+                    strong: { fontWeight: 'bold' },
+                  }}
+                >
+                  {feedback}
+                </Markdown>
+              </ScrollView>
+              
+              <TouchableOpacity
+                style={styles.continuarButton}
+                onPress={proximaPergunta}
+              >
+                <Text style={styles.continuarButtonText}>
+                  {numeroPergunta === totalPerguntas ? 'Finalizar Entrevista' : 'Próxima Pergunta'}
+                </Text>
+              </TouchableOpacity>
+            </View>
+          ) : (
+            <View style={styles.inputContainer}>
+              <TextInput
+                ref={respostaInputRef}
+                style={styles.input}
+                placeholder="Digite sua resposta aqui..."
+                value={resposta}
+                onChangeText={setResposta}
+                multiline
+                textAlignVertical="top"
+                editable={!carregando}
+              />
+              
+              <TouchableOpacity
+                style={[
+                  styles.enviarButton,
+                  (resposta.trim() === '' || carregando) && styles.enviarButtonDisabled
+                ]}
+                onPress={enviarResposta}
+                disabled={resposta.trim() === '' || carregando}
+              >
+                {carregando ? (
+                  <ActivityIndicator color={Colors.white} size="small" />
+                ) : (
+                  <Text style={styles.enviarButtonText}>Enviar</Text>
+                )}
+              </TouchableOpacity>
+            </View>
+          )}
+        </View>
+      )}
+    </SafeAreaView>
+  );
+};
+
 const salvarProgressoCurriculo = async (userId, data) => {
   try {
     // Salvar o estado atual do chatbot
@@ -12428,9 +11552,8 @@ const limparProgressoCurriculo = async (userId) => {
   }
 };
 
-// Agora, vamos modificar o ChatbotScreen para salvar o progresso quando sair da tela
 const ChatbotScreen = ({ navigation, route }) => {
-  // Estados do componente
+  // Estados do componente original
   const [messages, setMessages] = useState([]);
   const [currentMessage, setCurrentMessage] = useState('');
   const [options, setOptions] = useState(['Começar']);
@@ -12439,6 +11562,12 @@ const ChatbotScreen = ({ navigation, route }) => {
   const [cvData, setCvData] = useState(null);
   const [showPreview, setShowPreview] = useState(false);
   const [initializing, setInitializing] = useState(true);
+  
+  // Novos estados para controle de confirmação
+  const [showConfirmation, setShowConfirmation] = useState(false);
+  const [lastResponse, setLastResponse] = useState(null);
+  const [waitingConfirmation, setWaitingConfirmation] = useState(false);
+  const [lastProcessedResult, setLastProcessedResult] = useState(null);
 
   const { user } = useAuth();
   const flatListRef = useRef();
@@ -12579,9 +11708,41 @@ const ChatbotScreen = ({ navigation, route }) => {
     }, 700);
   };
 
-  // Lidar com envio de mensagem
+  // Função para aplicar o resultado processado
+  const applyProcessedResult = (result) => {
+    // Atualizar estados
+    setCvData(result.cvData);
+    setCurrentStep(result.nextStep);
+    setOptions(result.options || []);
+
+    // Adicionar resposta do bot
+    addBotMessage(result.response);
+    
+    // Resetar confirmação
+    setShowConfirmation(false);
+    setWaitingConfirmation(false);
+
+    // Salvar currículo se finalizado
+    if (result.isFinished) {
+      salvarCurriculo(result.cvData, user.id)
+        .then(id => {
+          console.log('Currículo salvo com ID:', id);
+          // Limpar o progresso salvo ao finalizar
+          limparProgressoCurriculo(user.id);
+        })
+        .catch(error => {
+          console.error('Erro ao salvar currículo:', error);
+          Alert.alert('Erro', 'Não foi possível salvar o currículo.');
+        });
+    }
+  };
+
+  // Lidar com envio de mensagem (versão modificada com confirmação)
   const handleSendMessage = () => {
     if (currentMessage.trim() === '') return;
+    
+    // Se estamos esperando confirmação, ignorar novas mensagens
+    if (waitingConfirmation) return;
 
     // Adicionar mensagem do usuário
     const userMessage = {
@@ -12595,36 +11756,43 @@ const ChatbotScreen = ({ navigation, route }) => {
     setMessages(prevMessages => [...prevMessages, userMessage]);
 
     // Processar a mensagem para obter a resposta
-    const { response, nextStep, options: newOptions, cvData: newCvData, isFinished } =
-      processMessage(currentMessage, currentStep, cvData);
-
-    // Atualizar estados
-    setCvData(newCvData);
-    setCurrentStep(nextStep);
-    setOptions(newOptions || []);
-    setCurrentMessage(''); // Limpar campo de entrada
-
-    // Adicionar resposta do bot
-    addBotMessage(response);
-
-    // Salvar currículo se finalizado
-    if (isFinished) {
-      salvarCurriculo(newCvData, user.id)
-        .then(id => {
-          console.log('Currículo salvo com ID:', id);
-          // Limpar o progresso salvo ao finalizar
-          limparProgressoCurriculo(user.id);
-        })
-        .catch(error => {
-          console.error('Erro ao salvar currículo:', error);
-          Alert.alert('Erro', 'Não foi possível salvar o currículo.');
-        });
+    const result = processMessage(currentMessage, currentStep, cvData);
+    
+    // Salvar resultado para usar após confirmação
+    setLastProcessedResult(result);
+    setLastResponse(currentMessage);
+    
+    // Limpar campo de entrada
+    setCurrentMessage('');
+    
+    // Mostrar confirmação, exceto para algumas etapas como 'boas_vindas'
+    if (currentStep !== 'boas_vindas' && currentStep !== 'concluido' && !currentStep.includes('escolher')) {
+      setShowConfirmation(true);
+      setWaitingConfirmation(true);
+    } else {
+      // Para etapas que não precisam de confirmação, proceder normalmente
+      applyProcessedResult(result);
     }
 
     // Rolar para o final da lista
     if (flatListRef.current) {
       setTimeout(() => flatListRef.current.scrollToEnd({ animated: true }), 100);
     }
+  };
+  
+  // Função para confirmar a resposta
+  const handleConfirmResponse = () => {
+    if (lastProcessedResult) {
+      applyProcessedResult(lastProcessedResult);
+    }
+  };
+  
+  // Função para corrigir a resposta
+  const handleCorrectResponse = () => {
+    // Voltar para a entrada anterior
+    setCurrentMessage(lastResponse || '');
+    setShowConfirmation(false);
+    setWaitingConfirmation(false);
   };
 
   // Selecionar uma opção pré-definida
@@ -12746,7 +11914,14 @@ const ChatbotScreen = ({ navigation, route }) => {
               }
             />
 
-            {options && options.length > 0 && (
+            {showConfirmation && (
+              <ConfirmationButtons 
+                onConfirm={handleConfirmResponse} 
+                onCorrect={handleCorrectResponse} 
+              />
+            )}
+
+            {options && options.length > 0 && !waitingConfirmation && (
               <ChatOptions options={options} onSelect={handleOptionSelect} />
             )}
           </>
@@ -12787,7 +11962,1127 @@ const ChatbotScreen = ({ navigation, route }) => {
   );
 };
 
-// Cores profissionais
+const EditarCurriculoScreen = ({ route, navigation }) => {
+  const { curriculoData } = route.params;
+  const { user } = useAuth();
+  const [loading, setLoading] = useState(false);
+  const [saving, setSaving] = useState(false);
+  const [editData, setEditData] = useState(curriculoData ? { ...curriculoData.data } : null);
+  const [activeSection, setActiveSection] = useState('informacoes_pessoais');
+  
+  // Seções disponíveis para edição
+  const sections = [
+    { id: 'informacoes_pessoais', title: 'Informações Pessoais', icon: '👤' },
+    { id: 'resumo_profissional', title: 'Resumo Profissional', icon: '📝' },
+    { id: 'formacoes_academicas', title: 'Formação Acadêmica', icon: '🎓' },
+    { id: 'experiencias', title: 'Experiência Profissional', icon: '💼' },
+    { id: 'cursos', title: 'Cursos e Certificados', icon: '📚' },
+    { id: 'projetos', title: 'Projetos', icon: '🚀' },
+    { id: 'idiomas', title: 'Idiomas', icon: '🌐' }
+  ];
+  
+  // Salvar as alterações feitas
+  const handleSaveChanges = async () => {
+    try {
+      setSaving(true);
+      
+      // Buscar currículos existentes
+      const cvs = await AsyncStorage.getItem(`curriculos_${user.id}`);
+      const curriculos = cvs ? JSON.parse(cvs) : [];
+      
+      // Encontrar e atualizar o currículo atual
+      const index = curriculos.findIndex(cv => cv.id === curriculoData.id);
+      
+      if (index !== -1) {
+        // Criar cópia atualizada
+        const updatedCurriculo = {
+          ...curriculos[index],
+          data: editData,
+          dataAtualizacao: new Date().toISOString()
+        };
+        
+        // Atualizar array de currículos
+        curriculos[index] = updatedCurriculo;
+        
+        // Salvar no AsyncStorage
+        await AsyncStorage.setItem(`curriculos_${user.id}`, JSON.stringify(curriculos));
+        
+        Alert.alert(
+          'Sucesso',
+          'Currículo atualizado com sucesso!',
+          [{ text: 'OK', onPress: () => navigation.goBack() }]
+        );
+      } else {
+        throw new Error('Currículo não encontrado');
+      }
+    } catch (error) {
+      console.error('Erro ao salvar alterações:', error);
+      Alert.alert('Erro', 'Não foi possível salvar as alterações.');
+    } finally {
+      setSaving(false);
+    }
+  };
+  
+  // Renderizar editor de informações pessoais
+  const renderPersonalInfoEditor = () => {
+    const pessoal = editData.informacoes_pessoais || {};
+    
+    return (
+      <View style={styles.editorSection}>
+        <Text style={styles.editorSectionTitle}>Informações Pessoais</Text>
+        
+        <View style={styles.inputGroup}>
+          <Text style={styles.inputLabel}>Nome:</Text>
+          <TextInput
+            style={styles.input}
+            value={pessoal.nome || ''}
+            onChangeText={(text) => {
+              setEditData({
+                ...editData,
+                informacoes_pessoais: { ...pessoal, nome: text }
+              });
+            }}
+            placeholder="Nome"
+          />
+        </View>
+        
+        <View style={styles.inputGroup}>
+          <Text style={styles.inputLabel}>Sobrenome:</Text>
+          <TextInput
+            style={styles.input}
+            value={pessoal.sobrenome || ''}
+            onChangeText={(text) => {
+              setEditData({
+                ...editData,
+                informacoes_pessoais: { ...pessoal, sobrenome: text }
+              });
+            }}
+            placeholder="Sobrenome"
+          />
+        </View>
+        
+        <View style={styles.inputGroup}>
+          <Text style={styles.inputLabel}>Email:</Text>
+          <TextInput
+            style={styles.input}
+            value={pessoal.email || ''}
+            onChangeText={(text) => {
+              setEditData({
+                ...editData,
+                informacoes_pessoais: { ...pessoal, email: text }
+              });
+            }}
+            placeholder="Email"
+            keyboardType="email-address"
+          />
+        </View>
+        
+        <View style={styles.inputGroup}>
+          <Text style={styles.inputLabel}>Endereço:</Text>
+          <TextInput
+            style={styles.input}
+            value={pessoal.endereco || ''}
+            onChangeText={(text) => {
+              setEditData({
+                ...editData,
+                informacoes_pessoais: { ...pessoal, endereco: text }
+              });
+            }}
+            placeholder="Endereço"
+          />
+        </View>
+        
+        <View style={styles.inputGroup}>
+          <Text style={styles.inputLabel}>CEP:</Text>
+          <TextInput
+            style={styles.input}
+            value={pessoal.cep || ''}
+            onChangeText={(text) => {
+              setEditData({
+                ...editData,
+                informacoes_pessoais: { ...pessoal, cep: text }
+              });
+            }}
+            placeholder="CEP"
+            keyboardType="numeric"
+          />
+        </View>
+        
+        <View style={styles.inputGroup}>
+          <Text style={styles.inputLabel}>Área:</Text>
+          <TextInput
+            style={styles.input}
+            value={pessoal.area || ''}
+            onChangeText={(text) => {
+              setEditData({
+                ...editData,
+                informacoes_pessoais: { ...pessoal, area: text }
+              });
+            }}
+            placeholder="Área de atuação"
+          />
+        </View>
+        
+        <View style={styles.inputGroup}>
+          <Text style={styles.inputLabel}>LinkedIn:</Text>
+          <TextInput
+            style={styles.input}
+            value={pessoal.linkedin || ''}
+            onChangeText={(text) => {
+              setEditData({
+                ...editData,
+                informacoes_pessoais: { ...pessoal, linkedin: text }
+              });
+            }}
+            placeholder="Perfil LinkedIn"
+          />
+        </View>
+        
+        <View style={styles.inputGroup}>
+          <Text style={styles.inputLabel}>GitHub:</Text>
+          <TextInput
+            style={styles.input}
+            value={pessoal.github || ''}
+            onChangeText={(text) => {
+              setEditData({
+                ...editData,
+                informacoes_pessoais: { ...pessoal, github: text }
+              });
+            }}
+            placeholder="Perfil GitHub"
+          />
+        </View>
+      </View>
+    );
+  };
+  
+  // Renderizar editor de resumo profissional
+  const renderResumeEditor = () => {
+    return (
+      <View style={styles.editorSection}>
+        <Text style={styles.editorSectionTitle}>Resumo Profissional</Text>
+        
+        <TextInput
+          style={[styles.input, styles.textArea]}
+          value={editData.resumo_profissional || ''}
+          onChangeText={(text) => {
+            setEditData({
+              ...editData,
+              resumo_profissional: text
+            });
+          }}
+          placeholder="Descreva brevemente sua trajetória e objetivos profissionais"
+          multiline
+          numberOfLines={6}
+          textAlignVertical="top"
+        />
+      </View>
+    );
+  };
+  
+  // Renderizar editor de formação acadêmica
+  const renderEducationEditor = () => {
+    const formacoes = editData.formacoes_academicas || [];
+    
+    return (
+      <View style={styles.editorSection}>
+        <Text style={styles.editorSectionTitle}>Formação Acadêmica</Text>
+        
+        {formacoes.map((formacao, index) => (
+          <View key={index} style={styles.itemCard}>
+            <View style={styles.itemHeader}>
+              <Text style={styles.itemTitle}>{formacao.diploma || 'Formação'} em {formacao.area_estudo || 'Área'}</Text>
+              
+              <TouchableOpacity
+                style={styles.deleteButton}
+                onPress={() => {
+                  const newFormacoes = [...formacoes];
+                  newFormacoes.splice(index, 1);
+                  setEditData({
+                    ...editData,
+                    formacoes_academicas: newFormacoes
+                  });
+                }}
+              >
+                <Text style={styles.deleteButtonText}>✕</Text>
+              </TouchableOpacity>
+            </View>
+            
+            <View style={styles.inputGroup}>
+              <Text style={styles.inputLabel}>Instituição:</Text>
+              <TextInput
+                style={styles.input}
+                value={formacao.instituicao || ''}
+                onChangeText={(text) => {
+                  const newFormacoes = [...formacoes];
+                  newFormacoes[index] = { ...formacao, instituicao: text };
+                  setEditData({
+                    ...editData,
+                    formacoes_academicas: newFormacoes
+                  });
+                }}
+                placeholder="Instituição de ensino"
+              />
+            </View>
+            
+            <View style={styles.inputGroup}>
+              <Text style={styles.inputLabel}>Diploma:</Text>
+              <TextInput
+                style={styles.input}
+                value={formacao.diploma || ''}
+                onChangeText={(text) => {
+                  const newFormacoes = [...formacoes];
+                  newFormacoes[index] = { ...formacao, diploma: text };
+                  setEditData({
+                    ...editData,
+                    formacoes_academicas: newFormacoes
+                  });
+                }}
+                placeholder="Tipo de diploma"
+              />
+            </View>
+            
+            <View style={styles.inputGroup}>
+              <Text style={styles.inputLabel}>Área de Estudo:</Text>
+              <TextInput
+                style={styles.input}
+                value={formacao.area_estudo || ''}
+                onChangeText={(text) => {
+                  const newFormacoes = [...formacoes];
+                  newFormacoes[index] = { ...formacao, area_estudo: text };
+                  setEditData({
+                    ...editData,
+                    formacoes_academicas: newFormacoes
+                  });
+                }}
+                placeholder="Área de estudo"
+              />
+            </View>
+            
+            <View style={styles.rowInputs}>
+              <View style={[styles.inputGroup, { flex: 1, marginRight: 5 }]}>
+                <Text style={styles.inputLabel}>Data Início:</Text>
+                <TextInput
+                  style={styles.input}
+                  value={formacao.data_inicio || ''}
+                  onChangeText={(text) => {
+                    const newFormacoes = [...formacoes];
+                    newFormacoes[index] = { ...formacao, data_inicio: text };
+                    setEditData({
+                      ...editData,
+                      formacoes_academicas: newFormacoes
+                    });
+                  }}
+                  placeholder="MM/AAAA"
+                />
+              </View>
+              
+              <View style={[styles.inputGroup, { flex: 1, marginLeft: 5 }]}>
+                <Text style={styles.inputLabel}>Data Fim:</Text>
+                <TextInput
+                  style={styles.input}
+                  value={formacao.data_fim || ''}
+                  onChangeText={(text) => {
+                    const newFormacoes = [...formacoes];
+                    newFormacoes[index] = { ...formacao, data_fim: text };
+                    setEditData({
+                      ...editData,
+                      formacoes_academicas: newFormacoes
+                    });
+                  }}
+                  placeholder="MM/AAAA ou Atual"
+                />
+              </View>
+            </View>
+          </View>
+        ))}
+        
+        <TouchableOpacity
+          style={styles.addButton}
+          onPress={() => {
+            setEditData({
+              ...editData,
+              formacoes_academicas: [
+                ...(editData.formacoes_academicas || []),
+                { instituicao: '', diploma: '', area_estudo: '', data_inicio: '', data_fim: '' }
+              ]
+            });
+          }}
+        >
+          <Text style={styles.addButtonText}>+ Adicionar Formação</Text>
+        </TouchableOpacity>
+      </View>
+    );
+  };
+  
+  // Renderizar editor de experiências
+  const renderExperienceEditor = () => {
+    const experiencias = editData.experiencias || [];
+    
+    return (
+      <View style={styles.editorSection}>
+        <Text style={styles.editorSectionTitle}>Experiência Profissional</Text>
+        
+        {experiencias.map((experiencia, index) => (
+          <View key={index} style={styles.itemCard}>
+            <View style={styles.itemHeader}>
+              <Text style={styles.itemTitle}>{experiencia.cargo || 'Cargo'} - {experiencia.empresa || 'Empresa'}</Text>
+              
+              <TouchableOpacity
+                style={styles.deleteButton}
+                onPress={() => {
+                  const newExperiencias = [...experiencias];
+                  newExperiencias.splice(index, 1);
+                  setEditData({
+                    ...editData,
+                    experiencias: newExperiencias
+                  });
+                }}
+              >
+                <Text style={styles.deleteButtonText}>✕</Text>
+              </TouchableOpacity>
+            </View>
+            
+            <View style={styles.inputGroup}>
+              <Text style={styles.inputLabel}>Cargo:</Text>
+              <TextInput
+                style={styles.input}
+                value={experiencia.cargo || ''}
+                onChangeText={(text) => {
+                  const newExperiencias = [...experiencias];
+                  newExperiencias[index] = { ...experiencia, cargo: text };
+                  setEditData({
+                    ...editData,
+                    experiencias: newExperiencias
+                  });
+                }}
+                placeholder="Cargo ou posição"
+              />
+            </View>
+            
+            <View style={styles.inputGroup}>
+              <Text style={styles.inputLabel}>Empresa:</Text>
+              <TextInput
+                style={styles.input}
+                value={experiencia.empresa || ''}
+                onChangeText={(text) => {
+                  const newExperiencias = [...experiencias];
+                  newExperiencias[index] = { ...experiencia, empresa: text };
+                  setEditData({
+                    ...editData,
+                    experiencias: newExperiencias
+                  });
+                }}
+                placeholder="Nome da empresa"
+              />
+            </View>
+            
+            <View style={styles.rowInputs}>
+              <View style={[styles.inputGroup, { flex: 1, marginRight: 5 }]}>
+                <Text style={styles.inputLabel}>Data Início:</Text>
+                <TextInput
+                  style={styles.input}
+                  value={experiencia.data_inicio || ''}
+                  onChangeText={(text) => {
+                    const newExperiencias = [...experiencias];
+                    newExperiencias[index] = { ...experiencia, data_inicio: text };
+                    setEditData({
+                      ...editData,
+                      experiencias: newExperiencias
+                    });
+                  }}
+                  placeholder="MM/AAAA"
+                />
+              </View>
+              
+              <View style={[styles.inputGroup, { flex: 1, marginLeft: 5 }]}>
+                <Text style={styles.inputLabel}>Data Fim:</Text>
+                <TextInput
+                  style={styles.input}
+                  value={experiencia.data_fim || ''}
+                  onChangeText={(text) => {
+                    const newExperiencias = [...experiencias];
+                    newExperiencias[index] = { ...experiencia, data_fim: text };
+                    setEditData({
+                      ...editData,
+                      experiencias: newExperiencias
+                    });
+                  }}
+                  placeholder="MM/AAAA ou Atual"
+                />
+              </View>
+            </View>
+            
+            <View style={styles.inputGroup}>
+              <Text style={styles.inputLabel}>Descrição:</Text>
+              <TextInput
+                style={[styles.input, styles.textArea]}
+                value={experiencia.descricao || ''}
+                onChangeText={(text) => {
+                  const newExperiencias = [...experiencias];
+                  newExperiencias[index] = { ...experiencia, descricao: text };
+                  setEditData({
+                    ...editData,
+                    experiencias: newExperiencias
+                  });
+                }}
+                placeholder="Descreva suas responsabilidades e realizações"
+                multiline
+                numberOfLines={4}
+                textAlignVertical="top"
+              />
+            </View>
+          </View>
+        ))}
+        
+        <TouchableOpacity
+          style={styles.addButton}
+          onPress={() => {
+            setEditData({
+              ...editData,
+              experiencias: [
+                ...(editData.experiencias || []),
+                { cargo: '', empresa: '', data_inicio: '', data_fim: '', descricao: '' }
+              ]
+            });
+          }}
+        >
+          <Text style={styles.addButtonText}>+ Adicionar Experiência</Text>
+        </TouchableOpacity>
+      </View>
+    );
+  };
+  
+  // Renderizar seção ativa
+  const renderActiveSection = () => {
+    switch (activeSection) {
+      case 'informacoes_pessoais':
+        return renderPersonalInfoEditor();
+      case 'resumo_profissional':
+        return renderResumeEditor();
+      case 'formacoes_academicas':
+        return renderEducationEditor();
+      case 'experiencias':
+        return renderExperienceEditor();
+      // Implementar outras seções seguindo o mesmo padrão
+      default:
+        return <Text>Selecione uma seção para editar</Text>;
+    }
+  };
+  
+  return (
+    <SafeAreaView style={styles.container}>
+      <StatusBar barStyle="light-content" backgroundColor={Colors.dark} />
+      
+      <View style={styles.header}>
+        <TouchableOpacity
+          style={styles.backButton}
+          onPress={() => {
+            Alert.alert(
+              'Sair da edição',
+              'Todas as alterações não salvas serão perdidas. Deseja sair?',
+              [
+                { text: 'Cancelar', style: 'cancel' },
+                { text: 'Sair', onPress: () => navigation.goBack() }
+              ]
+            );
+          }}
+        >
+          <Text style={styles.backButtonText}>‹</Text>
+        </TouchableOpacity>
+        <Text style={styles.headerTitle}>Editar Currículo</Text>
+        
+        <TouchableOpacity
+          style={styles.saveButton}
+          onPress={handleSaveChanges}
+          disabled={saving}
+        >
+          {saving ? (
+            <ActivityIndicator size="small" color={Colors.white} />
+          ) : (
+            <Text style={styles.saveButtonText}>Salvar</Text>
+          )}
+        </TouchableOpacity>
+      </View>
+      
+      <View style={styles.editorContainer}>
+        <ScrollView
+          horizontal
+          showsHorizontalScrollIndicator={false}
+          style={styles.sectionsScroll}
+          contentContainerStyle={styles.sectionsScrollContent}
+        >
+          {sections.map(section => (
+            <TouchableOpacity
+              key={section.id}
+              style={[
+                styles.sectionTab,
+                activeSection === section.id && styles.activeSectionTab
+              ]}
+              onPress={() => setActiveSection(section.id)}
+            >
+              <Text style={styles.sectionTabIcon}>{section.icon}</Text>
+              <Text
+                style={[
+                  styles.sectionTabText,
+                  activeSection === section.id && styles.activeSectionTabText
+                ]}
+              >
+                {section.title}
+              </Text>
+            </TouchableOpacity>
+          ))}
+        </ScrollView>
+        
+        <ScrollView
+          style={styles.editorScroll}
+          contentContainerStyle={styles.editorScrollContent}
+        >
+          {renderActiveSection()}
+        </ScrollView>
+      </View>
+    </SafeAreaView>
+  );
+};
+
+const melhorarCurriculoComIA = async (curriculoData) => {
+  try {
+    // Obter API key do Gemini ou outro provedor disponível
+    const apiKey = await getIAAPIKey('GEMINI');
+    
+    if (!apiKey) {
+      throw new Error("API key do Gemini não configurada");
+    }
+    
+    // Formatar o currículo para envio à IA
+    const cvFormatado = formatarCurriculo(curriculoData);
+    
+    // Construir o prompt para a IA
+    const promptText = `
+Você é um especialista em recrutamento e elaboração de currículos profissionais. Sua tarefa é melhorar o currículo abaixo, mantendo todas as informações verdadeiras, mas tornando-o mais atrativo, profissional e eficaz.
+
+- Melhore o resumo profissional para destacar competências e realizações
+- Reformule as descrições de experiência para enfatizar resultados e impacto
+- Padronize a formatação e estrutura 
+- Mantenha todas as informações factuais e datas inalteradas
+- Use linguagem mais dinâmica e verbos de ação
+- Elimine repetições e informações desnecessárias
+- Inclua palavras-chave relevantes para a área
+
+NÃO INVENTE informações falsas ou exageradas. Mantenha-se fiel ao conteúdo original.
+
+CURRÍCULO ORIGINAL:
+${cvFormatado}
+
+Retorne o currículo melhorado no formato JSON com a mesma estrutura do original, mas com conteúdo aprimorado. Mantenha os nomes das propriedades exatamente iguais.
+    `;
+    
+    // Chamar a API do Gemini
+    const endpoint = `${IA_APIS.GEMINI.endpoint}?key=${apiKey}`;
+    const requestBody = {
+      contents: [{ parts: [{ text: promptText }] }],
+      generationConfig: {
+        temperature: 0.3,
+        maxOutputTokens: 4000,
+        topP: 0.8,
+        topK: 40
+      }
+    };
+    
+    const response = await axios.post(endpoint, requestBody, {
+      headers: { 'Content-Type': 'application/json' },
+      timeout: 30000
+    });
+    
+    if (response.data?.candidates?.[0]?.content?.parts?.[0]?.text) {
+      const resultText = response.data.candidates[0].content.parts[0].text;
+      
+      // Extrair o JSON da resposta
+      const jsonMatch = resultText.match(/\{[\s\S]*\}/);
+      if (jsonMatch) {
+        try {
+          // Converter o texto JSON em objeto
+          const melhoradoData = JSON.parse(jsonMatch[0]);
+          
+          return {
+            success: true,
+            curriculoMelhorado: melhoradoData
+          };
+        } catch (jsonError) {
+          console.error('Erro ao parsear JSON da resposta:', jsonError);
+          throw new Error('Formato de resposta inválido');
+        }
+      } else {
+        throw new Error('Não foi possível extrair currículo melhorado da resposta');
+      }
+    } else {
+      throw new Error('Formato de resposta inesperado do Gemini');
+    }
+  } catch (error) {
+    console.error('Erro ao melhorar currículo com IA:', error);
+    return {
+      success: false,
+      error: error.message || 'Erro ao processar o currículo'
+    };
+  }
+};
+
+const MelhorarComIAButton = ({ curriculoData, onMelhoria }) => {
+  const [loading, setLoading] = useState(false);
+  
+  const handleMelhorarComIA = async () => {
+    try {
+      setLoading(true);
+      
+      // Confirmar antes de proceder
+      Alert.alert(
+        "Melhorar com IA",
+        "A IA irá melhorar a redação e apresentação do seu currículo, mantendo todas as informações verdadeiras. Deseja continuar?",
+        [
+          { text: "Cancelar", style: "cancel" },
+          { 
+            text: "Continuar", 
+            onPress: async () => {
+              // Chamar a função de melhoria
+              const resultado = await melhorarCurriculoComIA(curriculoData.data);
+              
+              if (resultado.success) {
+                // Chamar a função de callback com os dados melhorados
+                onMelhoria(resultado.curriculoMelhorado);
+              } else {
+                Alert.alert("Erro", resultado.error || "Não foi possível melhorar o currículo.");
+              }
+              
+              setLoading(false);
+            }
+          }
+        ]
+      );
+    } catch (error) {
+      console.error('Erro ao melhorar currículo:', error);
+      Alert.alert("Erro", "Ocorreu um erro ao tentar melhorar o currículo.");
+      setLoading(false);
+    }
+  };
+  
+  return (
+    <TouchableOpacity
+      style={{
+        backgroundColor: Colors.info,
+        paddingVertical: 12,
+        paddingHorizontal: 20,
+        borderRadius: 8,
+        flexDirection: 'row',
+        alignItems: 'center',
+        justifyContent: 'center',
+        marginVertical: 10,
+      }}
+      onPress={handleMelhorarComIA}
+      disabled={loading}
+    >
+      {loading ? (
+        <ActivityIndicator size="small" color={Colors.white} />
+      ) : (
+        <>
+          <Text style={{ color: Colors.white, fontWeight: 'bold', marginRight: 5 }}>✨</Text>
+          <Text style={{ color: Colors.white, fontWeight: 'bold' }}>
+            Melhorar com IA
+          </Text>
+        </>
+      )}
+    </TouchableOpacity>
+  );
+};
+
+const PreviewCVScreen = ({ route, navigation }) => {
+  const { curriculoData } = route.params;
+  const [templateStyle, setTemplateStyle] = useState('modern');
+  const [showTemplateSelector, setShowTemplateSelector] = useState(false);
+  const [generatingPDF, setGeneratingPDF] = useState(false);
+  const [currentData, setCurrentData] = useState(curriculoData); // Para armazenar versão atual (original ou melhorada)
+  const [showComparison, setShowComparison] = useState(false); // Para mostrar comparação antes/depois
+  const { user } = useAuth();
+  
+  const handleShare = async () => {
+    try {
+      await Share.share({
+        message: `Currículo de ${curriculoData.nome || 'Usuário'}`,
+        title: `Currículo - ${curriculoData.nome || 'Usuário'}`
+      });
+    } catch (error) {
+      console.error('Erro ao compartilhar:', error);
+      Alert.alert('Erro', 'Não foi possível compartilhar o currículo.');
+    }
+  };
+
+  // Emular criação de PDF (já que não temos a biblioteca)
+  const handleExportPDF = async () => {
+    setGeneratingPDF(true);
+
+    try {
+      // Simular processo de geração de PDF
+      await new Promise(resolve => setTimeout(resolve, 2000));
+
+      // Exibir alerta com opções de ação
+      Alert.alert(
+        'PDF Gerado com Sucesso!',
+        'O que você gostaria de fazer com o PDF?',
+        [
+          {
+            text: 'Compartilhar',
+            onPress: () => handleShare(),
+          },
+          {
+            text: 'Salvar na Galeria',
+            onPress: () => {
+              Alert.alert(
+                'Salvando na Galeria...',
+                'Funcionalidade simulada. Em um app real, o PDF seria salvo na galeria.',
+                [{ text: 'OK' }]
+              );
+            },
+          },
+          {
+            text: 'Cancelar',
+            style: 'cancel',
+          },
+        ]
+      );
+    } catch (error) {
+      console.error('Erro ao gerar PDF:', error);
+      Alert.alert('Erro', 'Não foi possível gerar o PDF.');
+    } finally {
+      setGeneratingPDF(false);
+    }
+  };
+  
+  // Função para salvar o currículo melhorado
+  const handleSalvarMelhorado = async (dadosMelhorados) => {
+    try {
+      // Buscar currículos existentes
+      const cvs = await AsyncStorage.getItem(`curriculos_${user.id}`);
+      const curriculos = cvs ? JSON.parse(cvs) : [];
+      
+      // Criar uma nova entrada para o currículo melhorado
+      const novoCurriculo = {
+        id: getUniqueId(),
+        nome: `${curriculoData.nome || 'Currículo'} (Melhorado)`,
+        data: dadosMelhorados,
+        dataCriacao: new Date().toISOString()
+      };
+      
+      // Adicionar ao array e salvar
+      curriculos.push(novoCurriculo);
+      await AsyncStorage.setItem(`curriculos_${user.id}`, JSON.stringify(curriculos));
+      
+      Alert.alert(
+        "Sucesso",
+        "Currículo melhorado salvo com sucesso!",
+        [{ text: "OK" }]
+      );
+      
+      // Atualizar dados na tela
+      setCurrentData({
+        ...novoCurriculo
+      });
+      
+    } catch (error) {
+      console.error('Erro ao salvar currículo melhorado:', error);
+      Alert.alert("Erro", "Não foi possível salvar o currículo melhorado.");
+    }
+  };
+  
+  // Lidar com melhoria de currículo
+  const handleCurriculoMelhorado = (dadosMelhorados) => {
+    // Mostrar alerta com opções
+    Alert.alert(
+      "Currículo Melhorado",
+      "Seu currículo foi melhorado com sucesso! O que deseja fazer?",
+      [
+        { 
+          text: "Visualizar Melhorias", 
+          onPress: () => {
+            // Mostrar comparação
+            setShowComparison(true);
+            setCurrentData({
+              ...curriculoData,
+              data: dadosMelhorados
+            });
+          }
+        },
+        { 
+          text: "Salvar como Novo", 
+          onPress: () => handleSalvarMelhorado(dadosMelhorados)
+        },
+        { 
+          text: "Cancelar", 
+          style: "cancel" 
+        }
+      ]
+    );
+  };
+
+  const templateOptions = [
+    { id: 'modern', name: 'Moderno', category: 'Moderno', color: Colors.primary },
+    // Clássicos
+    { id: 'classic', name: 'Clássico', category: 'Clássico', color: Colors.dark },
+    { id: 'traditional', name: 'Tradicional', category: 'Clássico', color: '#333333' },
+    // Criativos
+    { id: 'consulting', name: 'Consultoria', category: 'Profissional', color: '#1a237e' },
+  ];
+
+  return (
+    <SafeAreaView style={styles.container}>
+      <StatusBar barStyle="light-content" backgroundColor={Colors.dark} />
+
+      <View style={styles.header}>
+        <TouchableOpacity
+          style={styles.backButton}
+          onPress={() => navigation.goBack()}
+        >
+          <Text style={styles.backButtonText}>‹</Text>
+        </TouchableOpacity>
+        <Text style={styles.headerTitle}>Visualizar Currículo</Text>
+      </View>
+
+      {/* Barra de ferramentas */}
+      <View style={{
+        flexDirection: 'row',
+        backgroundColor: '#f0f0f0',
+        padding: 10,
+        borderBottomWidth: 1,
+        borderBottomColor: Colors.mediumGray,
+      }}>
+        <TouchableOpacity
+          style={{
+            flex: 1,
+            flexDirection: 'row',
+            alignItems: 'center',
+            justifyContent: 'center',
+            paddingVertical: 8,
+            borderRightWidth: 1,
+            borderRightColor: Colors.mediumGray,
+          }}
+          onPress={() => setShowTemplateSelector(!showTemplateSelector)}
+        >
+          <Text style={{ marginRight: 5 }}>Template: {templateOptions.find(t => t.id === templateStyle)?.name}</Text>
+          <Text>▼</Text>
+        </TouchableOpacity>
+
+        <TouchableOpacity
+          style={{
+            flex: 1,
+            flexDirection: 'row',
+            alignItems: 'center',
+            justifyContent: 'center',
+            paddingVertical: 8,
+          }}
+          onPress={handleExportPDF}
+          disabled={generatingPDF}
+        >
+          {generatingPDF ? (
+            <ActivityIndicator size="small" color={Colors.primary} />
+          ) : (
+            <>
+              <Text style={{ marginRight: 5 }}>Exportar PDF</Text>
+              <Text>📄</Text>
+            </>
+          )}
+        </TouchableOpacity>
+      </View>
+
+      {/* Template selector overlay (em vez de Modal) */}
+      {showTemplateSelector && (
+        <View style={{
+          position: 'absolute',
+          top: 0,
+          left: 0,
+          right: 0,
+          bottom: 0,
+          backgroundColor: 'rgba(0, 0, 0, 0.5)',
+          zIndex: 100,
+        }}>
+          <TouchableOpacity
+            style={{ flex: 1 }}
+            onPress={() => setShowTemplateSelector(false)}
+          />
+
+          <View style={{
+            backgroundColor: Colors.white,
+            borderTopLeftRadius: 20,
+            borderTopRightRadius: 20,
+            padding: 20,
+          }}>
+            <View style={{
+              flexDirection: 'row',
+              justifyContent: 'space-between',
+              alignItems: 'center',
+              marginBottom: 15,
+            }}>
+              <Text style={{
+                fontSize: 18,
+                fontWeight: 'bold',
+                color: Colors.dark,
+              }}>
+                Escolher Template
+              </Text>
+
+              <TouchableOpacity
+                onPress={() => setShowTemplateSelector(false)}
+              >
+                <Text style={{
+                  fontSize: 22,
+                  color: Colors.lightText,
+                  paddingHorizontal: 5,
+                }}>
+                  ×
+                </Text>
+              </TouchableOpacity>
+            </View>
+
+            {templateOptions.map(template => (
+              <TouchableOpacity
+                key={template.id}
+                style={{
+                  flexDirection: 'row',
+                  alignItems: 'center',
+                  padding: 15,
+                  borderBottomWidth: 1,
+                  borderBottomColor: Colors.mediumGray,
+                  backgroundColor: templateStyle === template.id ? '#e3f2fd' : 'transparent',
+                }}
+                onPress={() => {
+                  setTemplateStyle(template.id);
+                  setShowTemplateSelector(false);
+                }}
+              >
+                <View style={{
+                  width: 24,
+                  height: 24,
+                  borderRadius: 12,
+                  backgroundColor: template.color,
+                  marginRight: 15,
+                }} />
+
+                <View style={{ flex: 1 }}>
+                  <Text style={{
+                    fontSize: 16,
+                    fontWeight: templateStyle === template.id ? 'bold' : 'normal',
+                    color: Colors.dark,
+                  }}>
+                    {template.name}
+                  </Text>
+                </View>
+
+                {templateStyle === template.id && (
+                  <Text style={{ fontSize: 18, color: Colors.primary }}>✓</Text>
+                )}
+              </TouchableOpacity>
+            ))}
+          </View>
+        </View>
+      )}
+
+      <ScrollView style={styles.previewScreenScroll}>
+        <View style={styles.previewScreenCard}>
+          <CurriculumPreview data={currentData.data} templateStyle={templateStyle} />
+        </View>
+        
+        {/* Adicionar o botão de melhoria com IA */}
+        <View style={{ padding: 15 }}>
+          <MelhorarComIAButton 
+            curriculoData={curriculoData}
+            onMelhoria={handleCurriculoMelhorado}
+          />
+        </View>
+      </ScrollView>
+
+      <View style={styles.previewActions}>
+        <TouchableOpacity
+          style={styles.previewActionButton}
+          onPress={handleShare}
+        >
+          <Text style={styles.previewActionButtonText}>Compartilhar</Text>
+        </TouchableOpacity>
+
+        <TouchableOpacity
+          style={[styles.previewActionButton, { backgroundColor: Colors.secondary }]}
+          onPress={() => navigation.navigate('AnaliseCV', { curriculoData })}
+        >
+          <Text style={styles.previewActionButtonText}>Analisar com IA</Text>
+        </TouchableOpacity>
+        
+        {/* Adicionar botão de edição */}
+        <TouchableOpacity
+          style={[styles.previewActionButton, { backgroundColor: Colors.info }]}
+          onPress={() => navigation.navigate('EditarCurriculo', { curriculoData: currentData })}
+        >
+          <Text style={styles.previewActionButtonText}>Editar Currículo</Text>
+        </TouchableOpacity>
+      </View>
+      
+      {/* Modal de comparação antes/depois */}
+      {showComparison && (
+        <View style={styles.comparisonModal}>
+          <View style={styles.comparisonContainer}>
+            <View style={styles.comparisonHeader}>
+              <Text style={styles.comparisonTitle}>Antes e Depois</Text>
+              <TouchableOpacity
+                style={styles.comparisonCloseButton}
+                onPress={() => setShowComparison(false)}
+              >
+                <Text style={styles.comparisonCloseText}>✕</Text>
+              </TouchableOpacity>
+            </View>
+            
+            <ScrollView style={styles.comparisonScroll}>
+              {/* Exemplo de comparação - resumo profissional */}
+              <View style={styles.comparisonSection}>
+                <Text style={styles.comparisonSectionTitle}>Resumo Profissional</Text>
+                
+                <View style={styles.comparisonItem}>
+                  <Text style={styles.comparisonLabel}>Antes:</Text>
+                  <Text style={styles.comparisonOriginalText}>
+                    {curriculoData.data.resumo_profissional || 'Sem resumo profissional'}
+                  </Text>
+                </View>
+                
+                <View style={styles.comparisonItem}>
+                  <Text style={styles.comparisonLabel}>Depois:</Text>
+                  <Text style={styles.comparisonImprovedText}>
+                    {currentData.data.resumo_profissional || 'Sem resumo profissional'}
+                  </Text>
+                </View>
+              </View>
+              
+              {/* Outras comparações podem ser adicionadas para experiências, etc. */}
+            </ScrollView>
+            
+            <View style={styles.comparisonActions}>
+              <TouchableOpacity
+                style={styles.comparisonButton}
+                onPress={() => setShowComparison(false)}
+              >
+                <Text style={styles.comparisonButtonText}>Fechar</Text>
+              </TouchableOpacity>
+              
+              <TouchableOpacity
+                style={[styles.comparisonButton, { backgroundColor: Colors.success }]}
+                onPress={() => {
+                  handleSalvarMelhorado(currentData.data);
+                  setShowComparison(false);
+                }}
+              >
+                <Text style={styles.comparisonButtonText}>Salvar Melhorias</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        </View>
+      )}
+    </SafeAreaView>
+  );
+};
+
 const ProfessionalColors = {
   primary: '#0062cc',         // Azul profissional mais escuro
   secondary: '#4e73df',       // Azul secundário 
@@ -12804,7 +13099,6 @@ const ProfessionalColors = {
   info: '#36b9cc'             // Azul claro para informações
 };
 
-// Estilos compartilhados
 const sharedStyles = {
   cardShadow: {
     ...Platform.select({
@@ -12827,7 +13121,6 @@ const sharedStyles = {
   }
 };
 
-// Componente de ícone de documento para substituir a imagem ausente
 const DocumentIcon = ({ style }) => {
   return (
     <View style={[{
@@ -12843,7 +13136,6 @@ const DocumentIcon = ({ style }) => {
   );
 };
 
-// Estilos para o CurriculosAnaliseScreen
 const curriculoAnaliseStyles = StyleSheet.create({
   container: {
     flex: 1,
@@ -13078,7 +13370,6 @@ const curriculoAnaliseStyles = StyleSheet.create({
   },
 });
 
-// Estilos para a tela Meus Currículos (mantendo os estilos originais)
 const meusCurriculosStyles = StyleSheet.create({
   container: {
     flex: 1,
@@ -13419,7 +13710,6 @@ const meusCurriculosStyles = StyleSheet.create({
   }
 });
 
-// Implementação corrigida da tela de análise de currículo
 const CurriculosAnaliseScreen = ({ navigation }) => {
   const { user } = useAuth();
   const [curriculos, setCurriculos] = useState([]);
@@ -13661,7 +13951,6 @@ const CurriculosAnaliseScreen = ({ navigation }) => {
   );
 };
 
-// Implementação corrigida da tela de gerenciamento de currículos
 const MeusCurriculosScreen = ({ navigation }) => {
   const { user } = useAuth();
   const [curriculos, setCurriculos] = useState([]);
@@ -13758,6 +14047,11 @@ const MeusCurriculosScreen = ({ navigation }) => {
 
   const handleViewCV = (cv) => {
     navigation.navigate('PreviewCV', { curriculoData: cv });
+  };
+
+  // Nova função para editar currículo
+  const handleEditCV = (cv) => {
+    navigation.navigate('EditarCurriculo', { curriculoData: cv });
   };
 
   const handleAnalyzeCV = (cv) => {
@@ -13990,6 +14284,21 @@ const MeusCurriculosScreen = ({ navigation }) => {
                 </TouchableOpacity>
 
                 <View style={meusCurriculosStyles.curriculoCardDivider} />
+                
+                {/* Novo botão de edição */}
+                <TouchableOpacity
+                  style={meusCurriculosStyles.curriculoCardAction}
+                  onPress={() => handleEditCV(item)}
+                >
+                  <Text style={[
+                    meusCurriculosStyles.curriculoCardActionText,
+                    meusCurriculosStyles.curriculoCardActionPrimary
+                  ]}>
+                    <Text>✏️</Text> Editar
+                  </Text>
+                </TouchableOpacity>
+
+                <View style={meusCurriculosStyles.curriculoCardDivider} />
 
                 <TouchableOpacity
                   style={meusCurriculosStyles.curriculoCardAction}
@@ -14048,6 +14357,19 @@ const MeusCurriculosScreen = ({ navigation }) => {
               <Text>👁️</Text>
               <Text style={meusCurriculosStyles.menuOptionText}>Visualizar</Text>
             </TouchableOpacity>
+            
+            {/* Adicionar opção de edição no menu de contexto também */}
+            <TouchableOpacity
+              style={meusCurriculosStyles.menuOption}
+              onPress={() => {
+                setShowMenu(false);
+                const cv = curriculos.find(c => c.id === selectedCurriculoId);
+                if (cv) handleEditCV(cv);
+              }}
+            >
+              <Text>✏️</Text>
+              <Text style={meusCurriculosStyles.menuOptionText}>Editar</Text>
+            </TouchableOpacity>
 
             <TouchableOpacity
               style={meusCurriculosStyles.menuOption}
@@ -14098,280 +14420,6 @@ const MeusCurriculosScreen = ({ navigation }) => {
   );
 };
 
-// Versão corrigida do PreviewCVScreen sem usar Modal
-const PreviewCVScreen = ({ route, navigation }) => {
-  const { curriculoData } = route.params;
-  const [templateStyle, setTemplateStyle] = useState('modern');
-  const [showTemplateSelector, setShowTemplateSelector] = useState(false);
-  const [generatingPDF, setGeneratingPDF] = useState(false);
-
-  const handleShare = async () => {
-    try {
-      await Share.share({
-        message: `Currículo de ${curriculoData.nome || 'Usuário'}`,
-        title: `Currículo - ${curriculoData.nome || 'Usuário'}`
-      });
-    } catch (error) {
-      console.error('Erro ao compartilhar:', error);
-      Alert.alert('Erro', 'Não foi possível compartilhar o currículo.');
-    }
-  };
-
-  // Emular criação de PDF (já que não temos a biblioteca)
-  const handleExportPDF = async () => {
-    setGeneratingPDF(true);
-
-    try {
-      // Simular processo de geração de PDF
-      await new Promise(resolve => setTimeout(resolve, 2000));
-
-      // Exibir alerta com opções de ação
-      Alert.alert(
-        'PDF Gerado com Sucesso!',
-        'O que você gostaria de fazer com o PDF?',
-        [
-          {
-            text: 'Compartilhar',
-            onPress: () => handleShare(),
-          },
-          {
-            text: 'Salvar na Galeria',
-            onPress: () => {
-              Alert.alert(
-                'Salvando na Galeria...',
-                'Funcionalidade simulada. Em um app real, o PDF seria salvo na galeria.',
-                [{ text: 'OK' }]
-              );
-            },
-          },
-          {
-            text: 'Cancelar',
-            style: 'cancel',
-          },
-        ]
-      );
-    } catch (error) {
-      console.error('Erro ao gerar PDF:', error);
-      Alert.alert('Erro', 'Não foi possível gerar o PDF.');
-    } finally {
-      setGeneratingPDF(false);
-    }
-  };
-
-  const templateOptions = [
-    { id: 'modern', name: 'Moderno', category: 'Moderno', color: Colors.primary },
-    { id: 'minimal', name: 'Minimalista', category: 'Moderno', color: '#333333' },
-    { id: 'tech', name: 'Tech', category: 'Moderno', color: '#3498db' },
-    { id: 'gradient', name: 'Gradiente', category: 'Moderno', color: '#6200ee' },
-    { id: 'startup', name: 'Startup', category: 'Moderno', color: '#000000' },
-
-    // Clássicos
-    { id: 'classic', name: 'Clássico', category: 'Clássico', color: Colors.dark },
-    { id: 'traditional', name: 'Tradicional', category: 'Clássico', color: '#333333' },
-    { id: 'elegant', name: 'Elegante', category: 'Clássico', color: '#222222' },
-    { id: 'serif', name: 'Serif', category: 'Clássico', color: '#5d4037' },
-    { id: 'academic', name: 'Acadêmico', category: 'Clássico', color: '#000000' },
-
-    // Criativos
-    { id: 'creative', name: 'Criativo', category: 'Criativo', color: Colors.primary },
-    { id: 'artistic', name: 'Artístico', category: 'Criativo', color: '#9c27b0' },
-    { id: 'colorful', name: 'Colorido', category: 'Criativo', color: '#2196f3' },
-    { id: 'portfolio', name: 'Portfólio', category: 'Criativo', color: '#212121' },
-    { id: 'designer', name: 'Designer', category: 'Criativo', color: '#ff5722' },
-
-    // Profissionais
-    { id: 'professional', name: 'Profissional', category: 'Profissional', color: Colors.secondary },
-    { id: 'executive', name: 'Executivo', category: 'Profissional', color: '#263238' },
-    { id: 'corporate', name: 'Corporativo', category: 'Profissional', color: '#01579b' },
-    { id: 'business', name: 'Business', category: 'Profissional', color: '#1e3a5f' },
-    { id: 'consulting', name: 'Consultoria', category: 'Profissional', color: '#1a237e' },
-
-    // Específicos por área
-    { id: 'tech-dev', name: 'Desenvolvedor', category: 'Por Área', color: '#61dafb' },
-    { id: 'marketing', name: 'Marketing', category: 'Por Área', color: '#673ab7' },
-    { id: 'healthcare', name: 'Saúde', category: 'Por Área', color: '#00897b' },
-    { id: 'education', name: 'Educação', category: 'Por Área', color: '#0277bd' },
-    { id: 'legal', name: 'Jurídico', category: 'Por Área', color: '#37474f' },
-  ];
-
-  return (
-    <SafeAreaView style={styles.container}>
-      <StatusBar barStyle="light-content" backgroundColor={Colors.dark} />
-
-      <View style={styles.header}>
-        <TouchableOpacity
-          style={styles.backButton}
-          onPress={() => navigation.goBack()}
-        >
-          <Text style={styles.backButtonText}>‹</Text>
-        </TouchableOpacity>
-        <Text style={styles.headerTitle}>Visualizar Currículo</Text>
-      </View>
-
-      {/* Barra de ferramentas */}
-      <View style={{
-        flexDirection: 'row',
-        backgroundColor: '#f0f0f0',
-        padding: 10,
-        borderBottomWidth: 1,
-        borderBottomColor: Colors.mediumGray,
-      }}>
-        <TouchableOpacity
-          style={{
-            flex: 1,
-            flexDirection: 'row',
-            alignItems: 'center',
-            justifyContent: 'center',
-            paddingVertical: 8,
-            borderRightWidth: 1,
-            borderRightColor: Colors.mediumGray,
-          }}
-          onPress={() => setShowTemplateSelector(!showTemplateSelector)}
-        >
-          <Text style={{ marginRight: 5 }}>Template: {templateOptions.find(t => t.id === templateStyle)?.name}</Text>
-          <Text>▼</Text>
-        </TouchableOpacity>
-
-        <TouchableOpacity
-          style={{
-            flex: 1,
-            flexDirection: 'row',
-            alignItems: 'center',
-            justifyContent: 'center',
-            paddingVertical: 8,
-          }}
-          onPress={handleExportPDF}
-          disabled={generatingPDF}
-        >
-          {generatingPDF ? (
-            <ActivityIndicator size="small" color={Colors.primary} />
-          ) : (
-            <>
-              <Text style={{ marginRight: 5 }}>Exportar PDF</Text>
-              <Text>📄</Text>
-            </>
-          )}
-        </TouchableOpacity>
-      </View>
-
-      {/* Template selector overlay (em vez de Modal) */}
-      {showTemplateSelector && (
-        <View style={{
-          position: 'absolute',
-          top: 0,
-          left: 0,
-          right: 0,
-          bottom: 0,
-          backgroundColor: 'rgba(0, 0, 0, 0.5)',
-          zIndex: 100,
-        }}>
-          <TouchableOpacity
-            style={{ flex: 1 }}
-            onPress={() => setShowTemplateSelector(false)}
-          />
-
-          <View style={{
-            backgroundColor: Colors.white,
-            borderTopLeftRadius: 20,
-            borderTopRightRadius: 20,
-            padding: 20,
-          }}>
-            <View style={{
-              flexDirection: 'row',
-              justifyContent: 'space-between',
-              alignItems: 'center',
-              marginBottom: 15,
-            }}>
-              <Text style={{
-                fontSize: 18,
-                fontWeight: 'bold',
-                color: Colors.dark,
-              }}>
-                Escolher Template
-              </Text>
-
-              <TouchableOpacity
-                onPress={() => setShowTemplateSelector(false)}
-              >
-                <Text style={{
-                  fontSize: 22,
-                  color: Colors.lightText,
-                  paddingHorizontal: 5,
-                }}>
-                  ×
-                </Text>
-              </TouchableOpacity>
-            </View>
-
-            {templateOptions.map(template => (
-              <TouchableOpacity
-                key={template.id}
-                style={{
-                  flexDirection: 'row',
-                  alignItems: 'center',
-                  padding: 15,
-                  borderBottomWidth: 1,
-                  borderBottomColor: Colors.mediumGray,
-                  backgroundColor: templateStyle === template.id ? '#e3f2fd' : 'transparent',
-                }}
-                onPress={() => {
-                  setTemplateStyle(template.id);
-                  setShowTemplateSelector(false);
-                }}
-              >
-                <View style={{
-                  width: 24,
-                  height: 24,
-                  borderRadius: 12,
-                  backgroundColor: template.color,
-                  marginRight: 15,
-                }} />
-
-                <View style={{ flex: 1 }}>
-                  <Text style={{
-                    fontSize: 16,
-                    fontWeight: templateStyle === template.id ? 'bold' : 'normal',
-                    color: Colors.dark,
-                  }}>
-                    {template.name}
-                  </Text>
-                </View>
-
-                {templateStyle === template.id && (
-                  <Text style={{ fontSize: 18, color: Colors.primary }}>✓</Text>
-                )}
-              </TouchableOpacity>
-            ))}
-          </View>
-        </View>
-      )}
-
-      <ScrollView style={styles.previewScreenScroll}>
-        <View style={styles.previewScreenCard}>
-          <CurriculumPreview data={curriculoData.data} templateStyle={templateStyle} />
-        </View>
-      </ScrollView>
-
-      <View style={styles.previewActions}>
-        <TouchableOpacity
-          style={styles.previewActionButton}
-          onPress={handleShare}
-        >
-          <Text style={styles.previewActionButtonText}>Compartilhar</Text>
-        </TouchableOpacity>
-
-        <TouchableOpacity
-          style={[styles.previewActionButton, { backgroundColor: Colors.secondary }]}
-          onPress={() => navigation.navigate('AnaliseCV', { curriculoData })}
-        >
-          <Text style={styles.previewActionButtonText}>Analisar com IA</Text>
-        </TouchableOpacity>
-      </View>
-    </SafeAreaView>
-  );
-};
-
-// Componente para gerenciar a foto de perfil
 const PerfilFotoScreen = ({ navigation, route }) => {
   const { user, updateUser } = useAuth();
   const [selectedImage, setSelectedImage] = useState(user?.foto || null);
@@ -14779,10 +14827,6 @@ const PerfilFotoScreen = ({ navigation, route }) => {
   );
 };
 
-
-
-// Tela de Análise do CV com IA - Versão melhorada
-// Tela de Análise do CV com IA - Versão melhorada
 const AnaliseCVScreen = ({ route, navigation }) => {
   const { curriculoData } = route.params;
   const [activeTab, setActiveTab] = useState('pontuacao');
@@ -15556,7 +15600,6 @@ const AnaliseCVScreen = ({ route, navigation }) => {
   );
 };
 
-// Rotas de Autenticação
 const AuthStack = createStackNavigator();
 
 const AuthNavigator = () => (
@@ -15570,14 +15613,10 @@ const AuthNavigator = () => (
   </AuthStack.Navigator>
 );
 
-// Rotas do App
 const AppStack = createStackNavigator();
 
 const SobreAppScreen = ({ navigation }) => {
   const [activeSection, setActiveSection] = useState('sobre');
-
-  // Dimensões da tela
-  // const { width } = Dimensions.get('window');
 
   // Funções para lidar com links externos
   const handleOpenWebsite = () => {
@@ -15909,7 +15948,6 @@ const SobreAppScreen = ({ navigation }) => {
   );
 };
 
-// Nova tela para seleção de currículo antes da busca de vagas
 const SelecionarCurriculoScreen = ({ navigation }) => {
   const { user } = useAuth();
   const [curriculos, setCurriculos] = useState([]);
@@ -16144,7 +16182,6 @@ const SelecionarCurriculoScreen = ({ navigation }) => {
   );
 };
 
-// Controlador de Rotas
 const RootStack = createStackNavigator();
 
 const RootNavigator = () => {
@@ -16169,2939 +16206,6 @@ const RootNavigator = () => {
   );
 };
 
-const HeaderColors = {
-  text: '#000000', // Preto para o texto dos headers
-  background: '#f5f5f5', // Fundo mais claro para melhor contraste
-  backButton: '#333333', // Cor mais escura para o botão de voltar
-};
-
-// Estilos
-const styles = StyleSheet.create({
-  aboutContainer: {
-    flex: 1,
-    padding: 20,
-  },
-  aboutSection: {
-    backgroundColor: Colors.white,
-    borderRadius: 10,
-    padding: 20,
-    marginBottom: 20,
-    ...Platform.select({
-      ios: {
-        shadowColor: '#000',
-        shadowOffset: { width: 0, height: 2 },
-        shadowOpacity: 0.1,
-        shadowRadius: 4,
-      },
-      android: {
-        elevation: 2,
-      },
-    }),
-  },
-  typingDot: {
-    width: 8,
-    height: 8,
-    borderRadius: 4,
-    backgroundColor: Colors.primary,
-    marginHorizontal: 2,
-  },
-  chatContainer: {
-    flex: 1,
-    backgroundColor: '#f5f7fa', // Fundo mais claro e agradável
-  },
-  chatHeader: {
-    backgroundColor: Colors.primary,
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    padding: 16,
-    elevation: 3,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 3,
-  },
-  chatHeaderTitle: {
-    color: Colors.white,
-    fontSize: 18,
-    fontWeight: 'bold',
-  },
-  chatContent: {
-    flex: 1,
-    backgroundColor: '#f5f7fa',
-  },
-  messageContainer: {
-    maxWidth: '80%',
-    padding: 12,
-    borderRadius: 18,
-    marginBottom: 12,
-    ...Platform.select({
-      ios: {
-        shadowColor: '#000',
-        shadowOffset: { width: 0, height: 1 },
-        shadowOpacity: 0.1,
-        shadowRadius: 2,
-      },
-      android: {
-        elevation: 1,
-      },
-    }),
-  },
-  botMessageContainer: {
-    backgroundColor: Colors.white,
-    alignSelf: 'flex-start',
-    borderTopLeftRadius: 5,
-    borderLeftWidth: 3,
-    borderLeftColor: Colors.primary,
-  },
-  userMessageContainer: {
-    backgroundColor: Colors.primary,
-    alignSelf: 'flex-end',
-    borderTopRightRadius: 5,
-  },
-  messageText: {
-    fontSize: 16,
-    lineHeight: 22,
-  },
-  botMessageText: {
-    color: '#333333', // Cor mais escura para melhor contraste
-  },
-  userMessageText: {
-    color: '#ffffff', // Branco
-    textShadowColor: 'rgba(0, 0, 0, 0.15)',
-    textShadowOffset: { width: 0, height: 1 },
-    textShadowRadius: 1,
-  },
-  messageTime: {
-    fontSize: 11,
-    opacity: 0.7,
-    alignSelf: 'flex-end',
-    marginTop: 6,
-  },
-  chatInput: {
-    flex: 1,
-    backgroundColor: '#f5f5f5',
-    borderRadius: 20,
-    paddingHorizontal: 15,
-    paddingVertical: 12,
-    marginRight: 10,
-    fontSize: 16,
-    borderWidth: 1,
-    borderColor: '#e0e0e0',
-  },
-  sendButton: {
-    backgroundColor: Colors.primary,
-    borderRadius: 20,
-    paddingVertical: 10,
-    paddingHorizontal: 15, // Aumentado para acomodar o texto
-    justifyContent: 'center',
-    alignItems: 'center',
-    minWidth: 70, // Garantir largura mínima para o texto
-  },
-  sendButtonText: {
-    color: Colors.white,
-    fontWeight: 'bold',
-    fontSize: 14, // Reduzido de 18
-  },
-  // Opções de chat melhoradas
-  optionsContainer: {
-    padding: 12,
-    flexDirection: 'row',
-    backgroundColor: 'rgba(255,255,255,0.9)',
-    borderTopWidth: 1,
-    borderTopColor: '#e0e0e0',
-  },
-  optionButton: {
-    backgroundColor: Colors.white,
-    borderWidth: 1,
-    borderColor: Colors.primary,
-    borderRadius: 12,
-    paddingVertical: 12, // Aumentado de 10 para 12
-    paddingHorizontal: 16, // Aumentado de 14 para 16
-    marginRight: 10,
-    marginBottom: 5,
-    minWidth: 110, // Aumentado de 100 para 110
-    justifyContent: 'center',
-    elevation: 1,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.1,
-    shadowRadius: 1,
-  },
-  longOptionButton: {
-    minWidth: 155, // Aumentado de 140 para 155
-    paddingHorizontal: 18, // Aumentado de 16 para 18
-    height: 'auto',
-  },
-  optionText: {
-    color: Colors.primary,
-    fontSize: 16, // Aumentado de 14 para 16
-    fontWeight: '600', // Aumentado de 500 para 600 (mais negrito)
-    textAlign: 'center',
-  },
-  longOptionText: {
-    fontSize: 15, // Aumentado de 13 para 15
-  },
-  // Indicador de digitação
-  typingContainer: {
-    padding: 10,
-    backgroundColor: 'rgba(255, 255, 255, 0.9)',
-    borderRadius: 16,
-    alignSelf: 'flex-start',
-    marginHorizontal: 15,
-    marginBottom: 10,
-    flexDirection: 'row',
-    alignItems: 'center',
-  },
-  typingText: {
-    color: Colors.primary,
-    fontSize: 14,
-    marginLeft: 8,
-  },
-  // Geral
-  container: {
-    flex: 1,
-    backgroundColor: Colors.light,
-  },
-  header: {
-    backgroundColor: HeaderColors.background, // Mudança do fundo para cor mais clara
-    padding: 15,
-    flexDirection: 'row',
-    alignItems: 'center',
-    borderBottomWidth: 1,
-    borderBottomColor: '#e0e0e0',
-  },
-  headerTitle: {
-    color: HeaderColors.text, // Mudança para preto
-    fontSize: 18,
-    fontWeight: 'bold',
-  },
-  backButton: {
-    marginRight: 10,
-    width: 30,
-    height: 30,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  backButtonText: {
-    fontSize: 24,
-    color: HeaderColors.backButton, // Cor mais escura para o botão
-  },
-  dashboardHeaderTitle: {
-    color: HeaderColors.text,
-    fontSize: 18,
-    fontWeight: 'bold',
-  },
-  configHeader: {
-    backgroundColor: HeaderColors.background,
-    padding: 15,
-    flexDirection: 'row',
-    alignItems: 'center',
-  },
-  configHeaderTitle: {
-    color: HeaderColors.text,
-    fontSize: 18,
-    fontWeight: 'bold',
-  },
-  // Estilos específicos para cada tela mencionada
-  dashboardHeader: {
-    backgroundColor: HeaderColors.background,
-    padding: 15,
-    flexDirection: 'row',
-    alignItems: 'center',
-  },
-  loadingContainer: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  emptyState: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-    padding: 20,
-  },
-  emptyStateTitle: {
-    fontSize: 18,
-    fontWeight: 'bold',
-    color: Colors.dark,
-    marginBottom: 10,
-  },
-  emptyStateText: {
-    textAlign: 'center',
-    color: Colors.lightText,
-    marginBottom: 20,
-  },
-  primaryButton: {
-    backgroundColor: Colors.primary,
-    borderRadius: 8,
-    padding: 15,
-    alignItems: 'center',
-    marginBottom: 10,
-    minWidth: 200,
-    ...Platform.select({
-      ios: {
-        shadowColor: '#000',
-        shadowOffset: { width: 0, height: 2 },
-        shadowOpacity: 0.2,
-        shadowRadius: 4,
-      },
-      android: {
-        elevation: 3,
-      },
-    }),
-  },
-  primaryButtonText: {
-    color: Colors.white,
-    fontWeight: 'bold',
-    fontSize: 16,
-  },
-  secondaryButton: {
-    backgroundColor: 'transparent',
-    borderRadius: 8,
-    borderWidth: 1,
-    borderColor: Colors.primary,
-    padding: 15,
-    alignItems: 'center',
-    minWidth: 200,
-  },
-  secondaryButtonText: {
-    color: Colors.primary,
-    fontWeight: 'bold',
-    fontSize: 16,
-  },
-  // Splash Screen
-  splashContainer: {
-    flex: 1,
-    backgroundColor: Colors.primary,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  splashTitle: {
-    fontSize: 40,
-    fontWeight: 'bold',
-    color: Colors.white,
-  },
-  splashSubtitle: {
-    fontSize: 20,
-    color: Colors.white,
-    opacity: 0.8,
-  },
-
-  enhancedInputWrapper: {
-    backgroundColor: Colors.white,
-    borderRadius: 10,
-    borderWidth: 1,
-    borderColor: Colors.mediumGray,
-    height: 55, // Campo mais alto
-    justifyContent: 'center',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.05,
-    shadowRadius: 2,
-    elevation: 2,
-  },
-  enhancedInput: {
-    paddingHorizontal: 16,
-    paddingVertical: 14,
-    fontSize: 16,
-    color: Colors.dark,
-    height: '100%',
-  },
-  enhancedPrimaryButton: {
-    backgroundColor: Colors.primary,
-    borderRadius: 10,
-    paddingVertical: 16, // Botão mais alto
-    alignItems: 'center',
-    marginTop: 10,
-    marginBottom: 15,
-    shadowColor: Colors.primary,
-    shadowOffset: { width: 0, height: 3 },
-    shadowOpacity: 0.3,
-    shadowRadius: 5,
-    elevation: 3,
-  },
-  enhancedPrimaryButtonText: {
-    color: Colors.white,
-    fontWeight: 'bold',
-    fontSize: 17, // Texto maior
-    letterSpacing: 0.5, // Maior espaçamento entre letras
-  },
-  // Modificar os estilos existentes
-  authContainer: {
-    flex: 1,
-    backgroundColor: Colors.primary,
-  },
-  authHeader: {
-    padding: 30,
-    paddingTop: 60, // Mais espaço no topo
-  },
-  authTitle: {
-    fontSize: 36, // Título maior
-    fontWeight: 'bold',
-    color: Colors.white,
-    marginBottom: 12,
-  },
-  authSubtitle: {
-    fontSize: 18, // Subtítulo maior
-    color: Colors.white,
-    opacity: 0.9,
-  },
-  authForm: {
-    flex: 1,
-    backgroundColor: Colors.white,
-    borderTopLeftRadius: 30,
-    borderTopRightRadius: 30,
-    padding: 30,
-    paddingTop: 40,
-  },
-  inputContainer: {
-    marginBottom: 22, // Mais espaço entre campos
-  },
-  inputLabel: {
-    fontSize: 15, // Label maior
-    fontWeight: '500',
-    color: Colors.dark,
-    marginBottom: 8,
-    paddingLeft: 4,
-  },
-  textButton: {
-    alignItems: 'center',
-    marginTop: 20,
-  },
-  textButtonText: {
-    color: Colors.primary,
-    fontSize: 16, // Texto maior
-    fontWeight: '500',
-  },
-  input: {
-    backgroundColor: Colors.lightGray,
-    borderRadius: 8,
-    padding: 15,
-    fontSize: 16,
-  },
-  // Home
-  homeContainer: {
-    flex: 1,
-    backgroundColor: Colors.primary,
-  },
-  homeHeader: {
-    padding: 20,
-    paddingTop: 30,
-    position: 'relative',
-  },
-  homeTitle: {
-    fontSize: 32,
-    fontWeight: 'bold',
-    color: Colors.white,
-    marginBottom: 10,
-  },
-  homeSubtitle: {
-    fontSize: 16,
-    color: Colors.white,
-    opacity: 0.9,
-    marginBottom: 5,
-  },
-  logoutButton: {
-    position: 'absolute',
-    top: 30,
-    right: 20,
-    backgroundColor: 'rgba(255,255,255,0.2)',
-    padding: 8,
-    borderRadius: 5,
-  },
-  logoutButtonText: {
-    color: Colors.white,
-    fontSize: 12,
-  },
-  homeContent: {
-    flex: 1,
-    backgroundColor: Colors.light,
-    borderTopLeftRadius: 30,
-    borderTopRightRadius: 30,
-    padding: 20,
-  },
-  welcomeText: {
-    fontSize: 20,
-    fontWeight: 'bold',
-    color: Colors.dark,
-    marginBottom: 20,
-  },
-  featureSection: {
-    marginBottom: 20,
-  },
-  featureSectionTitle: {
-    fontSize: 16,
-    fontWeight: 'bold',
-    color: Colors.lightText,
-    marginBottom: 10,
-  },
-  featureCard: {
-    backgroundColor: Colors.white,
-    borderRadius: 10,
-    padding: 20,
-    marginBottom: 15,
-    ...Platform.select({
-      ios: {
-        shadowColor: '#000',
-        shadowOffset: { width: 0, height: 2 },
-        shadowOpacity: 0.1,
-        shadowRadius: 4,
-      },
-      android: {
-        elevation: 3,
-      },
-    }),
-  },
-  compactCard: {
-    padding: 15,
-  },
-  featureTitle: {
-    fontSize: 18,
-    fontWeight: 'bold',
-    color: Colors.dark,
-    marginBottom: 10,
-  },
-  featureDescription: {
-    color: Colors.lightText,
-    lineHeight: 22,
-    marginBottom: 15,
-  },
-  chatBackButton: {
-    width: 30,
-    height: 30,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  chatBackButtonText: {
-    fontSize: 24,
-    color: Colors.white,
-  },
-  chatHeaderTitle: {
-    color: Colors.white,
-    fontSize: 18,
-    fontWeight: 'bold',
-  },
-  previewToggle: {
-    backgroundColor: 'rgba(255, 255, 255, 0.2)',
-    paddingVertical: 5,
-    paddingHorizontal: 10,
-    borderRadius: 4,
-  },
-  previewToggleText: {
-    color: Colors.white,
-    fontSize: 12,
-  },
-  messagesContainer: {
-    padding: 15,
-    paddingBottom: 20,
-  },
-  modeToggleButton: {
-    backgroundColor: 'rgba(255, 255, 255, 0.2)',
-    paddingVertical: 4,
-    paddingHorizontal: 8,
-    borderRadius: 4,
-  },
-  modeToggleText: {
-    color: Colors.white,
-    fontSize: 12,
-  },
-  onlineBanner: {
-    backgroundColor: '#E8F5E9',
-    padding: 10,
-    borderRadius: 5,
-    marginBottom: 15,
-    borderLeftWidth: 3,
-    borderLeftColor: Colors.success,
-  },
-  onlineBannerText: {
-    color: Colors.dark,
-    fontSize: 14,
-  },
-  // Prévia do Currículo
-  previewScroll: {
-    flex: 1,
-    padding: 15,
-  },
-  previewContainer: {
-    backgroundColor: Colors.white,
-    borderRadius: 10,
-    padding: 15,
-    ...Platform.select({
-      ios: {
-        shadowColor: '#000',
-        shadowOffset: { width: 0, height: 2 },
-        shadowOpacity: 0.1,
-        shadowRadius: 4,
-      },
-      android: {
-        elevation: 2,
-      },
-    }),
-  },
-  emptyPreview: {
-    padding: 20,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  emptyPreviewText: {
-    textAlign: 'center',
-    color: Colors.lightText,
-  },
-  previewName: {
-    fontSize: 24,
-    fontWeight: 'bold',
-    color: Colors.dark,
-    marginBottom: 5,
-    borderBottomWidth: 2,
-    borderBottomColor: Colors.primary,
-    paddingBottom: 5,
-  },
-  previewContact: {
-    color: Colors.dark,
-    marginBottom: 10,
-  },
-  previewLinks: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    marginBottom: 15,
-  },
-  previewLink: {
-    color: Colors.primary,
-    marginRight: 10,
-    marginBottom: 5,
-  },
-  previewSection: {
-    marginTop: 15,
-    marginBottom: 10,
-  },
-  previewSectionTitle: {
-    fontSize: 18,
-    fontWeight: 'bold',
-    color: Colors.dark,
-    borderBottomWidth: 1,
-    borderBottomColor: '#e0e0e0',
-    paddingBottom: 5,
-    marginBottom: 10,
-  },
-  previewItem: {
-    marginBottom: 10,
-    paddingLeft: 10,
-    borderLeftWidth: 3,
-    borderLeftColor: Colors.primary,
-  },
-  previewItemTitle: {
-    fontSize: 16,
-    fontWeight: 'bold',
-    color: Colors.dark,
-    marginBottom: 3,
-  },
-  previewItemSubtitle: {
-    fontWeight: '500',
-    marginBottom: 3,
-  },
-  previewItemDate: {
-    color: Colors.lightText,
-    fontSize: 14,
-  },
-  // Lista de Currículos
-  cvListItemWithActions: {
-    backgroundColor: Colors.white,
-    marginBottom: 2,
-  },
-  cvListItem: {
-    backgroundColor: Colors.white,
-    padding: 15,
-    flexDirection: 'row',
-    alignItems: 'center',
-  },
-  cvListItemContent: {
-    flex: 1,
-  },
-  cvListItemTitle: {
-    fontSize: 16,
-    fontWeight: '500',
-    color: Colors.dark,
-    marginBottom: 5,
-  },
-  cvListItemDate: {
-    fontSize: 12,
-    color: Colors.lightText,
-  },
-  cvListItemArrow: {
-    fontSize: 24,
-    color: Colors.primary,
-  },
-  cvListItemActions: {
-    flexDirection: 'row',
-    borderTopWidth: 1,
-    borderTopColor: Colors.mediumGray,
-  },
-  cvActionButton: {
-    flex: 1,
-    backgroundColor: Colors.primary,
-    padding: 10,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  cvActionButtonText: {
-    color: Colors.white,
-    fontWeight: '500',
-    fontSize: 14,
-  },
-  fabButton: {
-    position: 'absolute',
-    bottom: 20,
-    right: 20,
-    width: 56,
-    height: 56,
-    borderRadius: 28,
-    backgroundColor: Colors.primary,
-    justifyContent: 'center',
-    alignItems: 'center',
-    ...Platform.select({
-      ios: {
-        shadowColor: '#000',
-        shadowOffset: { width: 0, height: 3 },
-        shadowOpacity: 0.3,
-        shadowRadius: 5,
-      },
-      android: {
-        elevation: 5,
-      },
-    }),
-  },
-  fabButtonText: {
-    fontSize: 24,
-    color: Colors.white,
-  },
-  // Tela de Prévia do Currículo
-  previewScreenScroll: {
-    flex: 1,
-  },
-  previewScreenCard: {
-    margin: 15,
-    backgroundColor: Colors.white,
-    borderRadius: 10,
-    padding: 15,
-    ...Platform.select({
-      ios: {
-        shadowColor: '#000',
-        shadowOffset: { width: 0, height: 2 },
-        shadowOpacity: 0.1,
-        shadowRadius: 4,
-      },
-      android: {
-        elevation: 2,
-      },
-    }),
-  },
-  previewActions: {
-    flexDirection: 'row',
-    padding: 15,
-    backgroundColor: Colors.white,
-    borderTopWidth: 1,
-    borderTopColor: '#f0f0f0',
-  },
-  previewActionButton: {
-    flex: 1,
-    backgroundColor: Colors.primary,
-    padding: 12,
-    borderRadius: 5,
-    alignItems: 'center',
-    marginHorizontal: 5,
-  },
-  previewActionButtonText: {
-    color: Colors.white,
-    fontWeight: 'bold',
-  },
-  // Análise com IA
-  analysisIntroContainer: {
-    backgroundColor: Colors.white,
-    padding: 20,
-    margin: 15,
-    marginBottom: 5,
-    borderRadius: 10,
-    ...Platform.select({
-      ios: {
-        shadowColor: '#000',
-        shadowOffset: { width: 0, height: 2 },
-        shadowOpacity: 0.1,
-        shadowRadius: 4,
-      },
-      android: {
-        elevation: 2,
-      },
-    }),
-  },
-  analysisIntroTitle: {
-    fontSize: 18,
-    fontWeight: 'bold',
-    color: Colors.dark,
-    marginBottom: 10,
-  },
-  analysisIntroText: {
-    color: Colors.lightText,
-    lineHeight: 22,
-  },
-  sectionTitle: {
-    fontSize: 16,
-    fontWeight: 'bold',
-    color: Colors.dark,
-    marginHorizontal: 15,
-    marginTop: 20,
-    marginBottom: 10,
-  },
-  analysisCvItem: {
-    backgroundColor: Colors.white,
-    padding: 15,
-    marginHorizontal: 15,
-    marginVertical: 5,
-    borderRadius: 10,
-    flexDirection: 'row',
-    alignItems: 'center',
-    ...Platform.select({
-      ios: {
-        shadowColor: '#000',
-        shadowOffset: { width: 0, height: 2 },
-        shadowOpacity: 0.1,
-        shadowRadius: 3,
-      },
-      android: {
-        elevation: 2,
-      },
-    }),
-  },
-  analysisCvItemContent: {
-    flex: 1,
-  },
-  analysisCvItemTitle: {
-    fontSize: 16,
-    fontWeight: '500',
-    color: Colors.dark,
-    marginBottom: 5,
-  },
-  analysisCvItemDate: {
-    fontSize: 12,
-    color: Colors.lightText,
-  },
-  analysisCvItemArrow: {
-    fontSize: 24,
-    color: Colors.primary,
-  },
-  cvAnalysisHeader: {
-    backgroundColor: Colors.white,
-    padding: 15,
-    borderBottomWidth: 1,
-    borderBottomColor: Colors.mediumGray,
-  },
-  cvAnalysisTitle: {
-    fontSize: 18,
-    fontWeight: 'bold',
-    color: Colors.dark,
-  },
-  analysisTabs: {
-    backgroundColor: Colors.white,
-  },
-  analysisTabsContent: {
-    padding: 10,
-  },
-  analysisTab: {
-    paddingVertical: 8,
-    paddingHorizontal: 15,
-    marginHorizontal: 5,
-    borderRadius: 20,
-    backgroundColor: Colors.lightGray,
-  },
-  activeAnalysisTab: {
-    backgroundColor: Colors.primary,
-  },
-  analysisTabText: {
-    color: Colors.dark,
-    fontWeight: '500',
-  },
-  activeAnalysisTabText: {
-    color: Colors.white,
-  },
-  loadingAnalysisContainer: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-    padding: 20,
-  },
-  loadingAnalysisText: {
-    marginTop: 15,
-    textAlign: 'center',
-    color: Colors.dark,
-    fontSize: 16,
-  },
-  analysisResultContainer: {
-    flex: 1,
-    padding: 20,
-    backgroundColor: Colors.white,
-  },
-  analysisResultText: {
-    fontSize: 16,
-    lineHeight: 24,
-    color: Colors.dark,
-  },
-  errorContainer: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-    padding: 20,
-  },
-  errorText: {
-    color: Colors.danger,
-    textAlign: 'center',
-    marginBottom: 20,
-  },
-  retryButton: {
-    backgroundColor: Colors.primary,
-    paddingVertical: 10,
-    paddingHorizontal: 20,
-    borderRadius: 5,
-  },
-  retryButtonText: {
-    color: Colors.white,
-    fontWeight: 'bold',
-  },
-  analysisCard: {
-    backgroundColor: Colors.white,
-    padding: 15,
-    marginBottom: 15,
-    borderRadius: 8,
-    borderLeftWidth: 5,
-    ...Platform.select({
-      ios: {
-        shadowColor: '#000',
-        shadowOffset: { width: 0, height: 2 },
-        shadowOpacity: 0.1,
-        shadowRadius: 3,
-      },
-      android: {
-        elevation: 2,
-      },
-    }),
-  },
-  analysisCardHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: 10,
-  },
-  analysisCardTitle: {
-    fontSize: 16,
-    fontWeight: 'bold',
-    color: Colors.dark,
-  },
-  scoreContainer: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  scoreText: {
-    color: Colors.white,
-    fontWeight: 'bold',
-    fontSize: 16,
-  },
-  analysisCardDescription: {
-    color: Colors.dark,
-    lineHeight: 22,
-  },
-  // Selector de IA
-  iaSelectorContainer: {
-    backgroundColor: '#f8f9fa',
-    padding: 10,
-    borderRadius: 8,
-    marginHorizontal: 15,
-    marginBottom: 10,
-  },
-  iaSelectorLabel: {
-    fontSize: 14,
-    fontWeight: '500',
-    marginBottom: 8,
-    color: Colors.dark,
-  },
-  iaOptionsContainer: {
-    flexDirection: 'row',
-    paddingVertical: 5,
-  },
-  iaOptionButton: {
-    paddingHorizontal: 12,
-    paddingVertical: 6,
-    backgroundColor: Colors.lightGray,
-    borderRadius: 16,
-    marginRight: 8,
-    borderWidth: 1,
-    borderColor: Colors.mediumGray,
-  },
-  iaOptionButtonSelected: {
-    backgroundColor: Colors.primary,
-    borderColor: Colors.primary,
-  },
-  iaOptionText: {
-    fontSize: 13,
-    color: Colors.dark,
-  },
-  iaOptionTextSelected: {
-    color: Colors.white,
-    fontWeight: '500',
-  },
-  providerInfo: {
-    fontSize: 12,
-    color: Colors.lightText,
-    fontStyle: 'italic',
-    marginTop: 8,
-    textAlign: 'center',
-  },
-  offlineBanner: {
-    backgroundColor: '#fff3cd',
-    padding: 10,
-    borderRadius: 5,
-    marginHorizontal: 15,
-    marginBottom: 15,
-    borderLeftWidth: 3,
-    borderLeftColor: Colors.warning,
-  },
-  offlineBannerText: {
-    color: '#856404',
-    fontSize: 14,
-  },
-  // Configuração de IAs
-  configContent: {
-    flex: 1,
-    padding: 20,
-  },
-  configTitle: {
-    fontSize: 18,
-    fontWeight: 'bold',
-    marginBottom: 20,
-    color: Colors.dark,
-  },
-  iasList: {
-    marginBottom: 20,
-  },
-  iaItem: {
-    backgroundColor: Colors.white,
-    padding: 15,
-    borderRadius: 8,
-    marginBottom: 10,
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    ...Platform.select({
-      ios: {
-        shadowColor: '#000',
-        shadowOffset: { width: 0, height: 1 },
-        shadowOpacity: 0.1,
-        shadowRadius: 2,
-      },
-      android: {
-        elevation: 2,
-      },
-    }),
-  },
-  iaItemSelected: {
-    backgroundColor: Colors.primary,
-    borderColor: Colors.primary,
-  },
-  iaItemText: {
-    fontSize: 16,
-    color: Colors.dark,
-  },
-  iaItemTextSelected: {
-    color: Colors.white,
-    fontWeight: '500',
-  },
-  configuredBadge: {
-    width: 20,
-    height: 20,
-    borderRadius: 10,
-    backgroundColor: Colors.success,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  configuredBadgeText: {
-    color: Colors.white,
-    fontSize: 12,
-    fontWeight: 'bold',
-  },
-  apiKeyContainer: {
-    marginBottom: 20,
-  },
-  apiKeyLabel: {
-    fontSize: 16,
-    fontWeight: '500',
-    marginBottom: 10,
-    color: Colors.dark,
-  },
-  apiKeyInput: {
-    backgroundColor: Colors.white,
-    borderRadius: 8,
-    padding: 15,
-    fontSize: 16,
-    borderWidth: 1,
-    borderColor: Colors.mediumGray,
-    marginBottom: 10,
-  },
-  apiKeyHelper: {
-    fontSize: 12,
-    color: Colors.lightText,
-    fontStyle: 'italic',
-  },
-  noApiKeyContainer: {
-    backgroundColor: '#f0f8ff',
-    padding: 15,
-    borderRadius: 8,
-    marginBottom: 20,
-  },
-  noApiKeyText: {
-    color: Colors.info,
-    fontSize: 14,
-  },
-  saveButton: {
-    backgroundColor: Colors.primary,
-    padding: 15,
-    borderRadius: 8,
-    alignItems: 'center',
-    marginTop: 20,
-  },
-  saveButtonDisabled: {
-    backgroundColor: Colors.mediumGray,
-  },
-  saveButtonText: {
-    color: Colors.white,
-    fontWeight: 'bold',
-    fontSize: 16,
-  },
-  homeScrollContent: {
-    paddingBottom: 30,
-    flexGrow: 1,
-  },
-  shareAnalysisButton: {
-    backgroundColor: Colors.secondary,
-    paddingVertical: 12,
-    paddingHorizontal: 20,
-    borderRadius: 8,
-    alignItems: 'center',
-    marginBottom: 30,
-  },
-  shareAnalysisButtonText: {
-    color: Colors.white,
-    fontWeight: 'bold',
-    fontSize: 16,
-  },
-  // Adicione estes estilos no objeto styles
-  moreInfoButton: {
-    backgroundColor: 'rgba(0, 188, 212, 0.1)',
-    paddingVertical: 8,
-    paddingHorizontal: 12,
-    borderRadius: 5,
-    alignSelf: 'flex-start',
-    marginTop: 8,
-  },
-  moreInfoButtonText: {
-    color: Colors.primary,
-    fontSize: 12,
-    fontWeight: '500',
-  },
-  cardIconContainer: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    backgroundColor: 'rgba(0, 188, 212, 0.1)',
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginBottom: 10,
-  },
-  cardIcon: {
-    fontSize: 20,
-  },
-  configHintContainer: {
-    backgroundColor: 'rgba(0, 188, 212, 0.08)',
-    borderRadius: 4,
-    padding: 8,
-    marginTop: 10,
-  },
-  configHintText: {
-    fontSize: 12,
-    color: Colors.primary,
-  },
-  // Estilos para a tela de configuração
-  configCard: {
-    backgroundColor: Colors.white,
-    borderRadius: 10,
-    padding: 16,
-    marginBottom: 20,
-    ...Platform.select({
-      ios: {
-        shadowColor: '#000',
-        shadowOffset: { width: 0, height: 2 },
-        shadowOpacity: 0.1,
-        shadowRadius: 4,
-      },
-      android: {
-        elevation: 2,
-      },
-    }),
-  },
-  configIntroTitle: {
-    fontSize: 18,
-    fontWeight: 'bold',
-    color: Colors.dark,
-    marginBottom: 10,
-  },
-  configIntroText: {
-    fontSize: 14,
-    color: Colors.lightText,
-    lineHeight: 20,
-  },
-  iaCardsContainer: {
-    paddingVertical: 10,
-    paddingHorizontal: 5,
-  },
-  iaCard: {
-    width: 140,
-    backgroundColor: Colors.white,
-    borderRadius: 12,
-    padding:
-      12,
-    marginRight: 12,
-    ...Platform.select({
-      ios: {
-        shadowColor: '#000',
-        shadowOffset: { width: 0, height: 2 },
-        shadowOpacity: 0.1,
-        shadowRadius: 3,
-      },
-      android: {
-        elevation: 2,
-      },
-    }),
-  },
-  iaCardSelected: {
-    borderWidth: 2,
-    borderColor: Colors.primary,
-  },
-  iaCardHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: 8,
-  },
-  iaCardTitle: {
-    fontSize: 14,
-    fontWeight: 'bold',
-    color: Colors.dark,
-  },
-  iaCardTitleSelected: {
-    color: Colors.primary,
-  },
-  iaCardDescription: {
-    fontSize: 12,
-    color: Colors.lightText,
-  },
-  apiKeyHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: 8,
-  },
-  helpButton: {
-    backgroundColor: 'rgba(0, 188, 212, 0.1)',
-    paddingVertical: 4,
-    paddingHorizontal: 8,
-    borderRadius: 4,
-  },
-  helpButtonText: {
-    fontSize: 12,
-    color: Colors.primary,
-  },
-  apiKeyInputContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-  },
-  toggleVisibilityButton: {
-    position: 'absolute',
-    right: 10,
-    padding: 8,
-  },
-  toggleVisibilityText: {
-    fontSize: 12,
-    color: Colors.primary,
-  },
-  tipsContainer: {
-    backgroundColor: 'rgba(255, 193, 7, 0.1)',
-    borderRadius: 8,
-    padding: 16,
-    marginTop: 20,
-    marginBottom: 30,
-  },
-  tipsTitle: {
-    fontSize: 16,
-    fontWeight: 'bold',
-    color: Colors.dark,
-    marginBottom: 8,
-  },
-  tipItem: {
-    fontSize: 14,
-    color: Colors.dark,
-    marginBottom: 5,
-    lineHeight: 20,
-  },
-  areaOptionsContainer: {
-    paddingVertical: 15, // Mais espaço para opções de área
-    flexWrap: 'wrap', // Permitir quebra de linha se necessário
-    justifyContent: 'center',
-  },
-  areaOptionButton: {
-    minWidth: 175, // Aumentado de 160 para 175
-    paddingHorizontal: 20, // Aumentado de 18 para 20
-    marginHorizontal: 5,
-    height: 'auto',
-  },
-  areaOptionText: {
-    fontWeight: 'bold', // Texto mais destacado
-  },
-  chatInputContainer: {
-    flexDirection: 'row',
-    padding: 12,
-    backgroundColor: Colors.white,
-    borderTopWidth: 1,
-    borderTopColor: '#e5e5e5',
-    alignItems: 'center',
-  },
-  improvedChatInput: {
-    flex: 1,
-    backgroundColor: '#f5f5f5',
-    borderRadius: 20,
-    paddingHorizontal: 18,
-    paddingVertical: 14,
-    marginRight: 10,
-    fontSize: 16,
-    maxHeight: 100, // Limitar altura máxima
-    minHeight: 50, // Garantir altura mínima
-    borderWidth: 1,
-    borderColor: '#e0e0e0',
-  },
-  improvedSendButton: {
-    backgroundColor: Colors.primary,
-    borderRadius: 25,
-    width: 70,
-    height: 50,
-    justifyContent: 'center',
-    alignItems: 'center',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 3,
-    elevation: 2,
-  },
-  improvedSendButtonText: {
-    color: Colors.white,
-    fontWeight: 'bold',
-    fontSize: 15,
-  },
-  previewResumeText: {
-    color: Colors.dark,
-    lineHeight: 20,
-    textAlign: 'justify',
-    paddingHorizontal: 2,
-  },
-  curriculoProgressoCard: {
-    backgroundColor: '#FFF3CD',
-    borderRadius: 10,
-    padding: 15,
-    marginBottom: 20,
-    borderLeftWidth: 4,
-    borderLeftColor: '#FFC107',
-    ...Platform.select({
-      ios: {
-        shadowColor: '#000',
-        shadowOffset: { width: 0, height: 2 },
-        shadowOpacity: 0.1,
-        shadowRadius: 4,
-      },
-      android: {
-        elevation: 3,
-      },
-    }),
-  },
-  curriculoProgressoHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginBottom: 10,
-  },
-  curriculoProgressoIcon: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    backgroundColor: '#FFC107',
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginRight: 10,
-  },
-  curriculoProgressoTitulo: {
-    fontSize: 16,
-    fontWeight: 'bold',
-    color: '#856404',
-  },
-  curriculoProgressoSubtitulo: {
-    fontSize: 12,
-    color: '#856404',
-    opacity: 0.8,
-  },
-  curriculoProgressoTexto: {
-    color: '#856404',
-    marginBottom: 12,
-  },
-  curriculoProgressoBotao: {
-    backgroundColor: '#FFC107',
-    borderRadius: 8,
-    padding: 12,
-    alignItems: 'center',
-  },
-  curriculoProgressoBotaoTexto: {
-    color: '#000',
-    fontWeight: 'bold',
-    fontSize: 14,
-  },
-  container: {
-    flex: 1,
-    backgroundColor: '#f5f7fa',
-  },
-  scrollView: {
-    flex: 1,
-  },
-  // Cabeçalho animado
-  animatedHeader: {
-    position: 'absolute',
-    top: 0,
-    left: 0,
-    right: 0,
-    zIndex: 100,
-    backgroundColor: Colors.primary,
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingHorizontal: 15,
-    elevation: 4,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.2,
-    shadowRadius: 3,
-  },
-  headerTitle: {
-    color: '#fff',
-    fontSize: 18,
-    fontWeight: 'bold',
-  },
-  // Cabeçalho estático
-  header: {
-    height: 60,
-    justifyContent: 'center',
-    paddingHorizontal: 15,
-  },
-  backButton: {
-    marginRight: 10,
-    width: 30,
-    height: 30,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  backButtonText: {
-    fontSize: 24,
-    color: '#fff',
-  },
-  backButtonTop: {
-    width: 30,
-    height: 30,
-    justifyContent: 'center',
-    alignItems: 'center',
-    backgroundColor: Colors.primary,
-    borderRadius: 15,
-  },
-  backButtonTopText: {
-    fontSize: 22,
-    color: '#fff',
-    fontWeight: 'bold',
-  },
-  // Seção Hero
-  heroContainer: {
-    alignItems: 'center',
-    justifyContent: 'center',
-    paddingTop: 20,
-    paddingBottom: 40,
-    backgroundColor: Colors.primary,
-    borderBottomLeftRadius: 30,
-    borderBottomRightRadius: 30,
-    ...Platform.select({
-      ios: {
-        shadowColor: '#000',
-        shadowOffset: { width: 0, height: 10 },
-        shadowOpacity: 0.2,
-        shadowRadius: 15,
-      },
-      android: {
-        elevation: 8,
-      },
-    }),
-  },
-  logoContainer: {
-    marginBottom: 20,
-  },
-  logoBackground: {
-    width: 100,
-    height: 100,
-    borderRadius: 50,
-    backgroundColor: 'rgba(255, 255, 255, 0.2)',
-    justifyContent: 'center',
-    alignItems: 'center',
-    borderWidth: 3,
-    borderColor: 'rgba(255, 255, 255, 0.5)',
-  },
-  logoIcon: {
-    fontSize: 48,
-  },
-  appTitle: {
-    fontSize: 28,
-    fontWeight: 'bold',
-    color: '#fff',
-    marginBottom: 10,
-    letterSpacing: 0.5,
-  },
-  appSubtitle: {
-    fontSize: 16,
-    color: 'rgba(255, 255, 255, 0.8)',
-    marginBottom: 15,
-  },
-  premiumBadge: {
-    backgroundColor: '#FFD700',
-    paddingHorizontal: 15,
-    paddingVertical: 6,
-    borderRadius: 20,
-  },
-  premiumBadgeText: {
-    fontWeight: 'bold',
-    fontSize: 14,
-    color: '#000',
-  },
-  // Indicador de seções
-  sectionIndicator: {
-    flexDirection: 'row',
-    backgroundColor: '#fff',
-    margin: 20,
-    marginTop: -25,
-    borderRadius: 10,
-    height: 50,
-    justifyContent: 'space-around',
-    alignItems: 'center',
-    ...Platform.select({
-      ios: {
-        shadowColor: '#000',
-        shadowOffset: { width: 0, height: 2 },
-        shadowOpacity: 0.1,
-        shadowRadius: 5,
-      },
-      android: {
-        elevation: 4,
-      },
-    }),
-  },
-  sectionTab: {
-    flex: 1,
-    height: '100%',
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  activeSection: {
-    borderBottomWidth: 3,
-    borderBottomColor: Colors.primary,
-  },
-  sectionTabText: {
-    fontSize: 16,
-    fontWeight: '500',
-    color: '#999',
-  },
-  activeSectionText: {
-    color: Colors.primary,
-    fontWeight: 'bold',
-  },
-  // Container de conteúdo
-  contentContainer: {
-    flex: 1,
-    paddingHorizontal: 20,
-    paddingBottom: 40,
-  },
-  // Seções de conteúdo
-  sectionContent: {
-    marginBottom: 30,
-  },
-  sectionTitle: {
-    fontSize: 22,
-    fontWeight: 'bold',
-    color: '#333',
-    marginBottom: 15,
-    paddingBottom: 5,
-    borderBottomWidth: 2,
-    borderBottomColor: 'rgba(0,188,212,0.3)',
-  },
-  sectionDescription: {
-    fontSize: 16,
-    lineHeight: 24,
-    color: '#555',
-    marginBottom: 20,
-    textAlign: 'justify',
-  },
-  // Cards de informação
-  infoCardContainer: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    marginVertical: 20,
-  },
-  infoCard: {
-    width: '30%',
-    backgroundColor: Colors.primary,
-    padding: 15,
-    borderRadius: 10,
-    alignItems: 'center',
-    ...Platform.select({
-      ios: {
-        shadowColor: '#000',
-        shadowOffset: { width: 0, height: 3 },
-        shadowOpacity: 0.1,
-        shadowRadius: 5,
-      },
-      android: {
-        elevation: 3,
-      },
-    }),
-  },
-  infoCardNumber: {
-    fontSize: 20,
-    fontWeight: 'bold',
-    color: '#fff',
-    marginBottom: 5,
-  },
-  infoCardText: {
-    fontSize: 12,
-    color: 'rgba(255, 255, 255, 0.8)',
-  },
-  // Itens de recursos
-  featureItem: {
-    flexDirection: 'row',
-    marginBottom: 25,
-    backgroundColor: '#fff',
-    padding: 15,
-    borderRadius: 10,
-    ...Platform.select({
-      ios: {
-        shadowColor: '#000',
-        shadowOffset: { width: 0, height: 2 },
-        shadowOpacity: 0.05,
-        shadowRadius: 3,
-      },
-      android: {
-        elevation: 2,
-      },
-    }),
-  },
-  featureIconContainer: {
-    width: 50,
-    height: 50,
-    borderRadius: 25,
-    backgroundColor: 'rgba(0,188,212,0.1)',
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginRight: 15,
-  },
-  featureIcon: {
-    fontSize: 24,
-  },
-  featureTextContainer: {
-    flex: 1,
-  },
-  featureTitle: {
-    fontSize: 18,
-    fontWeight: 'bold',
-    color: '#333',
-    marginBottom: 5,
-  },
-  featureDescription: {
-    fontSize: 14,
-    color: '#666',
-    lineHeight: 20,
-  },
-  // Seção de versão
-  versionCard: {
-    backgroundColor: '#fff',
-    borderRadius: 10,
-    padding: 20,
-    marginBottom: 20,
-    ...Platform.select({
-      ios: {
-        shadowColor: '#000',
-        shadowOffset: { width: 0, height: 2 },
-        shadowOpacity: 0.05,
-        shadowRadius: 3,
-      },
-      android: {
-        elevation: 3,
-      },
-    }),
-  },
-  versionHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: 15,
-    paddingBottom: 10,
-    borderBottomWidth: 1,
-    borderBottomColor: '#eee',
-  },
-  versionNumber: {
-    fontSize: 20,
-    fontWeight: 'bold',
-    color: Colors.primary,
-  },
-  versionDate: {
-    fontSize: 14,
-    color: '#888',
-  },
-  versionFeatureList: {
-    marginTop: 10,
-  },
-  versionFeatureTitle: {
-    fontSize: 16,
-    fontWeight: 'bold',
-    color: '#333',
-    marginBottom: 10,
-  },
-  versionFeatureItem: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginBottom: 12,
-  },
-  versionFeatureDot: {
-    width: 8,
-    height: 8,
-    borderRadius: 4,
-    backgroundColor: Colors.primary,
-    marginRight: 10,
-  },
-  versionFeatureText: {
-    fontSize: 15,
-    color: '#444',
-    flex: 1,
-  },
-  versionPrevious: {
-    backgroundColor: '#f8f8f8',
-    borderRadius: 10,
-    padding: 15,
-  },
-  versionPreviousTitle: {
-    fontSize: 16,
-    fontWeight: 'bold',
-    color: '#555',
-    marginBottom: 10,
-  },
-  versionPreviousItem: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    paddingVertical: 8,
-    borderBottomWidth: 1,
-    borderBottomColor: '#eee',
-  },
-  versionPreviousNumber: {
-    fontSize: 15,
-    fontWeight: '500',
-    color: '#444',
-  },
-  versionPreviousDate: {
-    fontSize: 14,
-    color: '#888',
-  },
-  // Seção de contato
-  contactSection: {
-    backgroundColor: '#fff',
-    padding: 20,
-    borderRadius: 10,
-    marginTop: 20,
-    marginBottom: 30,
-    ...Platform.select({
-      ios: {
-        shadowColor: '#000',
-        shadowOffset: { width: 0, height: 2 },
-        shadowOpacity: 0.05,
-        shadowRadius: 4,
-      },
-      android: {
-        elevation: 2,
-      },
-    }),
-  },
-  contactTitle: {
-    fontSize: 18,
-    fontWeight: 'bold',
-    color: '#333',
-    marginBottom: 15,
-    textAlign: 'center',
-  },
-  contactButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: 'rgba(0,188,212,0.1)',
-    padding: 12,
-    borderRadius: 8,
-    marginBottom: 12,
-  },
-  contactButtonIcon: {
-    fontSize: 20,
-    marginRight: 10,
-  },
-  contactButtonText: {
-    fontSize: 15,
-    color: Colors.primary,
-    fontWeight: '500',
-  },
-  socialMediaContainer: {
-    flexDirection: 'row',
-    justifyContent: 'center',
-    marginTop: 15,
-  },
-  socialButton: {
-    width: 45,
-    height: 45,
-    borderRadius: 22.5,
-    backgroundColor: Colors.primary,
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginHorizontal: 10,
-  },
-  socialButtonText: {
-    fontSize: 18,
-    color: '#fff',
-    fontWeight: 'bold',
-  },
-  // Rodapé
-  footer: {
-    alignItems: 'center',
-    marginTop: 20,
-    marginBottom: 10,
-  },
-  footerText: {
-    fontSize: 12,
-    color: '#999',
-    marginBottom: 3,
-  },
-
-  usageSummaryContainer: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    justifyContent: 'space-between',
-    marginBottom: 20,
-  },
-  usageSummaryCard: {
-    width: '31%',
-    backgroundColor: '#f8f9fa',
-    borderRadius: 8,
-    padding: 12,
-    alignItems: 'center',
-    ...Platform.select({
-      ios: {
-        shadowColor: '#000',
-        shadowOffset: { width: 0, height: 1 },
-        shadowOpacity: 0.1,
-        shadowRadius: 2,
-      },
-      android: {
-        elevation: 2,
-      },
-    }),
-  },
-  usageSummaryTitle: {
-    fontSize: 12,
-    color: Colors.lightText,
-    marginBottom: 5,
-    textAlign: 'center',
-  },
-  usageSummaryValue: {
-    fontSize: 16,
-    fontWeight: 'bold',
-    color: Colors.dark,
-  },
-  // Estilos para gráficos de uso por IA
-  usageChartContainer: {
-    marginBottom: 20,
-  },
-  usageChartTitle: {
-    fontSize: 16,
-    fontWeight: 'bold',
-    marginBottom: 15,
-    color: Colors.dark,
-  },
-  barChartContainer: {
-    marginBottom: 20,
-  },
-  barChartItem: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginBottom: 12,
-  },
-  barChartLabelContainer: {
-    width: 90,
-  },
-  barChartLabel: {
-    fontSize: 14,
-    fontWeight: '500',
-    color: Colors.dark,
-  },
-  barChartBarContainer: {
-    flex: 1,
-    flexDirection: 'row',
-    alignItems: 'center',
-    height: 25,
-  },
-  barChartBar: {
-    height: '100%',
-    borderRadius: 4,
-  },
-  barChartValue: {
-    fontSize: 12,
-    marginLeft: 8,
-    color: Colors.lightText,
-  },
-  // Estilos para custo por IA
-  costByIAContainer: {
-    backgroundColor: '#f8f9fa',
-    borderRadius: 8,
-    padding: 15,
-  },
-  costByIATitle: {
-    fontSize: 14,
-    fontWeight: 'bold',
-    marginBottom: 10,
-    color: Colors.dark,
-  },
-  costByIAItem: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginBottom: 8,
-  },
-  costByIADot: {
-    width: 10,
-    height: 10,
-    borderRadius: 5,
-    marginRight: 8,
-  },
-  costByIALabel: {
-    fontSize: 14,
-    color: Colors.dark,
-    flex: 1,
-  },
-  costByIAValue: {
-    fontSize: 14,
-    fontWeight: '500',
-    color: Colors.dark,
-  },
-  // Estilos para gráfico tipo pizza
-  pieChartContainer: {
-    marginBottom: 20,
-  },
-  pieChartItem: {
-    marginBottom: 12,
-  },
-  pieChartLabelContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginBottom: 5,
-  },
-  pieChartColorIndicator: {
-    width: 12,
-    height: 12,
-    borderRadius: 6,
-    marginRight: 8,
-  },
-  pieChartLabel: {
-    fontSize: 14,
-    color: Colors.dark,
-  },
-  pieChartBarContainer: {
-    height: 20,
-    backgroundColor: '#f0f0f0',
-    borderRadius: 10,
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginBottom: 5,
-  },
-  pieChartBar: {
-    height: '100%',
-    borderRadius: 10,
-  },
-  pieChartPercentage: {
-    position: 'absolute',
-    right: 10,
-    fontSize: 12,
-    fontWeight: '500',
-    color: Colors.white,
-  },
-  pieChartValue: {
-    fontSize: 12,
-    color: Colors.lightText,
-  },
-  // Estilos para chamadas por tipo
-  callsByTypeContainer: {
-    backgroundColor: '#f8f9fa',
-    borderRadius: 8,
-    padding: 15,
-  },
-  callsByTypeTitle: {
-    fontSize: 14,
-    fontWeight: 'bold',
-    marginBottom: 10,
-    color: Colors.dark,
-  },
-  callsByTypeList: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-  },
-  callsByTypeItem: {
-    flexDirection: 'row',
-    width: '50%',
-    marginBottom: 8,
-  },
-  callsByTypeLabel: {
-    fontSize: 13,
-    color: Colors.dark,
-    marginRight: 5,
-  },
-  callsByTypeValue: {
-    fontSize: 13,
-    fontWeight: '500',
-    color: Colors.dark,
-  },
-  // Estilos para gráfico de tendências
-  trendChartContainer: {
-    marginBottom: 20,
-  },
-  trendChartTitle: {
-    fontSize: 16,
-    fontWeight: 'bold',
-    marginBottom: 15,
-    color: Colors.dark,
-  },
-  trendChartContent: {
-    flexDirection: 'row',
-    height: 200,
-    marginBottom: 20,
-  },
-  trendChartYAxis: {
-    width: 50,
-    height: '100%',
-    justifyContent: 'space-between',
-    alignItems: 'flex-end',
-    paddingRight: 10,
-  },
-  trendChartYLabel: {
-    fontSize: 10,
-    color: Colors.lightText,
-  },
-  trendChartScrollContent: {
-    paddingBottom: 10,
-  },
-  trendChartBars: {
-    flexDirection: 'row',
-    alignItems: 'flex-end',
-    height: '100%',
-  },
-  trendChartBarWrapper: {
-    alignItems: 'center',
-    marginHorizontal: 6,
-  },
-  trendChartBarContainer: {
-    width: 30,
-    height: '85%',
-    justifyContent: 'flex-end',
-  },
-  trendChartBar: {
-    width: '100%',
-    backgroundColor: Colors.primary,
-    borderTopLeftRadius: 3,
-    borderTopRightRadius: 3,
-  },
-  trendChartXLabel: {
-    fontSize: 10,
-    color: Colors.lightText,
-    marginTop: 5,
-  },
-  // Estilos para resumo de tendência
-  trendSummaryContainer: {
-    backgroundColor: '#f8f9fa',
-    borderRadius: 8,
-    padding: 15,
-  },
-  trendSummaryTitle: {
-    fontSize: 14,
-    fontWeight: 'bold',
-    marginBottom: 10,
-    color: Colors.dark,
-  },
-  trendSummaryContent: {
-
-  },
-  trendSummaryText: {
-    fontSize: 13,
-    color: Colors.dark,
-    marginBottom: 8,
-  },
-  trendIndicator: {
-    alignSelf: 'flex-start',
-    paddingHorizontal: 10,
-    paddingVertical: 5,
-    borderRadius: 15,
-    marginBottom: 8,
-  },
-  trendIndicatorText: {
-    color: Colors.white,
-    fontWeight: '500',
-    fontSize: 12,
-  },
-  // Estilos para histórico de chamadas
-  historyContainer: {
-    marginBottom: 20,
-  },
-  historyTitle: {
-    fontSize: 16,
-    fontWeight: 'bold',
-    marginBottom: 15,
-    color: Colors.dark,
-  },
-  historyList: {
-    paddingBottom: 20,
-  },
-  historyItem: {
-    backgroundColor: '#f8f9fa',
-    borderRadius: 8,
-    padding: 12,
-    marginBottom: 10,
-    ...Platform.select({
-      ios: {
-        shadowColor: '#000',
-        shadowOffset: { width: 0, height: 1 },
-        shadowOpacity: 0.1,
-        shadowRadius: 1,
-      },
-      android: {
-        elevation: 1,
-      },
-    }),
-  },
-  historyItemHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: 8,
-  },
-  historyItemType: {
-    flexDirection: 'row',
-    alignItems: 'center',
-  },
-  historyItemTypeIndicator: {
-    width: 10,
-    height: 10,
-    borderRadius: 5,
-    marginRight: 5,
-  },
-  historyItemTypeText: {
-    fontSize: 13,
-    fontWeight: '500',
-    color: Colors.dark,
-  },
-  historyItemTokens: {
-    fontSize: 12,
-    color: Colors.primary,
-    fontWeight: '500',
-  },
-  historyItemPrompt: {
-    fontSize: 14,
-    color: Colors.dark,
-    marginBottom: 8,
-  },
-  historyItemFooter: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-  },
-  historyItemCategory: {
-    fontSize: 12,
-    color: Colors.lightText,
-    backgroundColor: '#f0f0f0',
-    paddingHorizontal: 8,
-    paddingVertical: 2,
-    borderRadius: 10,
-  },
-  historyItemDate: {
-    fontSize: 12,
-    color: Colors.lightText,
-  },
-  // Containers vazios
-  emptyTrendsContainer: {
-    padding: 20,
-    alignItems: 'center',
-    backgroundColor: '#f8f9fa',
-    borderRadius: 8,
-  },
-  emptyTrendsText: {
-    color: Colors.lightText,
-    textAlign: 'center',
-  },
-  emptyHistoryContainer: {
-    padding: 20,
-    alignItems: 'center',
-    backgroundColor: '#f8f9fa',
-    borderRadius: 8,
-  },
-  emptyHistoryText: {
-    color: Colors.lightText,
-    textAlign: 'center',
-  },
-  // Estilos para detalhes de chamada
-  callDetailsContainer: {
-    position: 'absolute',
-    top: 0,
-    left: 0,
-    right: 0,
-    bottom: 0,
-    backgroundColor: 'rgba(0, 0, 0, 0.5)',
-    justifyContent: 'center',
-    alignItems: 'center',
-    zIndex: 1000,
-  },
-  callDetailsContent: {
-    backgroundColor: Colors.white,
-    borderRadius: 10,
-    width: '90%',
-    maxHeight: '90%',
-    padding: 20,
-    ...Platform.select({
-      ios: {
-        shadowColor: '#000',
-        shadowOffset: { width: 0, height: 5 },
-        shadowOpacity: 0.3,
-        shadowRadius: 5,
-      },
-      android: {
-        elevation: 10,
-      },
-    }),
-  },
-  callDetailsHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: 15,
-    borderBottomWidth: 1,
-    borderBottomColor: Colors.lightGray,
-    paddingBottom: 10,
-  },
-  callDetailsTitle: {
-    fontSize: 18,
-    fontWeight: 'bold',
-    color: Colors.dark,
-  },
-  callDetailsCloseButton: {
-    padding: 5,
-  },
-  callDetailsCloseButtonText: {
-    fontSize: 24,
-    color: Colors.dark,
-  },
-  callDetailsSummary: {
-    alignItems: 'center',
-    marginBottom: 20,
-  },
-  callDetailsIABadge: {
-    paddingHorizontal: 15,
-    paddingVertical: 6,
-    borderRadius: 20,
-    marginBottom: 10,
-  },
-  callDetailsIABadgeText: {
-    color: Colors.white,
-    fontWeight: 'bold',
-  },
-  callDetailsDate: {
-    fontSize: 14,
-    color: Colors.lightText,
-    marginBottom: 5,
-  },
-  callDetailsCategory: {
-    fontSize: 14,
-    color: Colors.dark,
-  },
-  callDetailsMetrics: {
-    flexDirection: 'row',
-    justifyContent: 'space-around',
-    backgroundColor: '#f8f9fa',
-    borderRadius: 8,
-    padding: 15,
-    marginBottom: 20,
-  },
-  callDetailsMetricItem: {
-    alignItems: 'center',
-  },
-  callDetailsMetricLabel: {
-    fontSize: 12,
-    color: Colors.lightText,
-    marginBottom: 5,
-  },
-  callDetailsMetricValue: {
-    fontSize: 18,
-    fontWeight: 'bold',
-    color: Colors.dark,
-  },
-  callDetailsSection: {
-    marginBottom: 20,
-  },
-  callDetailsSectionTitle: {
-    fontSize: 16,
-    fontWeight: 'bold',
-    color: Colors.dark,
-    marginBottom: 10,
-  },
-  callDetailsPromptContainer: {
-    backgroundColor: '#f8f9fa',
-    borderRadius: 8,
-    padding: 12,
-    borderLeftWidth: 3,
-    borderLeftColor: Colors.primary,
-  },
-  callDetailsPromptText: {
-    fontSize: 14,
-    color: Colors.dark,
-    lineHeight: 20,
-  },
-  callDetailsResponseContainer: {
-    backgroundColor: '#f8f9fa',
-    borderRadius: 8,
-    padding: 12,
-    borderLeftWidth: 3,
-    borderLeftColor: Colors.secondary,
-  },
-  callDetailsResponseText: {
-    fontSize: 14,
-    color: Colors.dark,
-    lineHeight: 20,
-  },
-  callDetailsConfigList: {
-    backgroundColor: '#f8f9fa',
-    borderRadius: 8,
-    padding: 12,
-  },
-  callDetailsConfigItem: {
-    flexDirection: 'row',
-    marginBottom: 8,
-  },
-  callDetailsConfigLabel: {
-    fontSize: 14,
-    color: Colors.dark,
-    fontWeight: '500',
-    width: 120,
-  },
-  callDetailsConfigValue: {
-    fontSize: 14,
-    color: Colors.dark,
-  },
-
-  // Estilos do Conhecimento
-  conhecimentoContainer: {
-    flex: 1,
-    padding: 20,
-    backgroundColor: '#f8f9fc',
-  },
-  conhecimentoTitle: {
-    fontSize: 24,
-    fontWeight: 'bold',
-    color: Colors.dark,
-    marginBottom: 10,
-  },
-  conhecimentoSubtitle: {
-    fontSize: 16,
-    color: Colors.lightText,
-    marginBottom: 25,
-  },
-  categoriasGrid: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    justifyContent: 'space-between',
-  },
-  categoriaCard: {
-    width: '48%',
-    backgroundColor: Colors.white,
-    borderRadius: 10,
-    padding: 20,
-    marginBottom: 15,
-    alignItems: 'center',
-    justifyContent: 'center',
-    ...Platform.select({
-      ios: {
-        shadowColor: '#000',
-        shadowOffset: { width: 0, height: 2 },
-        shadowOpacity: 0.1,
-        shadowRadius: 4,
-      },
-      android: {
-        elevation: 2,
-      },
-    }),
-  },
-  categoriaIcon: {
-    fontSize: 36,
-    marginBottom: 10,
-  },
-  categoriaNome: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: Colors.dark,
-    textAlign: 'center',
-  },
-  meusConhecimentosButton: {
-    backgroundColor: Colors.primary,
-    borderRadius: 8,
-    padding: 15,
-    alignItems: 'center',
-    marginTop: 20,
-  },
-  meusConhecimentosButtonText: {
-    color: Colors.white,
-    fontWeight: 'bold',
-    fontSize: 16,
-  },
-  topicoHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginBottom: 20,
-  },
-  topicoHeaderTitle: {
-    fontSize: 20,
-    fontWeight: 'bold',
-    color: Colors.dark,
-    marginLeft: 10,
-  },
-  topicosContainer: {
-    marginTop: 10,
-  },
-  topicoItem: {
-    backgroundColor: Colors.white,
-    borderRadius: 8,
-    padding: 16,
-    marginBottom: 10,
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    ...Platform.select({
-      ios: {
-        shadowColor: '#000',
-        shadowOffset: { width: 0, height: 1 },
-        shadowOpacity: 0.1,
-        shadowRadius: 2,
-      },
-      android: {
-        elevation: 1,
-      },
-    }),
-  },
-  topicoNome: {
-    fontSize: 16,
-    fontWeight: '500',
-    color: Colors.dark,
-  },
-  topicoArrow: {
-    fontSize: 20,
-    color: Colors.primary,
-  },
-  reviewContainer: {
-    flex: 1,
-    backgroundColor: '#f8f9fc',
-  },
-  reviewHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    padding: 15,
-    backgroundColor: Colors.white,
-    borderBottomWidth: 1,
-    borderBottomColor: Colors.mediumGray,
-  },
-  reviewHeaderTitle: {
-    fontSize: 20,
-    fontWeight: 'bold',
-    color: Colors.dark,
-    marginLeft: 10,
-  },
-  reviewTitleContainer: {
-    backgroundColor: Colors.white,
-    padding: 15,
-    margin: 15,
-    borderRadius: 8,
-    ...Platform.select({
-      ios: {
-        shadowColor: '#000',
-        shadowOffset: { width: 0, height: 1 },
-        shadowOpacity: 0.1,
-        shadowRadius: 2,
-      },
-      android: {
-        elevation: 1,
-      },
-    }),
-  },
-  reviewTitleInput: {
-    fontSize: 18,
-    fontWeight: 'bold',
-    color: Colors.dark,
-  },
-  topicosSection: {
-    backgroundColor: Colors.white,
-    padding: 15,
-    margin: 15,
-    marginTop: 0,
-    borderRadius: 8,
-    ...Platform.select({
-      ios: {
-        shadowColor: '#000',
-        shadowOffset: { width: 0, height: 1 },
-        shadowOpacity: 0.1,
-        shadowRadius: 2,
-      },
-      android: {
-        elevation: 1,
-      },
-    }),
-  },
-  topicosHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: 10,
-  },
-  topicosTitle: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: Colors.dark,
-  },
-  topicosActions: {
-    flexDirection: 'row',
-  },
-  topicoActionButton: {
-    backgroundColor: '#f0f0f0',
-    paddingVertical: 6,
-    paddingHorizontal: 12,
-    borderRadius: 15,
-    marginLeft: 8,
-  },
-  topicoActionButtonText: {
-    fontSize: 12,
-    color: Colors.dark,
-  },
-  topicosPreview: {
-    flexDirection: 'row',
-    marginTop: 5,
-  },
-  topicoChip: {
-    backgroundColor: Colors.primary,
-    paddingVertical: 6,
-    paddingHorizontal: 12,
-    borderRadius: 15,
-    marginRight: 8,
-  },
-  topicoChipText: {
-    fontSize: 12,
-    color: Colors.white,
-  },
-  conteudoPreviewContainer: {
-    backgroundColor: Colors.white,
-    padding: 15,
-    margin: 15,
-    marginTop: 0,
-    borderRadius: 8,
-    ...Platform.select({
-      ios: {
-        shadowColor: '#000',
-        shadowOffset: { width: 0, height: 1 },
-        shadowOpacity: 0.1,
-        shadowRadius: 2,
-      },
-      android: {
-        elevation: 1,
-      },
-    }),
-  },
-  conteudoPreviewTitle: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: Colors.dark,
-    marginBottom: 10,
-  },
-  conteudoPreview: {
-    backgroundColor: '#f9f9f9',
-    padding: 15,
-    borderRadius: 8,
-    maxHeight: 300,
-  },
-  conteudoPreviewText: {
-    fontSize: 14,
-    lineHeight: 20,
-    color: Colors.dark,
-  },
-  reviewActions: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    padding: 15,
-    margin: 15,
-    marginTop: 0,
-  },
-  reviewActionButton: {
-    backgroundColor: '#f0f0f0',
-    paddingVertical: 12,
-    paddingHorizontal: 20,
-    borderRadius: 8,
-    flex: 1,
-    alignItems: 'center',
-    marginHorizontal: 5,
-  },
-  reviewActionPrimary: {
-    backgroundColor: Colors.primary,
-  },
-  reviewActionButtonText: {
-    fontSize: 14,
-    fontWeight: 'bold',
-    color: Colors.dark,
-  },
-  // Estilos do Modal de Tópico Personalizado
-  modalOverlay: {
-    flex: 1,
-    backgroundColor: 'rgba(0,0,0,0.5)',
-    justifyContent: 'center',
-    alignItems: 'center',
-    padding: 20,
-  },
-  modalContent: {
-    backgroundColor: Colors.white,
-    borderRadius: 10,
-    padding: 20,
-    width: '100%',
-    ...Platform.select({
-      ios: {
-        shadowColor: '#000',
-        shadowOffset: { width: 0, height: 2 },
-        shadowOpacity: 0.25,
-        shadowRadius: 3.84,
-      },
-      android: {
-        elevation: 5,
-      },
-    }),
-  },
-  modalTitle: {
-    fontSize: 18,
-    fontWeight: 'bold',
-    color: Colors.dark,
-    marginBottom: 10,
-  },
-  modalSubtitle: {
-    fontSize: 14,
-    color: Colors.lightText,
-    marginBottom: 15,
-  },
-  modalInput: {
-    backgroundColor: '#f5f5f5',
-    borderRadius: 8,
-    padding: 12,
-    borderWidth: 1,
-    borderColor: Colors.mediumGray,
-    marginBottom: 20,
-  },
-  modalActions: {
-    flexDirection: 'row',
-    justifyContent: 'flex-end',
-  },
-  modalButton: {
-    paddingVertical: 10,
-    paddingHorizontal: 15,
-    borderRadius: 5,
-    marginLeft: 10,
-  },
-  modalButtonCancel: {
-    backgroundColor: '#f0f0f0',
-  },
-  modalButtonConfirm: {
-    backgroundColor: Colors.primary,
-  },
-  modalButtonTextCancel: {
-    color: Colors.dark,
-  },
-  modalButtonTextConfirm: {
-    color: Colors.white,
-    fontWeight: 'bold',
-  },
-  // Estilos dos Detalhes de Conhecimento
-  conhecimentoDetails: {
-    flex: 1,
-    backgroundColor: '#f8f9fc',
-  },
-  conhecimentoDetailsTitle: {
-    fontSize: 22,
-    fontWeight: 'bold',
-    color: Colors.dark,
-    padding: 15,
-  },
-  conhecimentoDetailsDate: {
-    fontSize: 14,
-    color: Colors.lightText,
-    paddingHorizontal: 15,
-    marginTop: -10,
-    marginBottom: 15,
-  },
-  topicosNav: {
-    backgroundColor: Colors.white,
-    paddingVertical: 10,
-    paddingHorizontal: 5,
-  },
-  topicoNavItem: {
-    paddingVertical: 8,
-    paddingHorizontal: 15,
-    borderRadius: 20,
-    marginHorizontal: 5,
-    backgroundColor: '#f0f0f0',
-  },
-  topicoNavItemActive: {
-    backgroundColor: Colors.primary,
-  },
-  topicoNavText: {
-    fontSize: 14,
-    color: Colors.dark,
-  },
-  topicoNavTextActive: {
-    color: Colors.white,
-    fontWeight: 'bold',
-  },
-  conhecimentoConteudo: {
-    flex: 1,
-    backgroundColor: Colors.white,
-    margin: 15,
-    padding: 15,
-    borderRadius: 8,
-    ...Platform.select({
-      ios: {
-        shadowColor: '#000',
-        shadowOffset: { width: 0, height: 1 },
-        shadowOpacity: 0.1,
-        shadowRadius: 2,
-      },
-      android: {
-        elevation: 1,
-      },
-    }),
-  },
-  conhecimentoConteudoText: {
-    fontSize: 16,
-    lineHeight: 24,
-    color: Colors.dark,
-  },
-  shareButton: {
-    padding: 10,
-  },
-  shareButtonText: {
-    fontSize: 20,
-    color: Colors.white,
-  },
-  // Estilos da Lista de Conhecimentos
-  searchContainer: {
-    backgroundColor: Colors.white,
-    margin: 15,
-    padding: 10,
-    borderRadius: 8,
-    flexDirection: 'row',
-    alignItems: 'center',
-    ...Platform.select({
-      ios: {
-        shadowColor: '#000',
-        shadowOffset: { width: 0, height: 1 },
-        shadowOpacity: 0.1,
-        shadowRadius: 2,
-      },
-      android: {
-        elevation: 1,
-      },
-    }),
-  },
-  searchInput: {
-    flex: 1,
-    fontSize: 16,
-    color: Colors.dark,
-  },
-  searchClear: {
-    padding: 5,
-  },
-  searchClearText: {
-    fontSize: 20,
-    color: Colors.lightText,
-  },
-  emptyContainer: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-    padding: 20,
-  },
-  emptyTitle: {
-    fontSize: 20,
-    fontWeight: 'bold',
-    color: Colors.dark,
-    marginBottom: 10,
-  },
-  emptyText: {
-    fontSize: 16,
-    color: Colors.lightText,
-    textAlign: 'center',
-    marginBottom: 20,
-  },
-  emptyButton: {
-    backgroundColor: Colors.primary,
-    paddingVertical: 12,
-    paddingHorizontal: 20,
-    borderRadius: 8,
-  },
-  emptyButtonText: {
-    color: Colors.white,
-    fontWeight: 'bold',
-    fontSize: 16,
-  },
-  fabButton: {
-    position: 'absolute',
-    bottom: 20,
-    right: 20,
-    width: 56,
-    height: 56,
-    borderRadius: 28,
-    backgroundColor: Colors.primary,
-    justifyContent: 'center',
-    alignItems: 'center',
-    ...Platform.select({
-      ios: {
-        shadowColor: '#000',
-        shadowOffset: { width: 0, height: 4 },
-        shadowOpacity: 0.3,
-        shadowRadius: 4,
-      },
-      android: {
-        elevation: 6,
-      },
-    }),
-  },
-  fabButtonText: {
-    fontSize: 26,
-    color: Colors.white,
-  },
-  conhecimentoListItem: {
-    backgroundColor: Colors.white,
-    borderRadius: 8,
-    padding: 15,
-    marginBottom: 15,
-    ...Platform.select({
-      ios: {
-        shadowColor: '#000',
-        shadowOffset: { width: 0, height: 1 },
-        shadowOpacity: 0.1,
-        shadowRadius: 2,
-      },
-      android: {
-        elevation: 1,
-      },
-    }),
-  },
-  conhecimentoListItemHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: 5,
-  },
-  conhecimentoListItemTitle: {
-    fontSize: 18,
-    fontWeight: 'bold',
-    color: Colors.dark,
-    flex: 1,
-  },
-  conhecimentoListItemDelete: {
-    padding: 5,
-  },
-  conhecimentoListItemDeleteText: {
-    fontSize: 20,
-    color: Colors.danger,
-  },
-  conhecimentoListItemDate: {
-    fontSize: 12,
-    color: Colors.lightText,
-    marginBottom: 10,
-  },
-  conhecimentoListItemPreview: {
-    fontSize: 14,
-    color: Colors.dark,
-    marginBottom: 10,
-  },
-  conhecimentoListItemTopicos: {
-    flexDirection: 'row',
-    marginTop: 5,
-  },
-  conhecimentoListItemTopico: {
-    backgroundColor: Colors.primary,
-    paddingVertical: 4,
-    paddingHorizontal: 10,
-    borderRadius: 15,
-    marginRight: 8,
-  },
-  conhecimentoListItemTopicoText: {
-    fontSize: 12,
-    color: Colors.white,
-  },
-  conhecimentoListItemTopicoMore: {
-    backgroundColor: '#f0f0f0',
-    paddingVertical: 4,
-    paddingHorizontal: 10,
-    borderRadius: 15,
-  },
-  conhecimentoListItemTopicoMoreText: {
-    fontSize: 12,
-    color: Colors.dark,
-  },
-  // Estilos do Chatbot (Mock)
-  chatbotContainer: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-    padding: 20,
-  },
-  chatbotText: {
-    fontSize: 16,
-    color: Colors.dark,
-    textAlign: 'center',
-    marginBottom: 20,
-  },
-  chatbotButton: {
-    backgroundColor: Colors.primary,
-    paddingVertical: 12,
-    paddingHorizontal: 20,
-    borderRadius: 8,
-  },
-  chatbotButtonText: {
-    color: Colors.white,
-    fontWeight: 'bold',
-    fontSize: 16,
-  },
-  ...additionalStyles  // Novos estilos adicionados
-});
-
-// Componente principal
 const App = () => {
   return (
     <AuthProvider>
