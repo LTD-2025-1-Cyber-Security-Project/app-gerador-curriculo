@@ -1,35 +1,20 @@
 pedir cep (No chatbot) - Feito
 caso tenha algum campo que não saiba, digitar nao sei para pular ou deixar em branco - Feito
 depois de cada pergunta, ter um botão, confirma informação ou corrige? - Feito
+simulador de entrevista de emprego - Na tela inicial - Feito
+Exportação em .docx e em PDF - Feito
+pode ter também um botão (gerar curriculum de acordo com a vaga encontrada..
+e fazer alguma associação com uma vaga existente) - Feito
 
-editar informações do curriculum já criado
-
-após a conclusão do curriculum, pode ter um botão, melhorar com ia o curriculum
+- editar informações do curriculum já criado
+- após a conclusão do curriculum, pode ter um botão, melhorar com ia o curriculum
 (para que a IA refaça o curriculum com informações verdadeiras e mais atraente)
-
-Exportação em .docx e em PDF
-pode ter também um botão (gerar curriculum de acordo com a vaga encontrada.. e fazer alguma associação com uma vaga existente)
-Carregar informações pré-existentes
+- Carregar informações pré-existentes
 
 ---
 
-Na parte de minha API Key do Gemini, fazer com que ele fique invisivel para os clientes nao terem acesso, mas deixar ele no sistema
-
----
-
-simulador de entrevista de emprego - Na tela inicial - Terminando
-
-botão de áudio para a pessoa falar sem necessidade de escrever - No chatbot
-
-importar imagem (gerar curriculum de acordo com uma imagem (curriculum escrito á mão)) - No chatbot, colocar um botao para o cliente se deseja fazer o
+- botão de áudio para a pessoa falar sem necessidade de escrever - No chatbot
+- importar imagem (gerar curriculum de acordo com uma imagem (curriculum escrito á mão)) - No chatbot, colocar um botao para o cliente se deseja fazer o
 curriculo com o Chatbot, com a IA, ou tirar uma foto de curriculo ja existente e a IA montar o curriculo
-
-sugestões de palavras chaves de emprego de acordo com o que tem no curriculum
-
----
-
-Em acoes principais na tela inicial, colocar o botao de simular entrevista.
-Entao o app pede para o usuario escoher o curriculo ou nao e com base nisso, a IA (com prompt de comando avancado)
-inicia a entrevista com muitas perguntas, a IA tambem pega informacoes na internet com base nas principais perguntas feita pelos recrutadores.
-Faca completa essa parte.
-Nao faca o codigo a direita nesse site, faca abaixo.
+- sugestões de palavras chaves de emprego de acordo com o que tem no curriculum
+- Na parte de minha API Key do Gemini, fazer com que ele fique invisivel para os clientes nao terem acesso, mas deixar ele no sistema
