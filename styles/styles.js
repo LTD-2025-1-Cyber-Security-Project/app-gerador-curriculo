@@ -2927,339 +2927,109 @@ const styles = StyleSheet.create({
     fontWeight: 'bold',
     fontSize: 16,
   },
-    // Estilos da tela de entrevista
-  entrevistaContainer: {
-    flex: 1,
-    backgroundColor: '#f5f7fa',
-  },
-  progressoContainer: {
+  premiumButton: {
+    backgroundColor: Colors.primary,
     paddingHorizontal: 15,
-    paddingVertical: 10,
-    backgroundColor: Colors.white,
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    borderBottomWidth: 1,
-    borderBottomColor: Colors.mediumGray,
-  },
-  progressoTrack: {
-    height: 4,
-    backgroundColor: '#e0e0e0',
-    borderRadius: 2,
-    flex: 1,
-    marginRight: 10,
-  },
-  progressoFill: {
-    height: '100%',
-    backgroundColor: Colors.primary,
-    borderRadius: 2,
-  },
-  progressoTexto: {
-    fontSize: 12,
-    color: Colors.dark,
-    fontWeight: '500',
-  },
-  mensagensLista: {
-    padding: 15,
-    paddingBottom: 20,
-  },
-  mensagemEntrevista: {
-    borderRadius: 10,
-    padding: 15,
-    marginBottom: 15,
-    maxWidth: '80%',
-  },
-  mensagemRecrutador: {
-    backgroundColor: Colors.primary,
+    paddingVertical: 8,
+    borderRadius: 5,
     alignSelf: 'flex-start',
-    borderBottomLeftRadius: 0,
-  },
-  mensagemUsuario: {
-    backgroundColor: Colors.white,
-    alignSelf: 'flex-end',
-    borderBottomRightRadius: 0,
-    ...Platform.select({
-      ios: {
-        shadowColor: '#000',
-        shadowOffset: { width: 0, height: 1 },
-        shadowOpacity: 0.1,
-        shadowRadius: 2,
-      },
-      android: {
-        elevation: 1,
-      },
-    }),
-  },
-  textoMensagem: {
-    fontSize: 16,
-    lineHeight: 22,
-  },
-  textoMensagemRecrutador: {
-    color: Colors.white,
-  },
-  textoMensagemUsuario: {
-    color: Colors.dark,
-  },
-  tipoPerguntaBadge: {
-    backgroundColor: 'rgba(255, 255, 255, 0.3)',
-    paddingHorizontal: 8,
-    paddingVertical: 2,
-    borderRadius: 10,
-    alignSelf: 'flex-start',
-    marginTop: 8,
-  },
-  tipoPerguntaTexto: {
-    color: Colors.white,
-    fontSize: 12,
-    fontWeight: '500',
-  },
-  inputContainer: {
-    backgroundColor: Colors.white,
-    padding: 10,
-    paddingBottom: Platform.OS === 'ios' ? 30 : 10,
-    borderTopWidth: 1,
-    borderTopColor: Colors.mediumGray,
-  },
-  input: {
-    backgroundColor: '#f5f5f5',
-    borderRadius: 8,
-    padding: 12,
-    minHeight: 100,
-    maxHeight: 200,
-    textAlignVertical: 'top',
-    marginBottom: 10,
-    fontSize: 16,
-  },
-  enviarButton: {
-    backgroundColor: Colors.primary,
-    paddingVertical: 12,
-    borderRadius: 8,
-    alignItems: 'center',
-  },
-  enviarButtonDisabled: {
-    backgroundColor: '#bdbdbd',
-  },
-  enviarButtonText: {
-    color: Colors.white,
-    fontWeight: 'bold',
-    fontSize: 16,
-  },
-  feedbackContainer: {
-    backgroundColor: Colors.white,
-    padding: 15,
-    paddingBottom: Platform.OS === 'ios' ? 30 : 15,
-    borderTopWidth: 1,
-    borderTopColor: Colors.mediumGray,
-    maxHeight: '60%',
-  },
-  feedbackTitulo: {
-    fontSize: 18,
-    fontWeight: 'bold',
-    marginBottom: 10,
-    color: Colors.dark,
-  },
-  feedbackScrollView: {
-    maxHeight: '80%',
-  },
-  continuarButton: {
-    backgroundColor: Colors.primary,
-    paddingVertical: 12,
-    borderRadius: 8,
-    alignItems: 'center',
     marginTop: 15,
   },
-  continuarButtonText: {
+  premiumButtonText: {
     color: Colors.white,
-    fontWeight: 'bold',
-    fontSize: 16,
+    fontWeight: '500',
   },
-  
-  // Estilos da tela de avaliação final
-  avaliacaoFinalContainer: {
-    flex: 1,
-    padding: 15,
-    backgroundColor: '#f5f7fa',
-  },
-  avaliacaoHeader: {
-    backgroundColor: Colors.white,
-    borderRadius: 10,
-    padding: 15,
-    marginBottom: 15,
-    alignItems: 'center',
-    ...Platform.select({
-      ios: {
-        shadowColor: '#000',
-        shadowOffset: { width: 0, height: 2 },
-        shadowOpacity: 0.1,
-        shadowRadius: 4,
-      },
-      android: {
-        elevation: 3,
-      },
-    }),
-  },
-  avaliacaoTitulo: {
-    fontSize: 22,
-    fontWeight: 'bold',
-    color: Colors.dark,
-    marginBottom: 15,
-  },
-  pontuacaoContainer: {
-    alignItems: 'center',
-    marginBottom: 15,
-  },
-  pontuacaoLabel: {
-    fontSize: 16,
-    color: Colors.dark,
-    marginBottom: 5,
-  },
-  pontuacaoCircle: {
-    width: 100,
-    height: 100,
-    borderRadius: 50,
-    backgroundColor: Colors.primary,
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginBottom: 5,
-  },
-  pontuacaoValor: {
-    fontSize: 32,
-    fontWeight: 'bold',
-    color: Colors.white,
-  },
-  pontuacaoMax: {
-    fontSize: 14,
-    color: 'rgba(255, 255, 255, 0.8)',
-  },
-  chanceSucessoContainer: {
-    paddingHorizontal: 20,
-    paddingVertical: 8,
-    borderRadius: 20,
-  },
-  chanceSucessoTexto: {
-    color: Colors.white,
-    fontWeight: 'bold',
-    fontSize: 14,
-  },
-  secaoAvaliacao: {
-    backgroundColor: Colors.white,
-    borderRadius: 10,
-    padding: 15,
-    marginBottom: 15,
-    ...Platform.select({
-      ios: {
-        shadowColor: '#000',
-        shadowOffset: { width: 0, height: 2 },
-        shadowOpacity: 0.1,
-        shadowRadius: 4,
-      },
-      android: {
-        elevation: 2,
-      },
-    }),
-  },
-  secaoTitulo: {
-    fontSize: 18,
-    fontWeight: 'bold',
-    color: Colors.dark,
-    marginBottom: 15,
-    borderBottomWidth: 1,
-    borderBottomColor: Colors.mediumGray,
-    paddingBottom: 5,
-  },
-  pontoItem: {
-    marginBottom: 12,
-  },
-  pontoTitulo: {
-    fontSize: 16,
-    fontWeight: 'bold',
-    color: Colors.dark,
-    marginBottom: 4,
-  },
-  pontoExemplo: {
-    fontSize: 14,
-    color: Colors.lightText,
-    lineHeight: 20,
-  },
-  recomendacaoItem: {
+  mainActionsContainer: {
     flexDirection: 'row',
-    marginBottom: 10,
-    alignItems: 'flex-start',
+    flexWrap: 'wrap',
+    justifyContent: 'space-between',
   },
-  recomendacaoNumero: {
-    width: 24,
-    height: 24,
+  mainActionButton: {
+    width: '48%',
+    backgroundColor: Colors.white,
     borderRadius: 12,
-    backgroundColor: Colors.primary,
-    color: Colors.white,
-    textAlign: 'center',
-    lineHeight: 24,
-    fontWeight: 'bold',
-    marginRight: 10,
-  },
-  recomendacaoTexto: {
-    flex: 1,
-    fontSize: 15,
-    color: Colors.dark,
-    lineHeight: 22,
-  },
-  avaliacaoDetalheItem: {
-    marginBottom: 10,
-  },
-  avaliacaoDetalheTitulo: {
-    fontSize: 15,
-    fontWeight: 'bold',
-    color: Colors.dark,
-    marginBottom: 3,
-  },
-  avaliacaoDetalheTexto: {
-    fontSize: 14,
-    color: Colors.lightText,
-    lineHeight: 20,
-  },
-  conclusaoContainer: {
-    backgroundColor: '#e3f2fd',
-    borderRadius: 10,
     padding: 15,
-    marginBottom: 20,
-    borderLeftWidth: 4,
-    borderLeftColor: Colors.info,
-  },
-  conclusaoTitulo: {
-    fontSize: 16,
-    fontWeight: 'bold',
-    color: Colors.dark,
-    marginBottom: 5,
-  },
-  conclusaoTexto: {
-    fontSize: 15,
-    color: '#01579b',
-    lineHeight: 22,
-  },
-  botaoEncerrar: {
-    backgroundColor: Colors.primary,
-    paddingVertical: 15,
-    borderRadius: 8,
+    marginBottom: 15,
     alignItems: 'center',
-    marginBottom: 30,
+    elevation: 2,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.1,
+    shadowRadius: 2,
   },
-  textoEncerrar: {
-    color: Colors.white,
-    fontWeight: 'bold',
-    fontSize: 16,
-  },
-  loadingContainer: {
-    flex: 1,
+  mainActionIconContainer: {
+    width: 50,
+    height: 50,
+    borderRadius: 25,
+    backgroundColor: '#f5f5f5',
     justifyContent: 'center',
     alignItems: 'center',
-    padding: 20,
+    marginBottom: 10,
   },
-  loadingText: {
-    marginTop: 20,
+  mainActionIcon: {
+    fontSize: 24,
+  },
+  mainActionText: {
+    fontWeight: '500',
+    color: Colors.dark,
     textAlign: 'center',
+  },
+  curriculoProgressoCard: {
+    backgroundColor: '#fff3e0',
+    borderRadius: 15,
+    padding: 20,
+    marginBottom: 20,
+    marginHorizontal: 20,
+    borderLeftWidth: 4,
+    borderLeftColor: '#ff9800',
+    elevation: 2,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+  },
+  curriculoProgressoHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 10,
+  },
+  curriculoProgressoIcon: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: '#ff9800',
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginRight: 15,
+  },
+  curriculoProgressoTitulo: {
     fontSize: 16,
+    fontWeight: 'bold',
     color: Colors.dark,
   },
+  curriculoProgressoSubtitulo: {
+    fontSize: 12,
+    color: Colors.lightText,
+    marginTop: 2,
+  },
+  curriculoProgressoTexto: {
+    color: '#e65100',
+    marginBottom: 15,
+  },
+  curriculoProgressoBotao: {
+    backgroundColor: '#ff9800',
+    paddingVertical: 10,
+    paddingHorizontal: 15,
+    borderRadius: 8,
+    alignSelf: 'flex-start',
+  },
+  curriculoProgressoBotaoTexto: {
+    color: Colors.white,
+    fontWeight: 'bold',
+  },
+
+
+
   ...additionalStyles  // Novos estilos adicionados
 });
 
