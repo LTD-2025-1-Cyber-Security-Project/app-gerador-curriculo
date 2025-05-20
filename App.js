@@ -1797,7 +1797,6 @@ const HomeStackScreen = () => (
     <HomeStack.Screen name="GraficosRegionais" component={GraficosRegionaisScreen} />
   </HomeStack.Navigator>
 );
-
 const DashboardStackScreen = () => (
   <DashboardStack.Navigator screenOptions={{ headerShown: false }}>
     <DashboardStack.Screen name="DashboardMain" component={DashboardScreen} />
@@ -5905,8 +5904,6 @@ const getCurrentTime = () => {
 const getUniqueId = () => {
   return Date.now().toString(36) + Math.random().toString(36).substr(2);
 };
-
-
 const MelhorarComIAButton = ({ curriculoData, onMelhoria }) => {
   const [loading, setLoading] = useState(false);
   
@@ -5973,22 +5970,6 @@ const MelhorarComIAButton = ({ curriculoData, onMelhoria }) => {
     </TouchableOpacity>
   );
 };
-
-const DocumentIcon = ({ style }) => {
-  return (
-    <View style={[{
-      width: 80,
-      height: 80,
-      justifyContent: 'center',
-      alignItems: 'center',
-      backgroundColor: 'rgba(78, 115, 223, 0.1)',
-      borderRadius: 40,
-    }, style]}>
-      <Text style={{ fontSize: 40 }}>📄</Text>
-    </View>
-  );
-};
-
 const AuthNavigator = () => (
   <AuthStack.Navigator
     screenOptions={{

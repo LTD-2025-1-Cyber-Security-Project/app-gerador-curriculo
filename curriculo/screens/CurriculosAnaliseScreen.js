@@ -49,6 +49,7 @@ import AnaliseCVScreen from '../../screens/AnaliseCVScreen';
 import PerfilFotoScreen from '../../screens/PerfilFotoScreen';
 import analisarCurriculoComIA from '../../curriculo/analisarCurriculoComIA';
 import chamarIAAPI from '../../src/api/chamarIAAPI';
+import DocumentIcon from '../../styles/DocumentIcon'
 
 const CurriculosAnaliseScreen = ({ navigation }) => {
   const { user } = useAuth();
