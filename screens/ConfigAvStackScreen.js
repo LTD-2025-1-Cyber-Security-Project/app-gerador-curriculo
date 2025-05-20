@@ -6,4 +6,4 @@ const ConfigAvStackScreen = () => (
   </ConfigAvStack.Navigator>
 );
 
-export default ConfigAvStackScreen;
+export default {ConfigAvStackScreen}
