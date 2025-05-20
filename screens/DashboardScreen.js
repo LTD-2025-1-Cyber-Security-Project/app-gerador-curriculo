@@ -56,11 +56,11 @@ const useAuth = () => {
 
 const DashboardScreen = ({ navigation }) => {
   const authContext = useAuth();
-  
+
   // Verificação de segurança para o contexto de autenticação
   const [contextLoading, setContextLoading] = useState(true);
   const [user, setUser] = useState(null);
-  
+
   // Estados do dashboard
   const [stats, setStats] = useState({
     totalCurriculos: 0,
@@ -86,37 +86,41 @@ const DashboardScreen = ({ navigation }) => {
     { id: 'polar', name: 'Polar', icon: '🔄' }
   ];
 
-  // Verificação inicial do contexto de autenticação
+  // No useEffect de verificação do contexto
   useEffect(() => {
     const checkAuthContext = async () => {
       try {
         setContextLoading(true);
-        
-        // Tentar obter o usuário do contexto ou do AsyncStorage
-        if (authContext && authContext.user) {
+
+        // Tratamento defensivo do contexto
+        if (authContext && typeof authContext === 'object' && authContext.user) {
           setUser(authContext.user);
-          setContextLoading(false);
         } else {
-          // Fallback: tentar obter dados do usuário do AsyncStorage
-          const storedUser = await AsyncStorage.getItem('currentUser');
-          if (storedUser) {
-            const userData = JSON.parse(storedUser);
-            setUser(userData);
-          } else {
-            // Se não há usuário logado, navegar para login
-            console.log('Nenhum usuário encontrado, redirecionando para login...');
-            // navigation.replace('Login'); // Descomente se tiver tela de login
+          console.log('Contexto de autenticação indisponível ou sem usuário, tentando fallback...');
+          // Fallback para AsyncStorage
+          try {
+            const storedUser = await AsyncStorage.getItem('currentUser');
+            if (storedUser) {
+              const userData = JSON.parse(storedUser);
+              setUser(userData);
+              console.log('Usuário recuperado do AsyncStorage com sucesso');
+            } else {
+              console.warn('Nenhum usuário encontrado no AsyncStorage');
+              // Manter user como null - a UI tratará este caso
+            }
+          } catch (storageError) {
+            console.error('Erro ao acessar AsyncStorage:', storageError);
           }
-          setContextLoading(false);
         }
       } catch (error) {
         console.error('Erro ao verificar contexto de autenticação:', error);
+      } finally {
         setContextLoading(false);
       }
     };
 
     checkAuthContext();
-  }, [authContext]);
+  }, []);
 
   useEffect(() => {
     if (user && !contextLoading) {
@@ -141,7 +145,7 @@ const DashboardScreen = ({ navigation }) => {
         console.log('Usuário não encontrado ao carregar currículos');
         return;
       }
-      
+
       const cvs = await AsyncStorage.getItem(`curriculos_${user.id}`);
       const curriculos = cvs ? JSON.parse(cvs) : [];
       setCurriculosList(curriculos);
@@ -157,7 +161,7 @@ const DashboardScreen = ({ navigation }) => {
         console.log('Usuário não encontrado ao carregar dados');
         return;
       }
-      
+
       setLoading(true);
 
       // Carregar dados dos currículos
@@ -240,7 +244,7 @@ const DashboardScreen = ({ navigation }) => {
       Alert.alert('Erro', 'Usuário não autenticado. Faça login novamente.');
       return;
     }
-    
+
     // Verificar se há currículos antes
     AsyncStorage.getItem(`curriculos_${user.id}`).then(cvs => {
       const curriculos = cvs ? JSON.parse(cvs) : [];
@@ -266,36 +270,72 @@ const DashboardScreen = ({ navigation }) => {
     });
   };
 
+  // Função navegarParaAnalisarCV modificada para evitar o problema com useAuth
   const navegarParaAnalisarCV = () => {
-    // Verificar se o usuário existe antes de continuar
-    if (!user || !user.id) {
-      Alert.alert('Erro', 'Usuário não autenticado. Faça login novamente.');
+    // Verificação de segurança mais robusta
+    if (!user) {
+      console.warn('Tentativa de navegar para análise de CV sem usuário válido');
+      Alert.alert(
+        "Sessão Expirada",
+        "Sua sessão expirou ou você não está autenticado. Por favor, faça login novamente.",
+        [
+          {
+            text: "OK",
+            onPress: () => {
+              // Redirecionar para login ou mostrar formulário de login
+              // Para fins de desenvolvimento, apenas registro no console
+              console.log('Redirecionando para login...');
+            }
+          }
+        ]
+      );
       return;
     }
-    
-    // Verificar se há currículos antes
-    AsyncStorage.getItem(`curriculos_${user.id}`).then(cvs => {
-      const curriculos = cvs ? JSON.parse(cvs) : [];
 
-      if (curriculos.length === 0) {
-        Alert.alert(
-          "Nenhum Currículo Encontrado",
-          "Você precisa criar um currículo antes de analisá-lo.",
-          [
-            { text: "OK" },
-            {
-              text: "Criar Currículo",
-              onPress: () => navigation.navigate('Chatbot')
+    // Verificar ID do usuário de forma defensiva
+    if (!user.id) {
+      console.error('Usuário sem ID válido ao acessar Análise CV');
+      Alert.alert('Erro', 'Informações de usuário incompletas. Tente fazer login novamente.');
+      return;
+    }
+
+    // Usar try/catch para evitar exceções não tratadas
+    try {
+      // Verificar se há currículos antes
+      AsyncStorage.getItem(`curriculos_${user.id}`)
+        .then(cvs => {
+          const curriculos = cvs ? JSON.parse(cvs) : [];
+
+          if (curriculos.length === 0) {
+            Alert.alert(
+              "Nenhum Currículo Encontrado",
+              "Você precisa criar um currículo antes de analisá-lo.",
+              [
+                { text: "OK" },
+                {
+                  text: "Criar Currículo",
+                  onPress: () => navigation.navigate('Chatbot')
+                }
+              ]
+            );
+          } else {
+            // Navegação segura com verificação
+            if (navigation && navigation.navigate) {
+              navigation.navigate('CurriculosAnalise');
+            } else {
+              console.error('Objeto de navegação indisponível');
+              Alert.alert('Erro', 'Não foi possível navegar para a tela de análise.');
             }
-          ]
-        );
-      } else {
-        navigation.navigate('CurriculosAnalise');
-      }
-    }).catch(error => {
-      console.error('Erro ao verificar currículos:', error);
-      Alert.alert('Erro', 'Não foi possível verificar seus currículos.');
-    });
+          }
+        })
+        .catch(error => {
+          console.error('Erro ao verificar currículos:', error);
+          Alert.alert('Erro', 'Não foi possível verificar seus currículos: ' + error.message);
+        });
+    } catch (error) {
+      console.error('Erro crítico ao tentar navegar para Análise CV:', error);
+      Alert.alert('Erro Inesperado', 'Ocorreu um erro ao tentar acessar a análise de currículos.');
+    }
   };
 
   const navegarParaMeusCurriculos = () => {
@@ -314,7 +354,7 @@ const DashboardScreen = ({ navigation }) => {
         Alert.alert('Erro', 'Usuário não autenticado. Faça login novamente.');
         return;
       }
-      
+
       setCareerAnalysisLoading(true);
 
       // Encontrar o currículo selecionado
