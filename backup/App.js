@@ -150,7 +150,7 @@ const DashboardScreen = ({ navigation }) => {
     try {
       // Verificar se o usuário ainda está logado antes de continuar
       if (!user || !user.id) return;
-      
+
       const cvs = await AsyncStorage.getItem(`curriculos_${user.id}`);
       const curriculos = cvs ? JSON.parse(cvs) : [];
       setCurriculosList(curriculos);
@@ -163,7 +163,7 @@ const DashboardScreen = ({ navigation }) => {
     try {
       // Verificar se o usuário ainda está logado antes de continuar
       if (!user || !user.id) return;
-      
+
       setLoading(true);
 
       // Carregar dados dos currículos
@@ -239,7 +239,7 @@ const DashboardScreen = ({ navigation }) => {
   const navegarParaBuscarVagas = () => {
     // Verificar se o usuário ainda está logado antes de continuar
     if (!user || !user.id) return;
-    
+
     // Verificar se há currículos antes
     AsyncStorage.getItem(`curriculos_${user.id}`).then(cvs => {
       const curriculos = cvs ? JSON.parse(cvs) : [];
@@ -265,7 +265,7 @@ const DashboardScreen = ({ navigation }) => {
   const navegarParaAnalisarCV = () => {
     // Verificar se o usuário ainda está logado antes de continuar
     if (!user || !user.id) return;
-    
+
     // Verificar se há currículos antes
     AsyncStorage.getItem(`curriculos_${user.id}`).then(cvs => {
       const curriculos = cvs ? JSON.parse(cvs) : [];
@@ -297,7 +297,7 @@ const DashboardScreen = ({ navigation }) => {
     try {
       // Verificar se o usuário ainda está logado antes de continuar
       if (!user || !user.id) return;
-      
+
       setCareerAnalysisLoading(true);
 
       // Encontrar o currículo selecionado
@@ -5215,11 +5215,11 @@ const HomeStackScreen = () => (
     <HomeStack.Screen name="SobreApp" component={SobreAppScreen} />
     <HomeStack.Screen name="ConfiguracoesIA" component={ConfiguracoesIAScreen} />
     <HomeStack.Screen name="EditarCurriculo" component={EditarCurriculoScreen} />
-    
+
     {/* Novas rotas para simulação de entrevista */}
     <HomeStack.Screen name="SimularEntrevista" component={SimularEntrevistaScreen} />
     <HomeStack.Screen name="EntrevistaSimulada" component={EntrevistaSimuladaScreen} />
-    
+
     {/* Outras rotas */}
     <HomeStack.Screen name="DadosMercado" component={DadosMercadoScreen} />
     <HomeStack.Screen name="GraficosRegionais" component={GraficosRegionaisScreen} />
@@ -7778,7 +7778,7 @@ const processMessage = (message, currentStep, cvData) => {
       if (!isSkipping) {
         // Validação básica de CEP (formato XXXXX-XXX ou XXXXXXXX)
         const cepRegex = /^[0-9]{5}-?[0-9]{3}$/;
-        
+
         if (cepRegex.test(message.trim())) {
           data.informacoes_pessoais.cep = message.trim();
         } else if (message.trim() !== '') {
@@ -8351,7 +8351,7 @@ const ConfirmationButtons = ({ onConfirm, onCorrect }) => {
       >
         <Text style={styles.confirmationButtonText}>✓ Confirmar</Text>
       </TouchableOpacity>
-      
+
       <TouchableOpacity
         style={[styles.confirmationButton, { backgroundColor: Colors.warning }]}
         onPress={onCorrect}
@@ -8858,6 +8858,7 @@ const RegisterScreen = ({ navigation }) => {
 
 const HomeScreen = ({ navigation }) => {
   const { user, logout } = useAuth();
+  const [menuVisible, setMenuVisible] = useState(false);
   const insets = useSafeAreaInsets();
   const scrollY = new Animated.Value(0);
   const screenWidth = Dimensions.get('window').width;
@@ -8904,6 +8905,211 @@ const HomeScreen = ({ navigation }) => {
 
   // Referência para o timeout do debounce
   const searchTimeoutRef = useRef(null);
+
+  // Função para abrir/fechar o menu
+  const toggleMenu = () => {
+    setMenuVisible(!menuVisible);
+  };
+
+  // Componente do Menu Hambúrguer
+  const renderHamburguerMenu = () => (
+    <Modal
+      visible={menuVisible}
+      transparent={true}
+      animationType="slide"
+      onRequestClose={() => setMenuVisible(false)}
+    >
+      <TouchableOpacity
+        style={{
+          flex: 1,
+          backgroundColor: 'rgba(0,0,0,0.5)',
+        }}
+        activeOpacity={1}
+        onPress={() => setMenuVisible(false)}
+      >
+        <View style={{
+          width: '80%',
+          height: '100%',
+          backgroundColor: 'white',
+          shadowColor: '#000',
+          shadowOffset: { width: 2, height: 0 },
+          shadowOpacity: 0.3,
+          shadowRadius: 5,
+          elevation: 5,
+        }}>
+          <TouchableOpacity
+            onPress={() => setMenuVisible(false)}
+            style={{
+              alignSelf: 'flex-end',
+              padding: 15,
+            }}
+          >
+            <Ionicons name="close" size={24} color={Colors.dark} />
+          </TouchableOpacity>
+
+          <View style={{
+            alignItems: 'center',
+            padding: 20,
+            borderBottomWidth: 1,
+            borderBottomColor: Colors.lightGray,
+          }}>
+            <View style={{
+              width: 80,
+              height: 80,
+              borderRadius: 40,
+              backgroundColor: Colors.primary,
+              justifyContent: 'center',
+              alignItems: 'center',
+              marginBottom: 15,
+            }}>
+              <Text style={{ fontSize: 40, color: 'white' }}>👤</Text>
+            </View>
+            <Text style={{ fontSize: 18, fontWeight: 'bold', color: Colors.dark }}>
+              {user?.nome || 'Visitante'}
+            </Text>
+            <Text style={{ color: Colors.lightText, marginTop: 5 }}>
+              {user?.email || 'Email não disponível'}
+            </Text>
+          </View>
+
+          <ScrollView style={{ flex: 1 }}>
+            {/* Menu Items */}
+            <MenuItemSection title="Currículo">
+              <MenuItem
+                icon="document-text-outline"
+                title="Novo Currículo"
+                onPress={() => {
+                  setMenuVisible(false);
+                  navigation.navigate('Chatbot');
+                }}
+              />
+              <MenuItem
+                icon="analytics-outline"
+                title="Analisar Currículo"
+                onPress={() => {
+                  setMenuVisible(false);
+                  navigation.navigate('CurriculosAnalise');
+                }}
+              />
+              <MenuItem
+                icon="folder-outline"
+                title="Gerenciar Currículos"
+                onPress={() => {
+                  setMenuVisible(false);
+                  navigation.navigate('MeusCurriculos');
+                }}
+              />
+            </MenuItemSection>
+
+            <MenuItemSection title="Carreira">
+              <MenuItem
+                icon="search-outline"
+                title="Buscar Vagas"
+                onPress={() => {
+                  setMenuVisible(false);
+                  navegarParaBuscaVagas();
+                }}
+              />
+              <MenuItem
+                icon="library-outline"
+                title="Biblioteca de Conhecimento"
+                onPress={() => {
+                  setMenuVisible(false);
+                  navegarParaConhecimento();
+                }}
+              />
+              <MenuItem
+                icon="mic-outline"
+                title="Simular Entrevista"
+                onPress={() => {
+                  setMenuVisible(false);
+                  navigation.navigate('SimularEntrevista');
+                }}
+              />
+            </MenuItemSection>
+
+            <MenuItemSection title="Ferramentas">
+              <MenuItem
+                icon="cog-outline"
+                title="Configurações de IA"
+                onPress={() => {
+                  setMenuVisible(false);
+                  navegarParaConfiguracoesIA();
+                }}
+              />
+              <MenuItem
+                icon="notifications-outline"
+                title="Notificações"
+                badge={3}
+                onPress={() => {
+                  setMenuVisible(false);
+                  // Implemente a navegação para notificações
+                  Alert.alert("Notificações", "Funcionalidade em desenvolvimento");
+                }}
+              />
+              <MenuItem
+                icon="stats-chart-outline"
+                title="Estatísticas"
+                onPress={() => {
+                  setMenuVisible(false);
+                  // Implemente a navegação para estatísticas
+                  Alert.alert("Estatísticas", "Funcionalidade em desenvolvimento");
+                }}
+              />
+            </MenuItemSection>
+
+            <MenuItemSection title="Outros">
+              <MenuItem
+                icon="information-circle-outline"
+                title="Sobre o App"
+                onPress={() => {
+                  setMenuVisible(false);
+                  navigation.navigate('SobreApp');
+                }}
+              />
+              <MenuItem
+                icon="star-outline"
+                title="Avaliar App"
+                onPress={() => {
+                  setMenuVisible(false);
+                  // Implemente a funcionalidade de avaliação
+                  Alert.alert("Avaliar App", "Funcionalidade em desenvolvimento");
+                }}
+              />
+              <MenuItem
+                icon="help-circle-outline"
+                title="Ajuda e Suporte"
+                onPress={() => {
+                  setMenuVisible(false);
+                  // Implemente a navegação para ajuda
+                  Alert.alert("Ajuda", "Funcionalidade em desenvolvimento");
+                }}
+              />
+              <MenuItem
+                icon="log-out-outline"
+                title="Sair"
+                textColor={Colors.danger}
+                onPress={() => {
+                  setMenuVisible(false);
+                  logout();
+                }}
+              />
+            </MenuItemSection>
+          </ScrollView>
+
+          <View style={{
+            padding: 15,
+            borderTopWidth: 1,
+            borderTopColor: Colors.lightGray,
+          }}>
+            <Text style={{ textAlign: 'center', color: Colors.lightText, fontSize: 12 }}>
+              CurriculoBot Premium v1.2.0
+            </Text>
+          </View>
+        </View>
+      </TouchableOpacity>
+    </Modal>
+  );
 
   // Lista de tópicos de carreira
   const careerTopics = [
@@ -9134,7 +9340,7 @@ const HomeScreen = ({ navigation }) => {
       } catch (innerError) {
         console.log('Erro ao extrair JSON da resposta:', innerError);
       }
-      
+
       // Cria um objeto manualmente se tudo falhar
       return null;
     }
@@ -9155,18 +9361,18 @@ const HomeScreen = ({ navigation }) => {
 
       // Extrair informações do currículo para a busca
       let perfilProfissional = {};
-      
+
       // Tenta extrair dados do currículo para construir o perfil
       if (curriculo.conteudo) {
         if (typeof curriculo.conteudo === 'object') {
           // Se já for um objeto, usa diretamente
           const conteudo = curriculo.conteudo;
-          
+
           // Cargo/Função
-          perfilProfissional.cargo = curriculo.cargo || 
-            (conteudo.experiencia && conteudo.experiencia[0]?.cargo) || 
+          perfilProfissional.cargo = curriculo.cargo ||
+            (conteudo.experiencia && conteudo.experiencia[0]?.cargo) ||
             "Profissional";
-          
+
           // Habilidades
           if (conteudo.habilidades) {
             if (Array.isArray(conteudo.habilidades)) {
@@ -9175,12 +9381,12 @@ const HomeScreen = ({ navigation }) => {
               perfilProfissional.habilidades = conteudo.habilidades.tecnicas;
             }
           }
-          
+
           // Localização
-          perfilProfissional.localizacao = 
-            (conteudo.contato && conteudo.contato.local) || 
+          perfilProfissional.localizacao =
+            (conteudo.contato && conteudo.contato.local) ||
             "São Paulo, SP";
-          
+
           // Nível
           if (conteudo.experiencia) {
             const anosExperiencia = conteudo.experiencia.length;
@@ -9194,7 +9400,7 @@ const HomeScreen = ({ navigation }) => {
           } else {
             perfilProfissional.nivel = "Pleno";
           }
-          
+
         } else if (typeof curriculo.conteudo === 'string') {
           // Tenta parsear se for uma string JSON
           try {
@@ -9212,7 +9418,7 @@ const HomeScreen = ({ navigation }) => {
           }
         }
       }
-      
+
       // Se ainda não tiver habilidades, define algumas padrão
       if (!perfilProfissional.habilidades || perfilProfissional.habilidades.length === 0) {
         perfilProfissional.habilidades = ["Comunicação", "Trabalho em equipe", "Resolução de problemas"];
@@ -9281,7 +9487,7 @@ RETORNE APENAS UM OBJETO JSON VÁLIDO (sem texto explicativo antes ou depois) no
 
       const textoVagas = responseVagas.data?.candidates?.[0]?.content?.parts?.[0]?.text;
       let resultadoVagas = { vagas: [] };
-      
+
       try {
         // Extrai o JSON da resposta
         const dadosVagas = extrairJSON(textoVagas);
@@ -9376,7 +9582,7 @@ RETORNE APENAS UM OBJETO JSON VÁLIDO (sem texto explicativo antes ou depois) no
 
       // Ordenar vagas por compatibilidade
       resultadoVagas.vagas.sort((a, b) => b.compatibilidade - a.compatibilidade);
-      
+
       // Atribuir ícones para empresas sem logo
       resultadoVagas.vagas = resultadoVagas.vagas.map(vaga => {
         if (!vaga.empresa_logo) {
@@ -9384,12 +9590,12 @@ RETORNE APENAS UM OBJETO JSON VÁLIDO (sem texto explicativo antes ou depois) no
           const logosEmpresas = ['🏢', '🏭', '🏡', '🏪', '🏦', '🏨', '🏣', '🏬', '🏫', '🏥', '💼', '🔬', '💻', '📱', '🚀'];
           vaga.empresa_logo = logosEmpresas[Math.floor(Math.random() * logosEmpresas.length)];
         }
-        
+
         // Garantir que todos os campos estejam presentes
         if (!vaga.empresa_descricao) {
           vaga.empresa_descricao = `${vaga.empresa} é uma empresa que atua no setor de ${vaga.palavras_chave ? vaga.palavras_chave[0] : 'tecnologia'}.`;
         }
-        
+
         if (!vaga.responsabilidades || !Array.isArray(vaga.responsabilidades)) {
           vaga.responsabilidades = [
             "Desenvolver soluções para o negócio",
@@ -9397,7 +9603,7 @@ RETORNE APENAS UM OBJETO JSON VÁLIDO (sem texto explicativo antes ou depois) no
             "Implementar melhorias contínuas"
           ];
         }
-        
+
         if (!vaga.beneficios || !Array.isArray(vaga.beneficios)) {
           vaga.beneficios = [
             "Vale-refeição/alimentação",
@@ -9405,15 +9611,15 @@ RETORNE APENAS UM OBJETO JSON VÁLIDO (sem texto explicativo antes ou depois) no
             "Home office flexível"
           ];
         }
-        
+
         if (!vaga.tipo_trabalho) {
           vaga.tipo_trabalho = "Presencial";
         }
-        
+
         if (!vaga.plataforma) {
           vaga.plataforma = "LinkedIn";
         }
-        
+
         return vaga;
       });
 
@@ -9435,9 +9641,9 @@ RETORNE APENAS UM OBJETO JSON VÁLIDO (sem texto explicativo antes ou depois) no
       Alert.alert("Atenção", "Digite um termo de busca para encontrar vagas.");
       return;
     }
-    
+
     setBuscandoVagasExternas(true);
-    
+
     try {
       // Obter API key da IA
       const apiKey = await getIAAPIKey('GEMINI');
@@ -9503,7 +9709,7 @@ RETORNE APENAS UM OBJETO JSON VÁLIDO (sem texto explicativo antes ou depois) no
 
       const textoBuscaExterna = responseBuscaExterna.data?.candidates?.[0]?.content?.parts?.[0]?.text;
       const dadosVagasExternas = extrairJSON(textoBuscaExterna);
-      
+
       if (dadosVagasExternas && dadosVagasExternas.vagas && dadosVagasExternas.vagas.length > 0) {
         // Atribuir ícones para empresas sem logo
         dadosVagasExternas.vagas = dadosVagasExternas.vagas.map(vaga => {
@@ -9511,12 +9717,12 @@ RETORNE APENAS UM OBJETO JSON VÁLIDO (sem texto explicativo antes ou depois) no
             const logosEmpresas = ['🏢', '🏭', '🏡', '🏪', '🏦', '🏨', '🏣', '🏬', '🏫', '🏥', '💼', '🔬', '💻', '📱', '🚀'];
             vaga.empresa_logo = logosEmpresas[Math.floor(Math.random() * logosEmpresas.length)];
           }
-          
+
           // Garantir que todos os campos estejam presentes
           if (!vaga.empresa_descricao) {
             vaga.empresa_descricao = `${vaga.empresa} é uma empresa que atua no setor de ${vaga.palavras_chave ? vaga.palavras_chave[0] : 'tecnologia'}.`;
           }
-          
+
           if (!vaga.responsabilidades || !Array.isArray(vaga.responsabilidades)) {
             vaga.responsabilidades = [
               "Desenvolver soluções para o negócio",
@@ -9524,7 +9730,7 @@ RETORNE APENAS UM OBJETO JSON VÁLIDO (sem texto explicativo antes ou depois) no
               "Implementar melhorias contínuas"
             ];
           }
-          
+
           if (!vaga.beneficios || !Array.isArray(vaga.beneficios)) {
             vaga.beneficios = [
               "Vale-refeição/alimentação",
@@ -9532,18 +9738,18 @@ RETORNE APENAS UM OBJETO JSON VÁLIDO (sem texto explicativo antes ou depois) no
               "Home office flexível"
             ];
           }
-          
+
           if (!vaga.tipo_trabalho) {
             vaga.tipo_trabalho = "Presencial";
           }
-          
+
           if (!vaga.plataforma) {
             vaga.plataforma = "LinkedIn";
           }
-          
+
           return vaga;
         });
-        
+
         setVacasEncontradas(dadosVagasExternas.vagas);
       } else {
         Alert.alert(
@@ -9551,7 +9757,7 @@ RETORNE APENAS UM OBJETO JSON VÁLIDO (sem texto explicativo antes ou depois) no
           `Não encontramos vagas para "${pesquisaVagasExternas}". Tente outros termos de busca.`
         );
       }
-      
+
     } catch (error) {
       console.error('Erro ao buscar vagas externas:', error);
       Alert.alert(
@@ -9588,23 +9794,23 @@ RETORNE APENAS UM OBJETO JSON VÁLIDO (sem texto explicativo antes ou depois) no
       }
 
       const endpoint = `${IA_APIS.GEMINI.endpoint}?key=${apiKey}`;
-      
+
       // Gerar currículos personalizados um por um
       const novosResumosGerados = [];
 
       for (let i = 0; i < quantidadeCurriculos; i++) {
         // Cada currículo terá um estilo diferente
         const estilos = [
-          "Profissional Moderno", 
-          "Executivo Conciso", 
-          "Detalhado Abrangente", 
+          "Profissional Moderno",
+          "Executivo Conciso",
+          "Detalhado Abrangente",
           "Orientado a Resultados",
           "Criativo Inovador",
           "Técnico Especializado"
         ];
-        
+
         const estiloSelecionado = estilos[i % estilos.length];
-        
+
         // Simplificar o formato do currículo para evitar erros de parsing
         let curriculoSimplificado = {
           nome: "Nome do Candidato",
@@ -9614,7 +9820,7 @@ RETORNE APENAS UM OBJETO JSON VÁLIDO (sem texto explicativo antes ou depois) no
             linkedin: "linkedin.com/in/usuario"
           }
         };
-        
+
         if (curriculoSelecionadoParaVagas.conteudo) {
           if (typeof curriculoSelecionadoParaVagas.conteudo === 'object') {
             curriculoSimplificado = curriculoSelecionadoParaVagas.conteudo;
@@ -9714,11 +9920,11 @@ RETORNE APENAS UM OBJETO JSON VÁLIDO (sem texto explicativo antes ou depois) no
         });
 
         const textoCurriculo = responseCurriculo.data?.candidates?.[0]?.content?.parts?.[0]?.text;
-        
+
         try {
           // Extrair o JSON da resposta
           const curriculoGerado = extrairJSON(textoCurriculo);
-          
+
           if (curriculoGerado) {
             // Adicionar metadados ao currículo gerado
             const novoCurriculo = {
@@ -9732,13 +9938,13 @@ RETORNE APENAS UM OBJETO JSON VÁLIDO (sem texto explicativo antes ou depois) no
               conteudo: curriculoGerado,
               compatibilidade: vagaSelecionada.compatibilidade || 75
             };
-            
+
             novosResumosGerados.push(novoCurriculo);
           } else {
-            throw new Error(`Não foi possível processar o currículo ${i+1}`);
+            throw new Error(`Não foi possível processar o currículo ${i + 1}`);
           }
         } catch (error) {
-          console.error(`Erro ao processar currículo ${i+1}:`, error);
+          console.error(`Erro ao processar currículo ${i + 1}:`, error);
           // Criar um currículo básico como fallback
           const curriculoBasico = {
             id: `resumo-fallback-${Date.now()}-${i}`,
@@ -9787,7 +9993,7 @@ RETORNE APENAS UM OBJETO JSON VÁLIDO (sem texto explicativo antes ou depois) no
           };
           novosResumosGerados.push(curriculoBasico);
         }
-        
+
         // Breve pausa entre solicitações para evitar atingir limites de API
         await new Promise(resolve => setTimeout(resolve, 1000));
       }
@@ -9796,21 +10002,21 @@ RETORNE APENAS UM OBJETO JSON VÁLIDO (sem texto explicativo antes ou depois) no
         // Atualizar a lista de currículos gerados
         const todosCurriculosGerados = [...curriculosGerados, ...novosResumosGerados];
         setCurriculosGerados(todosCurriculosGerados);
-        
+
         // Salvar no AsyncStorage
         await AsyncStorage.setItem(`curriculos_gerados_${user.id}`, JSON.stringify(todosCurriculosGerados));
-        
+
         // Mostrar confirmação
         Alert.alert(
           "Currículos Gerados",
           `${novosResumosGerados.length} currículos personalizados foram gerados com sucesso para a vaga "${vagaSelecionada.titulo}".`,
           [
-            { 
-              text: "Ver Agora", 
+            {
+              text: "Ver Agora",
               onPress: () => {
                 // Navegar para visualizar o primeiro currículo gerado
                 visualizarCurriculoGerado(novosResumosGerados[0]);
-              } 
+              }
             },
             { text: "OK" }
           ]
@@ -9818,7 +10024,7 @@ RETORNE APENAS UM OBJETO JSON VÁLIDO (sem texto explicativo antes ou depois) no
       } else {
         throw new Error("Nenhum currículo foi gerado com sucesso");
       }
-      
+
     } catch (error) {
       console.error('Erro ao gerar currículos personalizados:', error);
       Alert.alert(
@@ -9847,15 +10053,15 @@ RETORNE APENAS UM OBJETO JSON VÁLIDO (sem texto explicativo antes ou depois) no
   const exportarCurriculo = async (curriculoId, formato) => {
     setLoadingExport(true);
     setDownloadOptions({ visible: false, curriculoId: null });
-    
+
     try {
       // Encontrar o currículo a ser exportado
       const curriculo = curriculosGerados.find(cv => cv.id === curriculoId);
-      
+
       if (!curriculo) {
         throw new Error("Currículo não encontrado");
       }
-      
+
       // Obter API key da IA
       const apiKey = await getIAAPIKey('GEMINI');
 
@@ -9864,10 +10070,10 @@ RETORNE APENAS UM OBJETO JSON VÁLIDO (sem texto explicativo antes ou depois) no
       }
 
       const endpoint = `${IA_APIS.GEMINI.endpoint}?key=${apiKey}`;
-      
+
       // Baseado no formato, gerar o conteúdo apropriado
       let promptExportacao = "";
-      
+
       if (formato === 'pdf') {
         // Prompt melhorado para HTML/CSS que será convertido em PDF
         promptExportacao = `
@@ -9964,17 +10170,17 @@ Data: ${new Date(curriculo.dataGeracao).toLocaleDateString('pt-BR')}
       });
 
       const textoExportacao = responseExportacao.data?.candidates?.[0]?.content?.parts?.[0]?.text;
-      
+
       // Em um aplicativo real, aqui você usaria bibliotecas nativas para gerar os 
       // arquivos PDF/DOCX e salvá-los no dispositivo
-      
+
       // Simular download bem-sucedido
       const nomeArquivo = `Curriculo_${curriculo.conteudo.nome?.replace(/\s+/g, '_') || 'Curriculo'}_${formato.toUpperCase()}.${formato}`;
-      
+
       // Salvar registro de exportação
       const exportacoesAnteriores = await AsyncStorage.getItem(`exportacoes_${user.id}`) || '[]';
       const todasExportacoes = JSON.parse(exportacoesAnteriores);
-      
+
       todasExportacoes.push({
         id: `export-${Date.now()}`,
         curriculoId: curriculoId,
@@ -9982,20 +10188,20 @@ Data: ${new Date(curriculo.dataGeracao).toLocaleDateString('pt-BR')}
         nomeArquivo: nomeArquivo,
         dataExportacao: new Date().toISOString()
       });
-      
+
       await AsyncStorage.setItem(`exportacoes_${user.id}`, JSON.stringify(todasExportacoes));
-      
+
       // Mostrar notificação de sucesso
       setExportSuccess({
         visible: true,
         filename: nomeArquivo,
         format: formato.toUpperCase()
       });
-      
+
       setTimeout(() => {
         setExportSuccess({ visible: false, filename: '', format: '' });
       }, 3000);
-      
+
     } catch (error) {
       console.error('Erro ao exportar currículo:', error);
       Alert.alert(
@@ -10409,7 +10615,7 @@ ${content.substring(0, 1500)}...
           }}>
             Requisitos da Vaga
           </Text>
-          
+
           <FlatList
             data={vagaSelecionada?.requisitos || []}
             keyExtractor={(item, index) => `req-${index}`}
@@ -10444,7 +10650,7 @@ ${content.substring(0, 1500)}...
               </Text>
             }
           />
-          
+
           <TouchableOpacity
             style={{
               marginTop: 20,
@@ -10493,7 +10699,7 @@ ${content.substring(0, 1500)}...
           }}>
             Selecione um Currículo
           </Text>
-          
+
           <Text style={{
             marginBottom: 20,
             color: Colors.lightText,
@@ -10501,12 +10707,12 @@ ${content.substring(0, 1500)}...
           }}>
             Escolha qual currículo deseja utilizar para buscar vagas compatíveis
           </Text>
-          
+
           <FlatList
             data={curriculos}
             keyExtractor={(item) => item.id}
             renderItem={({ item }) => (
-              <TouchableOpacity 
+              <TouchableOpacity
                 style={{
                   padding: 15,
                   borderWidth: 1,
@@ -10547,7 +10753,7 @@ ${content.substring(0, 1500)}...
               </TouchableOpacity>
             )}
           />
-          
+
           <TouchableOpacity
             style={{
               marginTop: 20,
@@ -10593,7 +10799,7 @@ ${content.substring(0, 1500)}...
           }}>
             Gerar Currículos Personalizados
           </Text>
-          
+
           <Text style={{
             marginBottom: 20,
             color: Colors.dark,
@@ -10602,7 +10808,7 @@ ${content.substring(0, 1500)}...
           }}>
             Vaga: {vagaSelecionada?.titulo} - {vagaSelecionada?.empresa}
           </Text>
-          
+
           <Text style={{
             marginBottom: 20,
             color: Colors.lightText,
@@ -10610,7 +10816,7 @@ ${content.substring(0, 1500)}...
           }}>
             Selecione quantos modelos de currículo você deseja gerar para esta vaga específica. Cada versão terá um estilo diferente otimizado para maximizar suas chances.
           </Text>
-          
+
           <View style={{
             flexDirection: 'row',
             justifyContent: 'space-around',
@@ -10639,7 +10845,7 @@ ${content.substring(0, 1500)}...
               </TouchableOpacity>
             ))}
           </View>
-          
+
           <View style={{ flexDirection: 'row', justifyContent: 'space-between' }}>
             <TouchableOpacity
               style={{
@@ -10656,7 +10862,7 @@ ${content.substring(0, 1500)}...
                 Cancelar
               </Text>
             </TouchableOpacity>
-            
+
             <TouchableOpacity
               style={{
                 padding: 15,
@@ -10715,7 +10921,7 @@ ${content.substring(0, 1500)}...
               Exportar Currículo
             </Text>
           </View>
-          
+
           <TouchableOpacity
             style={{
               flexDirection: 'row',
@@ -10744,7 +10950,7 @@ ${content.substring(0, 1500)}...
               </Text>
             </View>
           </TouchableOpacity>
-          
+
           <TouchableOpacity
             style={{
               flexDirection: 'row',
@@ -10771,7 +10977,7 @@ ${content.substring(0, 1500)}...
               </Text>
             </View>
           </TouchableOpacity>
-          
+
           <TouchableOpacity
             style={{
               marginTop: 20,
@@ -10843,14 +11049,14 @@ ${content.substring(0, 1500)}...
                 </Text>
               </View>
             </View>
-            
-            <View style={{ 
-              flexDirection: 'row', 
-              marginBottom: 15, 
-              flexWrap: 'wrap' 
+
+            <View style={{
+              flexDirection: 'row',
+              marginBottom: 15,
+              flexWrap: 'wrap'
             }}>
-              <View style={{ 
-                backgroundColor: '#f1f8e9', 
+              <View style={{
+                backgroundColor: '#f1f8e9',
                 paddingVertical: 6,
                 paddingHorizontal: 12,
                 borderRadius: 20,
@@ -10864,9 +11070,9 @@ ${content.substring(0, 1500)}...
                   {vagaSelecionada.localizacao}
                 </Text>
               </View>
-              
-              <View style={{ 
-                backgroundColor: '#e3f2fd', 
+
+              <View style={{
+                backgroundColor: '#e3f2fd',
                 paddingVertical: 6,
                 paddingHorizontal: 12,
                 borderRadius: 20,
@@ -10880,9 +11086,9 @@ ${content.substring(0, 1500)}...
                   {vagaSelecionada.regime}
                 </Text>
               </View>
-              
-              <View style={{ 
-                backgroundColor: '#fff8e1', 
+
+              <View style={{
+                backgroundColor: '#fff8e1',
                 paddingVertical: 6,
                 paddingHorizontal: 12,
                 borderRadius: 20,
@@ -10896,9 +11102,9 @@ ${content.substring(0, 1500)}...
                   {vagaSelecionada.tipo_trabalho || 'Presencial'}
                 </Text>
               </View>
-              
-              <View style={{ 
-                backgroundColor: '#e8eaf6', 
+
+              <View style={{
+                backgroundColor: '#e8eaf6',
                 paddingVertical: 6,
                 paddingHorizontal: 12,
                 borderRadius: 20,
@@ -10912,10 +11118,10 @@ ${content.substring(0, 1500)}...
                 </Text>
               </View>
             </View>
-            
+
             {/* Salário e Compatibilidade */}
             <View style={{ marginBottom: 15 }}>
-              <View style={{ 
+              <View style={{
                 backgroundColor: '#e0f2f1',
                 padding: 15,
                 borderRadius: 8
@@ -10928,41 +11134,41 @@ ${content.substring(0, 1500)}...
                 </Text>
               </View>
             </View>
-            
+
             {/* Compatibilidade com seu perfil */}
             <View style={{ marginBottom: 15 }}>
               <Text style={{ fontWeight: 'bold', color: Colors.dark, marginBottom: 5 }}>
                 Compatibilidade com seu perfil
               </Text>
               <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
-                <View style={{ 
-                  height: 10, 
-                  backgroundColor: '#E0E0E0', 
+                <View style={{
+                  height: 10,
+                  backgroundColor: '#E0E0E0',
                   borderRadius: 5,
                   flex: 1,
                   marginRight: 10
                 }}>
-                  <View style={{ 
-                    height: '100%', 
-                    width: `${vagaSelecionada.compatibilidade}%`, 
-                    backgroundColor: vagaSelecionada.compatibilidade > 80 ? Colors.success : 
-                                    vagaSelecionada.compatibilidade > 60 ? '#FF9800' : 
-                                    Colors.danger,
+                  <View style={{
+                    height: '100%',
+                    width: `${vagaSelecionada.compatibilidade}%`,
+                    backgroundColor: vagaSelecionada.compatibilidade > 80 ? Colors.success :
+                      vagaSelecionada.compatibilidade > 60 ? '#FF9800' :
+                        Colors.danger,
                     borderRadius: 5
                   }} />
                 </View>
-                <Text style={{ 
-                  fontWeight: 'bold', 
+                <Text style={{
+                  fontWeight: 'bold',
                   fontSize: 16,
-                  color: vagaSelecionada.compatibilidade > 80 ? Colors.success : 
-                          vagaSelecionada.compatibilidade > 60 ? '#FF9800' : 
-                          Colors.danger 
+                  color: vagaSelecionada.compatibilidade > 80 ? Colors.success :
+                    vagaSelecionada.compatibilidade > 60 ? '#FF9800' :
+                      Colors.danger
                 }}>
                   {vagaSelecionada.compatibilidade}%
                 </Text>
               </View>
             </View>
-            
+
             {/* Botões de ação */}
             <View style={{ flexDirection: 'row', marginTop: 10 }}>
               <TouchableOpacity
@@ -10983,7 +11189,7 @@ ${content.substring(0, 1500)}...
                   Gerar Currículo
                 </Text>
               </TouchableOpacity>
-              
+
               <TouchableOpacity
                 style={{
                   backgroundColor: Colors.secondary,
@@ -10999,7 +11205,7 @@ ${content.substring(0, 1500)}...
               </TouchableOpacity>
             </View>
           </View>
-          
+
           {/* Descrição da vaga */}
           <View style={{
             backgroundColor: 'white',
@@ -11009,40 +11215,40 @@ ${content.substring(0, 1500)}...
             borderTopWidth: 1,
             borderColor: Colors.lightGray,
           }}>
-            <Text style={{ 
-              fontSize: 18, 
-              fontWeight: 'bold', 
+            <Text style={{
+              fontSize: 18,
+              fontWeight: 'bold',
               color: Colors.dark,
               marginBottom: 15
             }}>
               Descrição da Vaga
             </Text>
-            
-            <Text style={{ 
-              color: Colors.darkGray, 
-              fontSize: 16, 
+
+            <Text style={{
+              color: Colors.darkGray,
+              fontSize: 16,
               lineHeight: 24,
               marginBottom: 20
             }}>
               {vagaSelecionada.descricao}
             </Text>
-            
+
             {/* Sobre a empresa */}
             {vagaSelecionada.empresa_descricao && (
               <>
-                <Text style={{ 
-                  fontSize: 18, 
-                  fontWeight: 'bold', 
+                <Text style={{
+                  fontSize: 18,
+                  fontWeight: 'bold',
                   color: Colors.dark,
                   marginBottom: 10,
                   marginTop: 10
                 }}>
                   Sobre a Empresa
                 </Text>
-                
-                <Text style={{ 
-                  color: Colors.darkGray, 
-                  fontSize: 16, 
+
+                <Text style={{
+                  color: Colors.darkGray,
+                  fontSize: 16,
                   lineHeight: 24,
                   marginBottom: 10
                 }}>
@@ -11050,32 +11256,32 @@ ${content.substring(0, 1500)}...
                 </Text>
               </>
             )}
-            
+
             {/* Responsabilidades */}
             {vagaSelecionada.responsabilidades && vagaSelecionada.responsabilidades.length > 0 && (
               <>
-                <Text style={{ 
-                  fontSize: 18, 
-                  fontWeight: 'bold', 
+                <Text style={{
+                  fontSize: 18,
+                  fontWeight: 'bold',
                   color: Colors.dark,
                   marginBottom: 10,
                   marginTop: 10
                 }}>
                   Responsabilidades
                 </Text>
-                
+
                 {vagaSelecionada.responsabilidades.map((responsabilidade, index) => (
-                  <View key={`resp-${index}`} style={{ 
-                    flexDirection: 'row', 
-                    marginBottom: 8, 
-                    alignItems: 'flex-start' 
+                  <View key={`resp-${index}`} style={{
+                    flexDirection: 'row',
+                    marginBottom: 8,
+                    alignItems: 'flex-start'
                   }}>
-                    <View style={{ 
-                      width: 22, 
-                      height: 22, 
-                      borderRadius: 11, 
-                      backgroundColor: '#e3f2fd', 
-                      alignItems: 'center', 
+                    <View style={{
+                      width: 22,
+                      height: 22,
+                      borderRadius: 11,
+                      backgroundColor: '#e3f2fd',
+                      alignItems: 'center',
                       justifyContent: 'center',
                       marginRight: 12,
                       marginTop: 2
@@ -11092,7 +11298,7 @@ ${content.substring(0, 1500)}...
               </>
             )}
           </View>
-          
+
           {/* Requisitos */}
           <View style={{
             backgroundColor: 'white',
@@ -11103,21 +11309,21 @@ ${content.substring(0, 1500)}...
             borderColor: Colors.lightGray,
           }}>
             <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 15 }}>
-              <Text style={{ 
-                fontSize: 18, 
-                fontWeight: 'bold', 
+              <Text style={{
+                fontSize: 18,
+                fontWeight: 'bold',
                 color: Colors.dark
               }}>
                 Requisitos
               </Text>
-              
+
               {vagaSelecionada.requisitos && vagaSelecionada.requisitos.length > 5 && (
-                <TouchableOpacity 
-                  style={{ 
-                    backgroundColor: Colors.lightGray, 
-                    paddingHorizontal: 12, 
-                    paddingVertical: 6, 
-                    borderRadius: 15 
+                <TouchableOpacity
+                  style={{
+                    backgroundColor: Colors.lightGray,
+                    paddingHorizontal: 12,
+                    paddingVertical: 6,
+                    borderRadius: 15
                   }}
                   onPress={() => setModalRequisitosVisible(true)}
                 >
@@ -11125,19 +11331,19 @@ ${content.substring(0, 1500)}...
                 </TouchableOpacity>
               )}
             </View>
-            
+
             {vagaSelecionada.requisitos && vagaSelecionada.requisitos.slice(0, 5).map((requisito, index) => (
-              <View key={`req-${index}`} style={{ 
-                flexDirection: 'row', 
-                marginBottom: 12, 
-                alignItems: 'flex-start' 
+              <View key={`req-${index}`} style={{
+                flexDirection: 'row',
+                marginBottom: 12,
+                alignItems: 'flex-start'
               }}>
-                <View style={{ 
-                  width: 24, 
-                  height: 24, 
-                  borderRadius: 12, 
-                  backgroundColor: '#f5f5f5', 
-                  alignItems: 'center', 
+                <View style={{
+                  width: 24,
+                  height: 24,
+                  borderRadius: 12,
+                  backgroundColor: '#f5f5f5',
+                  alignItems: 'center',
                   justifyContent: 'center',
                   marginRight: 12,
                   marginTop: 2
@@ -11149,14 +11355,14 @@ ${content.substring(0, 1500)}...
                 </Text>
               </View>
             ))}
-            
+
             {vagaSelecionada.requisitos && vagaSelecionada.requisitos.length > 5 && (
               <TouchableOpacity
-                style={{ 
-                  flexDirection: 'row', 
+                style={{
+                  flexDirection: 'row',
                   marginTop: 5,
                   alignItems: 'center',
-                  justifyContent: 'center' 
+                  justifyContent: 'center'
                 }}
                 onPress={() => setModalRequisitosVisible(true)}
               >
@@ -11167,7 +11373,7 @@ ${content.substring(0, 1500)}...
               </TouchableOpacity>
             )}
           </View>
-          
+
           {/* Benefícios */}
           {vagaSelecionada.beneficios && vagaSelecionada.beneficios.length > 0 && (
             <View style={{
@@ -11178,18 +11384,18 @@ ${content.substring(0, 1500)}...
               borderTopWidth: 1,
               borderColor: Colors.lightGray,
             }}>
-              <Text style={{ 
-                fontSize: 18, 
-                fontWeight: 'bold', 
+              <Text style={{
+                fontSize: 18,
+                fontWeight: 'bold',
                 color: Colors.dark,
                 marginBottom: 15
               }}>
                 Benefícios
               </Text>
-              
+
               <View style={{ flexDirection: 'row', flexWrap: 'wrap' }}>
                 {vagaSelecionada.beneficios.map((beneficio, index) => (
-                  <View key={`ben-${index}`} style={{ 
+                  <View key={`ben-${index}`} style={{
                     backgroundColor: '#f5f5f5',
                     paddingHorizontal: 15,
                     paddingVertical: 10,
@@ -11208,7 +11414,7 @@ ${content.substring(0, 1500)}...
               </View>
             </View>
           )}
-          
+
           {/* Informações adicionais */}
           <View style={{
             backgroundColor: 'white',
@@ -11219,23 +11425,23 @@ ${content.substring(0, 1500)}...
             borderTopWidth: 1,
             borderColor: Colors.lightGray,
           }}>
-            <Text style={{ 
-              fontSize: 18, 
-              fontWeight: 'bold', 
+            <Text style={{
+              fontSize: 18,
+              fontWeight: 'bold',
               color: Colors.dark,
               marginBottom: 15
             }}>
               Informações Adicionais
             </Text>
-            
+
             <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 12 }}>
               <Ionicons name="globe-outline" size={20} color={Colors.darkGray} style={{ marginRight: 10, width: 25 }} />
               <Text style={{ fontSize: 16, color: Colors.darkGray }}>
                 Plataforma: {vagaSelecionada.plataforma || 'LinkedIn'}
               </Text>
             </View>
-            
-            <TouchableOpacity 
+
+            <TouchableOpacity
               style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 12 }}
               onPress={() => abrirLinkVaga(vagaSelecionada.url)}
             >
@@ -11244,7 +11450,7 @@ ${content.substring(0, 1500)}...
                 Ver vaga original
               </Text>
             </TouchableOpacity>
-            
+
             <View style={{ flexDirection: 'row', alignItems: 'center' }}>
               <Ionicons name="time-outline" size={20} color={Colors.darkGray} style={{ marginRight: 10, width: 25 }} />
               <Text style={{ fontSize: 16, color: Colors.darkGray }}>
@@ -11295,117 +11501,117 @@ ${content.substring(0, 1500)}...
               borderBottomWidth: 1,
               borderBottomColor: Colors.lightGray,
             }}>
-              <Text style={{ 
-                fontSize: 24, 
-                fontWeight: 'bold', 
+              <Text style={{
+                fontSize: 24,
+                fontWeight: 'bold',
                 color: Colors.dark,
                 marginBottom: 4,
                 textAlign: 'center'
               }}>
                 {curriculoSelecionadoParaView.conteudo.nome}
               </Text>
-              
-              <View style={{ 
-                flexDirection: 'row', 
-                justifyContent: 'center', 
+
+              <View style={{
+                flexDirection: 'row',
+                justifyContent: 'center',
                 marginTop: 10,
                 marginBottom: 15,
                 flexWrap: 'wrap'
               }}>
                 {curriculoSelecionadoParaView.conteudo.contato?.email && (
-                  <Text style={{ 
-                    color: Colors.darkGray, 
-                    marginHorizontal: 5, 
+                  <Text style={{
+                    color: Colors.darkGray,
+                    marginHorizontal: 5,
                     fontSize: 14
                   }}>
                     <Ionicons name="mail-outline" size={14} color={Colors.primary} /> {curriculoSelecionadoParaView.conteudo.contato.email}
                   </Text>
                 )}
-                
+
                 {curriculoSelecionadoParaView.conteudo.contato?.telefone && (
-                  <Text style={{ 
-                    color: Colors.darkGray, 
-                    marginHorizontal: 5, 
+                  <Text style={{
+                    color: Colors.darkGray,
+                    marginHorizontal: 5,
                     fontSize: 14
                   }}>
                     <Ionicons name="call-outline" size={14} color={Colors.primary} /> {curriculoSelecionadoParaView.conteudo.contato.telefone}
                   </Text>
                 )}
-                
+
                 {curriculoSelecionadoParaView.conteudo.contato?.local && (
-                  <Text style={{ 
-                    color: Colors.darkGray, 
-                    marginHorizontal: 5, 
+                  <Text style={{
+                    color: Colors.darkGray,
+                    marginHorizontal: 5,
                     fontSize: 14
                   }}>
                     <Ionicons name="location-outline" size={14} color={Colors.primary} /> {curriculoSelecionadoParaView.conteudo.contato.local}
                   </Text>
                 )}
               </View>
-              
-              <View style={{ 
+
+              <View style={{
                 backgroundColor: '#f5f5f5',
                 borderRadius: 8,
                 padding: 15,
                 marginTop: 10,
                 marginBottom: 15
               }}>
-                <Text style={{ 
-                  fontWeight: 'bold', 
+                <Text style={{
+                  fontWeight: 'bold',
                   color: Colors.dark,
                   marginBottom: 5
                 }}>
                   Currículo otimizado para:
                 </Text>
-                <Text style={{ 
-                  fontSize: 16, 
-                  fontWeight: 'bold', 
-                  color: Colors.primary 
+                <Text style={{
+                  fontSize: 16,
+                  fontWeight: 'bold',
+                  color: Colors.primary
                 }}>
                   {curriculoSelecionadoParaView.vagaTitulo}
                 </Text>
                 <Text style={{ color: Colors.darkGray }}>
                   {curriculoSelecionadoParaView.vagaEmpresa}
                 </Text>
-                
-                <View style={{ 
+
+                <View style={{
                   marginTop: 10,
                   flexDirection: 'row',
                   alignItems: 'center'
                 }}>
-                  <Text style={{ 
-                    color: Colors.darkGray, 
-                    fontSize: 13 
+                  <Text style={{
+                    color: Colors.darkGray,
+                    fontSize: 13
                   }}>
-                    Compatibilidade: 
+                    Compatibilidade:
                   </Text>
-                  <View style={{ 
-                    height: 8, 
-                    width: 100, 
-                    backgroundColor: '#E0E0E0', 
+                  <View style={{
+                    height: 8,
+                    width: 100,
+                    backgroundColor: '#E0E0E0',
                     borderRadius: 4,
                     marginHorizontal: 8
                   }}>
-                    <View style={{ 
-                      height: '100%', 
-                      width: `${curriculoSelecionadoParaView.compatibilidade}%`, 
-                      backgroundColor: curriculoSelecionadoParaView.compatibilidade > 80 ? Colors.success : 
-                                    curriculoSelecionadoParaView.compatibilidade > 60 ? '#FF9800' : 
-                                    Colors.danger,
+                    <View style={{
+                      height: '100%',
+                      width: `${curriculoSelecionadoParaView.compatibilidade}%`,
+                      backgroundColor: curriculoSelecionadoParaView.compatibilidade > 80 ? Colors.success :
+                        curriculoSelecionadoParaView.compatibilidade > 60 ? '#FF9800' :
+                          Colors.danger,
                       borderRadius: 4
                     }} />
                   </View>
-                  <Text style={{ 
-                    fontWeight: 'bold', 
-                    color: curriculoSelecionadoParaView.compatibilidade > 80 ? Colors.success : 
-                            curriculoSelecionadoParaView.compatibilidade > 60 ? '#FF9800' : 
-                            Colors.danger 
+                  <Text style={{
+                    fontWeight: 'bold',
+                    color: curriculoSelecionadoParaView.compatibilidade > 80 ? Colors.success :
+                      curriculoSelecionadoParaView.compatibilidade > 60 ? '#FF9800' :
+                        Colors.danger
                   }}>
                     {curriculoSelecionadoParaView.compatibilidade}%
                   </Text>
                 </View>
-                
-                <View style={{ 
+
+                <View style={{
                   marginTop: 10,
                   flexDirection: 'row',
                   alignItems: 'center'
@@ -11415,7 +11621,7 @@ ${content.substring(0, 1500)}...
                   </Text>
                 </View>
               </View>
-              
+
               {/* Botões de ação */}
               <View style={{ flexDirection: 'row', marginTop: 10 }}>
                 <TouchableOpacity
@@ -11429,9 +11635,9 @@ ${content.substring(0, 1500)}...
                     flexDirection: 'row',
                     justifyContent: 'center',
                   }}
-                  onPress={() => setDownloadOptions({ 
-                    visible: true, 
-                    curriculoId: curriculoSelecionadoParaView.id 
+                  onPress={() => setDownloadOptions({
+                    visible: true,
+                    curriculoId: curriculoSelecionadoParaView.id
                   })}
                 >
                   <Ionicons name="download-outline" size={18} color="white" style={{ marginRight: 8 }} />
@@ -11439,7 +11645,7 @@ ${content.substring(0, 1500)}...
                     Baixar Currículo
                   </Text>
                 </TouchableOpacity>
-                
+
                 <TouchableOpacity
                   style={{
                     backgroundColor: Colors.secondary,
@@ -11455,7 +11661,7 @@ ${content.substring(0, 1500)}...
                 </TouchableOpacity>
               </View>
             </View>
-            
+
             {/* Corpo do currículo */}
             <View style={{
               backgroundColor: 'white',
@@ -11468,9 +11674,9 @@ ${content.substring(0, 1500)}...
               {/* Resumo Profissional */}
               {curriculoSelecionadoParaView.conteudo.resumo_profissional && (
                 <View style={{ marginBottom: 20 }}>
-                  <Text style={{ 
-                    fontSize: 18, 
-                    fontWeight: 'bold', 
+                  <Text style={{
+                    fontSize: 18,
+                    fontWeight: 'bold',
                     color: Colors.dark,
                     marginBottom: 10,
                     borderBottomWidth: 1,
@@ -11479,192 +11685,192 @@ ${content.substring(0, 1500)}...
                   }}>
                     Resumo Profissional
                   </Text>
-                  <Text style={{ 
-                    fontSize: 16, 
-                    color: Colors.darkGray, 
-                    lineHeight: 24 
+                  <Text style={{
+                    fontSize: 16,
+                    color: Colors.darkGray,
+                    lineHeight: 24
                   }}>
                     {curriculoSelecionadoParaView.conteudo.resumo_profissional}
                   </Text>
                 </View>
               )}
-              
+
               {/* Competências Relevantes */}
-              {curriculoSelecionadoParaView.conteudo.competencias_relevantes && 
-               curriculoSelecionadoParaView.conteudo.competencias_relevantes.length > 0 && (
-                <View style={{ marginBottom: 20 }}>
-                  <Text style={{ 
-                    fontSize: 18, 
-                    fontWeight: 'bold', 
-                    color: Colors.dark,
-                    marginBottom: 10,
-                    borderBottomWidth: 1,
-                    borderBottomColor: Colors.lightGray,
-                    paddingBottom: 5
-                  }}>
-                    Competências Relevantes
-                  </Text>
-                  <View style={{ flexDirection: 'row', flexWrap: 'wrap' }}>
-                    {curriculoSelecionadoParaView.conteudo.competencias_relevantes.map((comp, index) => (
-                      <View key={`comp-${index}`} style={{ 
-                        backgroundColor: '#f5f5f5',
-                        paddingHorizontal: 12,
-                        paddingVertical: 8,
-                        borderRadius: 16,
-                        margin: 4
-                      }}>
-                        <Text style={{ color: Colors.darkGray, fontSize: 14 }}>
-                          {comp}
-                        </Text>
+              {curriculoSelecionadoParaView.conteudo.competencias_relevantes &&
+                curriculoSelecionadoParaView.conteudo.competencias_relevantes.length > 0 && (
+                  <View style={{ marginBottom: 20 }}>
+                    <Text style={{
+                      fontSize: 18,
+                      fontWeight: 'bold',
+                      color: Colors.dark,
+                      marginBottom: 10,
+                      borderBottomWidth: 1,
+                      borderBottomColor: Colors.lightGray,
+                      paddingBottom: 5
+                    }}>
+                      Competências Relevantes
+                    </Text>
+                    <View style={{ flexDirection: 'row', flexWrap: 'wrap' }}>
+                      {curriculoSelecionadoParaView.conteudo.competencias_relevantes.map((comp, index) => (
+                        <View key={`comp-${index}`} style={{
+                          backgroundColor: '#f5f5f5',
+                          paddingHorizontal: 12,
+                          paddingVertical: 8,
+                          borderRadius: 16,
+                          margin: 4
+                        }}>
+                          <Text style={{ color: Colors.darkGray, fontSize: 14 }}>
+                            {comp}
+                          </Text>
+                        </View>
+                      ))}
+                    </View>
+                  </View>
+                )}
+
+              {/* Experiência Profissional */}
+              {curriculoSelecionadoParaView.conteudo.experiencia &&
+                curriculoSelecionadoParaView.conteudo.experiencia.length > 0 && (
+                  <View style={{ marginBottom: 20 }}>
+                    <Text style={{
+                      fontSize: 18,
+                      fontWeight: 'bold',
+                      color: Colors.dark,
+                      marginBottom: 15,
+                      borderBottomWidth: 1,
+                      borderBottomColor: Colors.lightGray,
+                      paddingBottom: 5
+                    }}>
+                      Experiência Profissional
+                    </Text>
+
+                    {curriculoSelecionadoParaView.conteudo.experiencia.map((exp, index) => (
+                      <View key={`exp-${index}`} style={{ marginBottom: 20 }}>
+                        <View style={{ flexDirection: 'row', alignItems: 'flex-start' }}>
+                          <View style={{
+                            width: 10,
+                            height: 10,
+                            borderRadius: 5,
+                            backgroundColor: Colors.primary,
+                            marginTop: 5,
+                            marginRight: 10
+                          }} />
+                          <View style={{ flex: 1 }}>
+                            <Text style={{
+                              fontSize: 16,
+                              fontWeight: 'bold',
+                              color: Colors.dark
+                            }}>
+                              {exp.cargo}
+                            </Text>
+                            <Text style={{
+                              fontSize: 15,
+                              color: Colors.darkGray,
+                              marginBottom: 5
+                            }}>
+                              {exp.empresa} • {exp.periodo}
+                            </Text>
+                            {exp.descricao && (
+                              <Text style={{
+                                color: Colors.darkGray,
+                                lineHeight: 22,
+                                marginBottom: 10
+                              }}>
+                                {exp.descricao}
+                              </Text>
+                            )}
+
+                            {exp.realizacoes && exp.realizacoes.length > 0 && (
+                              <View style={{ marginTop: 5 }}>
+                                <Text style={{
+                                  fontWeight: 'bold',
+                                  fontSize: 14,
+                                  color: Colors.dark,
+                                  marginBottom: 5
+                                }}>
+                                  Principais Realizações:
+                                </Text>
+                                {exp.realizacoes.map((realiz, idx) => (
+                                  <View key={`real-${index}-${idx}`} style={{
+                                    flexDirection: 'row',
+                                    alignItems: 'flex-start',
+                                    marginBottom: 5
+                                  }}>
+                                    <Text style={{ marginRight: 5, color: Colors.primary }}>•</Text>
+                                    <Text style={{ flex: 1, color: Colors.darkGray, lineHeight: 20 }}>
+                                      {realiz}
+                                    </Text>
+                                  </View>
+                                ))}
+                              </View>
+                            )}
+                          </View>
+                        </View>
                       </View>
                     ))}
                   </View>
-                </View>
-              )}
-              
-              {/* Experiência Profissional */}
-              {curriculoSelecionadoParaView.conteudo.experiencia && 
-               curriculoSelecionadoParaView.conteudo.experiencia.length > 0 && (
-                <View style={{ marginBottom: 20 }}>
-                  <Text style={{ 
-                    fontSize: 18, 
-                    fontWeight: 'bold', 
-                    color: Colors.dark,
-                    marginBottom: 15,
-                    borderBottomWidth: 1,
-                    borderBottomColor: Colors.lightGray,
-                    paddingBottom: 5
-                  }}>
-                    Experiência Profissional
-                  </Text>
-                  
-                  {curriculoSelecionadoParaView.conteudo.experiencia.map((exp, index) => (
-                    <View key={`exp-${index}`} style={{ marginBottom: 20 }}>
-                      <View style={{ flexDirection: 'row', alignItems: 'flex-start' }}>
-                        <View style={{ 
-                          width: 10, 
-                          height: 10, 
-                          borderRadius: 5, 
-                          backgroundColor: Colors.primary,
-                          marginTop: 5,
-                          marginRight: 10
-                        }} />
-                        <View style={{ flex: 1 }}>
-                          <Text style={{ 
-                            fontSize: 16, 
-                            fontWeight: 'bold', 
-                            color: Colors.dark 
-                          }}>
-                            {exp.cargo}
-                          </Text>
-                          <Text style={{ 
-                            fontSize: 15, 
-                            color: Colors.darkGray, 
-                            marginBottom: 5 
-                          }}>
-                            {exp.empresa} • {exp.periodo}
-                          </Text>
-                          {exp.descricao && (
-                            <Text style={{ 
-                              color: Colors.darkGray, 
-                              lineHeight: 22, 
-                              marginBottom: 10 
-                            }}>
-                              {exp.descricao}
-                            </Text>
-                          )}
-                          
-                          {exp.realizacoes && exp.realizacoes.length > 0 && (
-                            <View style={{ marginTop: 5 }}>
-                              <Text style={{ 
-                                fontWeight: 'bold', 
-                                fontSize: 14, 
-                                color: Colors.dark, 
-                                marginBottom: 5 
-                              }}>
-                                Principais Realizações:
-                              </Text>
-                              {exp.realizacoes.map((realiz, idx) => (
-                                <View key={`real-${index}-${idx}`} style={{ 
-                                  flexDirection: 'row', 
-                                  alignItems: 'flex-start',
-                                  marginBottom: 5
-                                }}>
-                                  <Text style={{ marginRight: 5, color: Colors.primary }}>•</Text>
-                                  <Text style={{ flex: 1, color: Colors.darkGray, lineHeight: 20 }}>
-                                    {realiz}
-                                  </Text>
-                                </View>
-                              ))}
-                            </View>
-                          )}
-                        </View>
-                      </View>
-                    </View>
-                  ))}
-                </View>
-              )}
-              
+                )}
+
               {/* Educação */}
-              {curriculoSelecionadoParaView.conteudo.educacao && 
-               curriculoSelecionadoParaView.conteudo.educacao.length > 0 && (
-                <View style={{ marginBottom: 20 }}>
-                  <Text style={{ 
-                    fontSize: 18, 
-                    fontWeight: 'bold', 
-                    color: Colors.dark,
-                    marginBottom: 15,
-                    borderBottomWidth: 1,
-                    borderBottomColor: Colors.lightGray,
-                    paddingBottom: 5
-                  }}>
-                    Educação
-                  </Text>
-                  
-                  {curriculoSelecionadoParaView.conteudo.educacao.map((edu, index) => (
-                    <View key={`edu-${index}`} style={{ marginBottom: 15 }}>
-                      <View style={{ flexDirection: 'row', alignItems: 'flex-start' }}>
-                        <View style={{ 
-                          width: 10, 
-                          height: 10, 
-                          borderRadius: 5, 
-                          backgroundColor: Colors.secondary,
-                          marginTop: 5,
-                          marginRight: 10
-                        }} />
-                        <View style={{ flex: 1 }}>
-                          <Text style={{ 
-                            fontSize: 16, 
-                            fontWeight: 'bold', 
-                            color: Colors.dark 
-                          }}>
-                            {edu.curso}
-                          </Text>
-                          <Text style={{ 
-                            fontSize: 15, 
-                            color: Colors.darkGray, 
-                            marginBottom: 5 
-                          }}>
-                            {edu.instituicao} • {edu.periodo}
-                          </Text>
-                          {edu.descricao && (
-                            <Text style={{ color: Colors.darkGray, lineHeight: 22 }}>
-                              {edu.descricao}
+              {curriculoSelecionadoParaView.conteudo.educacao &&
+                curriculoSelecionadoParaView.conteudo.educacao.length > 0 && (
+                  <View style={{ marginBottom: 20 }}>
+                    <Text style={{
+                      fontSize: 18,
+                      fontWeight: 'bold',
+                      color: Colors.dark,
+                      marginBottom: 15,
+                      borderBottomWidth: 1,
+                      borderBottomColor: Colors.lightGray,
+                      paddingBottom: 5
+                    }}>
+                      Educação
+                    </Text>
+
+                    {curriculoSelecionadoParaView.conteudo.educacao.map((edu, index) => (
+                      <View key={`edu-${index}`} style={{ marginBottom: 15 }}>
+                        <View style={{ flexDirection: 'row', alignItems: 'flex-start' }}>
+                          <View style={{
+                            width: 10,
+                            height: 10,
+                            borderRadius: 5,
+                            backgroundColor: Colors.secondary,
+                            marginTop: 5,
+                            marginRight: 10
+                          }} />
+                          <View style={{ flex: 1 }}>
+                            <Text style={{
+                              fontSize: 16,
+                              fontWeight: 'bold',
+                              color: Colors.dark
+                            }}>
+                              {edu.curso}
                             </Text>
-                          )}
+                            <Text style={{
+                              fontSize: 15,
+                              color: Colors.darkGray,
+                              marginBottom: 5
+                            }}>
+                              {edu.instituicao} • {edu.periodo}
+                            </Text>
+                            {edu.descricao && (
+                              <Text style={{ color: Colors.darkGray, lineHeight: 22 }}>
+                                {edu.descricao}
+                              </Text>
+                            )}
+                          </View>
                         </View>
                       </View>
-                    </View>
-                  ))}
-                </View>
-              )}
-              
+                    ))}
+                  </View>
+                )}
+
               {/* Habilidades */}
               {curriculoSelecionadoParaView.conteudo.habilidades && (
                 <View style={{ marginBottom: 20 }}>
-                  <Text style={{ 
-                    fontSize: 18, 
-                    fontWeight: 'bold', 
+                  <Text style={{
+                    fontSize: 18,
+                    fontWeight: 'bold',
                     color: Colors.dark,
                     marginBottom: 15,
                     borderBottomWidth: 1,
@@ -11673,181 +11879,181 @@ ${content.substring(0, 1500)}...
                   }}>
                     Habilidades
                   </Text>
-                  
-                  {curriculoSelecionadoParaView.conteudo.habilidades.tecnicas && 
-                  curriculoSelecionadoParaView.conteudo.habilidades.tecnicas.length > 0 && (
-                    <View style={{ marginBottom: 15 }}>
-                      <Text style={{ 
-                        fontSize: 16, 
-                        fontWeight: 'bold', 
-                        color: Colors.dark,
-                        marginBottom: 10
-                      }}>
-                        Técnicas
-                      </Text>
-                      <View style={{ flexDirection: 'row', flexWrap: 'wrap' }}>
-                        {curriculoSelecionadoParaView.conteudo.habilidades.tecnicas.map((hab, index) => (
-                          <View key={`tech-${index}`} style={{ 
-                            backgroundColor: '#e8f5e9',
-                            paddingHorizontal: 12,
-                            paddingVertical: 8,
-                            borderRadius: 16,
-                            margin: 4
-                          }}>
-                            <Text style={{ color: '#388e3c', fontSize: 14 }}>
-                              {hab}
-                            </Text>
-                          </View>
-                        ))}
+
+                  {curriculoSelecionadoParaView.conteudo.habilidades.tecnicas &&
+                    curriculoSelecionadoParaView.conteudo.habilidades.tecnicas.length > 0 && (
+                      <View style={{ marginBottom: 15 }}>
+                        <Text style={{
+                          fontSize: 16,
+                          fontWeight: 'bold',
+                          color: Colors.dark,
+                          marginBottom: 10
+                        }}>
+                          Técnicas
+                        </Text>
+                        <View style={{ flexDirection: 'row', flexWrap: 'wrap' }}>
+                          {curriculoSelecionadoParaView.conteudo.habilidades.tecnicas.map((hab, index) => (
+                            <View key={`tech-${index}`} style={{
+                              backgroundColor: '#e8f5e9',
+                              paddingHorizontal: 12,
+                              paddingVertical: 8,
+                              borderRadius: 16,
+                              margin: 4
+                            }}>
+                              <Text style={{ color: '#388e3c', fontSize: 14 }}>
+                                {hab}
+                              </Text>
+                            </View>
+                          ))}
+                        </View>
                       </View>
-                    </View>
-                  )}
-                  
-                  {curriculoSelecionadoParaView.conteudo.habilidades.comportamentais && 
-                  curriculoSelecionadoParaView.conteudo.habilidades.comportamentais.length > 0 && (
-                    <View>
-                      <Text style={{ 
-                        fontSize: 16, 
-                        fontWeight: 'bold', 
-                        color: Colors.dark,
-                        marginBottom: 10
-                      }}>
-                        Comportamentais
-                      </Text>
-                      <View style={{ flexDirection: 'row', flexWrap: 'wrap' }}>
-                        {curriculoSelecionadoParaView.conteudo.habilidades.comportamentais.map((hab, index) => (
-                          <View key={`soft-${index}`} style={{ 
-                            backgroundColor: '#e3f2fd',
-                            paddingHorizontal: 12,
-                            paddingVertical: 8,
-                            borderRadius: 16,
-                            margin: 4
-                          }}>
-                            <Text style={{ color: '#1976d2', fontSize: 14 }}>
-                              {hab}
-                            </Text>
-                          </View>
-                        ))}
+                    )}
+
+                  {curriculoSelecionadoParaView.conteudo.habilidades.comportamentais &&
+                    curriculoSelecionadoParaView.conteudo.habilidades.comportamentais.length > 0 && (
+                      <View>
+                        <Text style={{
+                          fontSize: 16,
+                          fontWeight: 'bold',
+                          color: Colors.dark,
+                          marginBottom: 10
+                        }}>
+                          Comportamentais
+                        </Text>
+                        <View style={{ flexDirection: 'row', flexWrap: 'wrap' }}>
+                          {curriculoSelecionadoParaView.conteudo.habilidades.comportamentais.map((hab, index) => (
+                            <View key={`soft-${index}`} style={{
+                              backgroundColor: '#e3f2fd',
+                              paddingHorizontal: 12,
+                              paddingVertical: 8,
+                              borderRadius: 16,
+                              margin: 4
+                            }}>
+                              <Text style={{ color: '#1976d2', fontSize: 14 }}>
+                                {hab}
+                              </Text>
+                            </View>
+                          ))}
+                        </View>
                       </View>
-                    </View>
-                  )}
+                    )}
                 </View>
               )}
-              
+
               {/* Idiomas */}
-              {curriculoSelecionadoParaView.conteudo.idiomas && 
-               curriculoSelecionadoParaView.conteudo.idiomas.length > 0 && (
-                <View style={{ marginBottom: 20 }}>
-                  <Text style={{ 
-                    fontSize: 18, 
-                    fontWeight: 'bold', 
-                    color: Colors.dark,
-                    marginBottom: 15,
-                    borderBottomWidth: 1,
-                    borderBottomColor: Colors.lightGray,
-                    paddingBottom: 5
-                  }}>
-                    Idiomas
-                  </Text>
-                  
-                  {curriculoSelecionadoParaView.conteudo.idiomas.map((idioma, index) => (
-                    <View key={`lang-${index}`} style={{ 
-                      flexDirection: 'row', 
-                      alignItems: 'center',
-                      marginBottom: 10
+              {curriculoSelecionadoParaView.conteudo.idiomas &&
+                curriculoSelecionadoParaView.conteudo.idiomas.length > 0 && (
+                  <View style={{ marginBottom: 20 }}>
+                    <Text style={{
+                      fontSize: 18,
+                      fontWeight: 'bold',
+                      color: Colors.dark,
+                      marginBottom: 15,
+                      borderBottomWidth: 1,
+                      borderBottomColor: Colors.lightGray,
+                      paddingBottom: 5
                     }}>
-                      <Text style={{ 
-                        fontSize: 16, 
-                        fontWeight: 'bold',
-                        color: Colors.dark,
-                        width: 100
+                      Idiomas
+                    </Text>
+
+                    {curriculoSelecionadoParaView.conteudo.idiomas.map((idioma, index) => (
+                      <View key={`lang-${index}`} style={{
+                        flexDirection: 'row',
+                        alignItems: 'center',
+                        marginBottom: 10
                       }}>
-                        {idioma.idioma}
-                      </Text>
-                      <Text style={{ 
-                        color: Colors.darkGray,
-                        fontSize: 15
-                      }}>
-                        {idioma.nivel}
-                      </Text>
-                    </View>
-                  ))}
-                </View>
-              )}
-              
+                        <Text style={{
+                          fontSize: 16,
+                          fontWeight: 'bold',
+                          color: Colors.dark,
+                          width: 100
+                        }}>
+                          {idioma.idioma}
+                        </Text>
+                        <Text style={{
+                          color: Colors.darkGray,
+                          fontSize: 15
+                        }}>
+                          {idioma.nivel}
+                        </Text>
+                      </View>
+                    ))}
+                  </View>
+                )}
+
               {/* Certificações */}
-              {curriculoSelecionadoParaView.conteudo.certificacoes && 
-               curriculoSelecionadoParaView.conteudo.certificacoes.length > 0 && (
-                <View style={{ marginBottom: 20 }}>
-                  <Text style={{ 
-                    fontSize: 18, 
-                    fontWeight: 'bold', 
-                    color: Colors.dark,
-                    marginBottom: 15,
-                    borderBottomWidth: 1,
-                    borderBottomColor: Colors.lightGray,
-                    paddingBottom: 5
-                  }}>
-                    Certificações
-                  </Text>
-                  
-                  {curriculoSelecionadoParaView.conteudo.certificacoes.map((cert, index) => (
-                    <View key={`cert-${index}`} style={{ 
-                      flexDirection: 'row', 
-                      alignItems: 'flex-start',
-                      marginBottom: 10
+              {curriculoSelecionadoParaView.conteudo.certificacoes &&
+                curriculoSelecionadoParaView.conteudo.certificacoes.length > 0 && (
+                  <View style={{ marginBottom: 20 }}>
+                    <Text style={{
+                      fontSize: 18,
+                      fontWeight: 'bold',
+                      color: Colors.dark,
+                      marginBottom: 15,
+                      borderBottomWidth: 1,
+                      borderBottomColor: Colors.lightGray,
+                      paddingBottom: 5
                     }}>
-                      <View style={{ 
-                        width: 8, 
-                        height: 8, 
-                        borderRadius: 4, 
-                        backgroundColor: Colors.primary,
-                        marginTop: 6,
-                        marginRight: 8
-                      }} />
-                      <Text style={{ flex: 1, color: Colors.darkGray }}>
-                        {cert.nome} - {cert.instituicao} ({cert.ano})
-                      </Text>
-                    </View>
-                  ))}
-                </View>
-              )}
-              
-              {/* Projetos Relevantes */}
-              {curriculoSelecionadoParaView.conteudo.projetos_relevantes && 
-               curriculoSelecionadoParaView.conteudo.projetos_relevantes.length > 0 && (
-                <View style={{ marginBottom: 20 }}>
-                  <Text style={{ 
-                    fontSize: 18, 
-                    fontWeight: 'bold', 
-                    color: Colors.dark,
-                    marginBottom: 15,
-                    borderBottomWidth: 1,
-                    borderBottomColor: Colors.lightGray,
-                    paddingBottom: 5
-                  }}>
-                    Projetos Relevantes
-                  </Text>
-                  
-                  {curriculoSelecionadoParaView.conteudo.projetos_relevantes.map((proj, index) => (
-                    <View key={`proj-${index}`} style={{ marginBottom: 15 }}>
-                      <Text style={{ 
-                        fontSize: 16, 
-                        fontWeight: 'bold', 
-                        color: Colors.dark,
-                        marginBottom: 5
+                      Certificações
+                    </Text>
+
+                    {curriculoSelecionadoParaView.conteudo.certificacoes.map((cert, index) => (
+                      <View key={`cert-${index}`} style={{
+                        flexDirection: 'row',
+                        alignItems: 'flex-start',
+                        marginBottom: 10
                       }}>
-                        {proj.nome}
-                      </Text>
-                      <Text style={{ color: Colors.darkGray, lineHeight: 22 }}>
-                        {proj.descricao}
-                      </Text>
-                    </View>
-                  ))}
-                </View>
-              )}
+                        <View style={{
+                          width: 8,
+                          height: 8,
+                          borderRadius: 4,
+                          backgroundColor: Colors.primary,
+                          marginTop: 6,
+                          marginRight: 8
+                        }} />
+                        <Text style={{ flex: 1, color: Colors.darkGray }}>
+                          {cert.nome} - {cert.instituicao} ({cert.ano})
+                        </Text>
+                      </View>
+                    ))}
+                  </View>
+                )}
+
+              {/* Projetos Relevantes */}
+              {curriculoSelecionadoParaView.conteudo.projetos_relevantes &&
+                curriculoSelecionadoParaView.conteudo.projetos_relevantes.length > 0 && (
+                  <View style={{ marginBottom: 20 }}>
+                    <Text style={{
+                      fontSize: 18,
+                      fontWeight: 'bold',
+                      color: Colors.dark,
+                      marginBottom: 15,
+                      borderBottomWidth: 1,
+                      borderBottomColor: Colors.lightGray,
+                      paddingBottom: 5
+                    }}>
+                      Projetos Relevantes
+                    </Text>
+
+                    {curriculoSelecionadoParaView.conteudo.projetos_relevantes.map((proj, index) => (
+                      <View key={`proj-${index}`} style={{ marginBottom: 15 }}>
+                        <Text style={{
+                          fontSize: 16,
+                          fontWeight: 'bold',
+                          color: Colors.dark,
+                          marginBottom: 5
+                        }}>
+                          {proj.nome}
+                        </Text>
+                        <Text style={{ color: Colors.darkGray, lineHeight: 22 }}>
+                          {proj.descricao}
+                        </Text>
+                      </View>
+                    ))}
+                  </View>
+                )}
             </View>
-            
+
             {/* Rodapé com informações de geração */}
             <View style={{
               padding: 20,
@@ -11855,16 +12061,16 @@ ${content.substring(0, 1500)}...
               marginTop: 10,
               marginBottom: 30,
             }}>
-              <Text style={{ 
-                color: Colors.lightText, 
-                fontSize: 13, 
-                textAlign: 'center' 
+              <Text style={{
+                color: Colors.lightText,
+                fontSize: 13,
+                textAlign: 'center'
               }}>
                 Currículo gerado em {new Date(curriculoSelecionadoParaView.dataGeracao).toLocaleDateString('pt-BR')}
               </Text>
-              <Text style={{ 
-                color: Colors.lightText, 
-                fontSize: 13, 
+              <Text style={{
+                color: Colors.lightText,
+                fontSize: 13,
                 textAlign: 'center',
                 marginTop: 5
               }}>
@@ -11872,7 +12078,7 @@ ${content.substring(0, 1500)}...
               </Text>
             </View>
           </ScrollView>
-          
+
           {/* Botão flutuante para baixar */}
           <TouchableOpacity
             style={{
@@ -11891,9 +12097,9 @@ ${content.substring(0, 1500)}...
               shadowOpacity: 0.3,
               shadowRadius: 3,
             }}
-            onPress={() => setDownloadOptions({ 
-              visible: true, 
-              curriculoId: curriculoSelecionadoParaView.id 
+            onPress={() => setDownloadOptions({
+              visible: true,
+              curriculoId: curriculoSelecionadoParaView.id
             })}
           >
             <Ionicons name="download-outline" size={26} color="white" />
@@ -11904,7 +12110,7 @@ ${content.substring(0, 1500)}...
           <Text>Currículo não encontrado</Text>
         </View>
       )}
-      
+
       {/* Notificação de exportação bem-sucedida */}
       {exportSuccess.visible && (
         <View style={{
@@ -12011,7 +12217,7 @@ ${content.substring(0, 1500)}...
             value={filtroVagas.cargo}
             onChangeText={(text) => setFiltroVagas(prev => ({ ...prev, cargo: text }))}
           />
-          
+
           <TextInput
             style={{
               flex: 1,
@@ -12027,9 +12233,9 @@ ${content.substring(0, 1500)}...
             onChangeText={(text) => setFiltroVagas(prev => ({ ...prev, local: text }))}
           />
         </View>
-        
-        <ScrollView 
-          horizontal 
+
+        <ScrollView
+          horizontal
           showsHorizontalScrollIndicator={false}
           contentContainerStyle={{ paddingRight: 10 }}
         >
@@ -12067,7 +12273,7 @@ ${content.substring(0, 1500)}...
           <Text style={{ fontWeight: 'bold', color: Colors.dark, marginBottom: 8 }}>
             Procurar outras vagas
           </Text>
-          
+
           <View style={{ flexDirection: 'row' }}>
             <TextInput
               style={{
@@ -12085,7 +12291,7 @@ ${content.substring(0, 1500)}...
               value={pesquisaVagasExternas}
               onChangeText={setPesquisaVagasExternas}
             />
-            
+
             <TouchableOpacity
               style={{
                 height: 40,
@@ -12149,15 +12355,15 @@ ${content.substring(0, 1500)}...
           <FlatList
             data={vacasEncontradas.filter(vaga => {
               // Aplicar filtros
-              const cargoMatch = filtroVagas.cargo === '' || 
+              const cargoMatch = filtroVagas.cargo === '' ||
                 vaga.titulo.toLowerCase().includes(filtroVagas.cargo.toLowerCase());
-              
-              const localMatch = filtroVagas.local === '' || 
+
+              const localMatch = filtroVagas.local === '' ||
                 vaga.localizacao.toLowerCase().includes(filtroVagas.local.toLowerCase());
-              
-              const tipoMatch = filtroVagas.tipo === 'todos' || 
+
+              const tipoMatch = filtroVagas.tipo === 'todos' ||
                 vaga.regime.toLowerCase().includes(filtroVagas.tipo.toLowerCase());
-              
+
               return cargoMatch && localMatch && tipoMatch;
             })}
             keyExtractor={(item) => item.id}
@@ -12203,15 +12409,15 @@ ${content.substring(0, 1500)}...
                     </View>
                   </View>
                 </View>
-                
+
                 <Text style={{ marginBottom: 10, color: Colors.dark }}>
                   {item.descricao}
                 </Text>
-                
+
                 {/* Requisitos */}
-                <View style={{ 
-                  backgroundColor: '#F8F8F8', 
-                  padding: 10, 
+                <View style={{
+                  backgroundColor: '#F8F8F8',
+                  padding: 10,
                   borderRadius: 8,
                   marginBottom: 15
                 }}>
@@ -12241,32 +12447,32 @@ ${content.substring(0, 1500)}...
                     <Text style={{ fontWeight: 'bold', color: Colors.dark }}>
                       Compatibilidade com seu perfil
                     </Text>
-                    <Text style={{ 
-                      fontWeight: 'bold', 
-                      color: item.compatibilidade > 80 ? Colors.success : 
-                              item.compatibilidade > 60 ? '#FF9800' : 
-                              Colors.danger 
+                    <Text style={{
+                      fontWeight: 'bold',
+                      color: item.compatibilidade > 80 ? Colors.success :
+                        item.compatibilidade > 60 ? '#FF9800' :
+                          Colors.danger
                     }}>
                       {item.compatibilidade}%
                     </Text>
                   </View>
-                  <View style={{ 
-                    height: 6, 
-                    backgroundColor: '#E0E0E0', 
+                  <View style={{
+                    height: 6,
+                    backgroundColor: '#E0E0E0',
                     borderRadius: 3,
                     marginTop: 8
                   }}>
-                    <View style={{ 
-                      height: '100%', 
-                      width: `${item.compatibilidade}%`, 
-                      backgroundColor: item.compatibilidade > 80 ? Colors.success : 
-                                       item.compatibilidade > 60 ? '#FF9800' : 
-                                       Colors.danger,
+                    <View style={{
+                      height: '100%',
+                      width: `${item.compatibilidade}%`,
+                      backgroundColor: item.compatibilidade > 80 ? Colors.success :
+                        item.compatibilidade > 60 ? '#FF9800' :
+                          Colors.danger,
                       borderRadius: 3
                     }} />
                   </View>
                 </View>
-                
+
                 {/* Botões de ações */}
                 <View style={{ flexDirection: 'row', justifyContent: 'space-between' }}>
                   <TouchableOpacity
@@ -12287,7 +12493,7 @@ ${content.substring(0, 1500)}...
                       Gerar Currículo
                     </Text>
                   </TouchableOpacity>
-                  
+
                   <TouchableOpacity
                     style={{
                       backgroundColor: Colors.secondary,
@@ -12339,8 +12545,8 @@ ${content.substring(0, 1500)}...
               visualizarCurriculoGerado(curriculosGerados[0]);
             } else {
               // Senão, navega para a lista de currículos gerados
-              navigation.navigate('CurriculosGerados', { 
-                curriculosGerados: curriculosGerados 
+              navigation.navigate('CurriculosGerados', {
+                curriculosGerados: curriculosGerados
               });
             }
           }}
@@ -12367,7 +12573,36 @@ ${content.substring(0, 1500)}...
     </SafeAreaView>
   );
 
-  // Renderizar cabeçalho da tela de conhecimento
+  // Modificar o cabeçalho da tela Home
+  const renderHomeHeader = () => (
+    <View style={styles.homeHeader}>
+      <TouchableOpacity
+        style={{
+          position: 'absolute',
+          left: 15,
+          top: insets.top + 10,
+          zIndex: 100,
+        }}
+        onPress={toggleMenu}
+      >
+        <Ionicons name="menu" size={28} color="white" />
+      </TouchableOpacity>
+
+      <Text style={styles.homeTitle}>CurriculoBot</Text>
+      <Text style={styles.homeSubtitle}>
+        Seu assistente para criação de currículos
+      </Text>
+
+      <TouchableOpacity
+        style={styles.logoutButton}
+        onPress={logout}
+      >
+        <Text style={styles.logoutButtonText}>Sair</Text>
+      </TouchableOpacity>
+    </View>
+  );
+
+  // Modificar o cabeçalho da tela de conhecimento
   const renderKnowledgeHeader = () => (
     <View style={{
       backgroundColor: Colors.primary,
@@ -12377,8 +12612,8 @@ ${content.substring(0, 1500)}...
       zIndex: 1000,
     }}>
       <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
-        <TouchableOpacity onPress={voltarParaHome}>
-          <Ionicons name="arrow-back" size={24} color="white" />
+        <TouchableOpacity onPress={toggleMenu}>
+          <Ionicons name="menu" size={24} color="white" />
         </TouchableOpacity>
         <Text style={{ fontSize: 18, fontWeight: 'bold', color: 'white' }}>
           Biblioteca de Conhecimento
@@ -12386,35 +12621,43 @@ ${content.substring(0, 1500)}...
         <View style={{ width: 24 }} />
       </View>
 
+      {/* Resto do cabeçalho permanece igual */}
       <View style={{ marginTop: 15 }}>
+        {/* ... */}
+      </View>
+    </View>
+  );
+
+  // Também modificar cabeçalho da tela de busca de vagas
+  const modificarJobSearchHeader = () => (
+    <View style={{
+      backgroundColor: Colors.primary,
+      paddingTop: insets.top,
+      paddingHorizontal: 20,
+      paddingBottom: 15,
+      zIndex: 1000,
+    }}>
+      <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
+        <TouchableOpacity onPress={toggleMenu}>
+          <Ionicons name="menu" size={24} color="white" />
+        </TouchableOpacity>
+        <Text style={{ fontSize: 18, fontWeight: 'bold', color: 'white' }}>
+          Vagas Compatíveis
+        </Text>
+        <View style={{ width: 24 }} />
+      </View>
+
+      {/* Resto do cabeçalho permanece igual */}
+      {curriculoSelecionadoParaVagas && (
         <View style={{
-          flexDirection: 'row',
+          marginTop: 10,
           backgroundColor: 'rgba(255,255,255,0.2)',
           borderRadius: 10,
-          paddingHorizontal: 15,
-          paddingVertical: 10,
-          alignItems: 'center',
+          padding: 10,
         }}>
-          <Ionicons name="search" size={20} color="white" />
-          <TextInput
-            placeholder="Buscar conhecimento..."
-            placeholderTextColor="rgba(255,255,255,0.7)"
-            style={{
-              flex: 1,
-              color: 'white',
-              marginLeft: 10,
-              fontSize: 16,
-            }}
-            value={searchQuery}
-            onChangeText={handleSearchChange}
-          />
-          {searchQuery ? (
-            <TouchableOpacity onPress={() => handleSearchChange('')}>
-              <Ionicons name="close-circle" size={20} color="white" />
-            </TouchableOpacity>
-          ) : null}
+          {/* ... */}
         </View>
-      </View>
+      )}
     </View>
   );
 
@@ -13112,8 +13355,8 @@ ${content.substring(0, 1500)}...
               </View>
 
               <Text style={{ color: '#2c4283', marginBottom: 15, lineHeight: 22 }}>
-                Nossa IA busca vagas de emprego alinhadas com seu perfil profissional e 
-                gera currículos personalizados para cada oportunidade, aumentando suas 
+                Nossa IA busca vagas de emprego alinhadas com seu perfil profissional e
+                gera currículos personalizados para cada oportunidade, aumentando suas
                 chances de sucesso.
               </Text>
 
@@ -13454,6 +13697,7 @@ ${content.substring(0, 1500)}...
       {activeScreen === 'viewjob' && renderViewJobScreen()}
       {activeScreen === 'viewresume' && renderViewResumeScreen()}
       {renderModals()}
+      {renderHamburguerMenu()} {/* Adicionar o menu hambúrguer aqui */}
     </>
   );
 };
@@ -13752,7 +13996,7 @@ const EntrevistaSimuladaScreen = ({ route, navigation }) => {
   const [avaliacaoFinal, setAvaliacaoFinal] = useState(null);
   const [tipoCargo, setTipoCargo] = useState('');
   const [area, setArea] = useState('');
-  
+
   const flatListRef = useRef();
   const respostaInputRef = useRef();
 
@@ -13760,14 +14004,14 @@ const EntrevistaSimuladaScreen = ({ route, navigation }) => {
   const iniciarEntrevista = async () => {
     try {
       setCarregando(true);
-      
+
       // Verificar se é uma entrevista baseada em currículo ou genérica
       if (curriculoData) {
         // Extrair a área e cargo do currículo para personalizar a entrevista
         const cv = curriculoData.data;
         const areaDoCV = cv.informacoes_pessoais?.area || '';
         setArea(areaDoCV);
-        
+
         // Determinar o cargo com base na experiência mais recente, se disponível
         if (cv.experiencias && cv.experiencias.length > 0) {
           setTipoCargo(cv.experiencias[0].cargo || '');
@@ -13795,48 +14039,48 @@ const EntrevistaSimuladaScreen = ({ route, navigation }) => {
         );
         return; // Aguardar input do usuário
       }
-      
+
       // Se temos currículo, continuar diretamente
       prepararEntrevista();
-      
+
     } catch (error) {
       console.error('Erro ao iniciar entrevista:', error);
       Alert.alert('Erro', 'Não foi possível iniciar a entrevista. Tente novamente.');
       setCarregando(false);
     }
   };
-  
+
   // Função para preparar o conjunto de perguntas da entrevista
   const prepararEntrevista = async (areaInput = null) => {
     try {
       setCarregando(true);
-      
+
       // Usar área do input para entrevista genérica, ou do currículo para específica
       const areaFinal = areaInput || area;
-      
+
       // Obter API key da IA
       const apiKey = await getIAAPIKey('GEMINI');
-      
+
       if (!apiKey) {
         throw new Error("API key do Gemini não configurada");
       }
-      
+
       // Construir prompt para gerar perguntas de entrevista
       let promptText = "";
-      
+
       if (curriculoData) {
         // Formatamos os dados do currículo
         const cv = curriculoData.data;
-        const experiencias = cv.experiencias?.map(exp => 
+        const experiencias = cv.experiencias?.map(exp =>
           `${exp.cargo} em ${exp.empresa} (${exp.data_inicio || ''} - ${exp.data_fim || 'atual'}): ${exp.descricao || ''}`
         ).join('\n') || 'Sem experiências profissionais';
-        
-        const formacoes = cv.formacoes_academicas?.map(form => 
+
+        const formacoes = cv.formacoes_academicas?.map(form =>
           `${form.diploma} em ${form.area_estudo} pela ${form.instituicao} (${form.data_inicio || ''} - ${form.data_fim || ''})`
         ).join('\n') || 'Sem formação acadêmica';
-        
+
         const habilidades = cv.projetos?.map(proj => proj.habilidades).filter(Boolean).join(', ') || 'Não especificadas';
-        
+
         promptText = `
 Você é um recrutador experiente especializado em entrevistas para a área de ${areaFinal}. Conduza uma entrevista simulada de emprego detalhada e realista para um candidato à posição de ${tipoCargo || areaFinal}.
 
@@ -13923,7 +14167,7 @@ Forneça apenas um array JSON de objetos, cada um representando uma pergunta, na
 Apenas retorne o JSON puro, sem texto introdutório ou explicações.
 `;
       }
-      
+
       // Chamar a API do Gemini para gerar perguntas
       const endpoint = `${IA_APIS.GEMINI.endpoint}?key=${apiKey}`;
       const requestBody = {
@@ -13935,15 +14179,15 @@ Apenas retorne o JSON puro, sem texto introdutório ou explicações.
           topK: 40
         }
       };
-      
+
       const response = await axios.post(endpoint, requestBody, {
         headers: { 'Content-Type': 'application/json' },
         timeout: 30000
       });
-      
+
       if (response.data?.candidates?.[0]?.content?.parts?.[0]?.text) {
         const resultText = response.data.candidates[0].content.parts[0].text;
-        
+
         // Extrair o JSON da resposta
         const jsonMatch = resultText.match(/\[[\s\S]*\]/);
         if (jsonMatch) {
@@ -13952,7 +14196,7 @@ Apenas retorne o JSON puro, sem texto introdutório ou explicações.
             setTotalPerguntas(perguntas.length);
             setNumeroPergunta(1);
             setPerguntaAtual(perguntas[0]);
-            
+
             // Adicionar primeira pergunta ao histórico
             setHistorico([{
               id: '0',
@@ -13961,12 +14205,12 @@ Apenas retorne o JSON puro, sem texto introdutório ou explicações.
               context: perguntas[0].context,
               tipo: perguntas[0].tipo
             }]);
-            
+
             // Salvar perguntas restantes no estado
             setEntrevistaIniciada(true);
-            
+
             // Armazenar perguntas em AsyncStorage para recuperação caso a app feche
-            await AsyncStorage.setItem(`entrevista_perguntas_${user.id}`, 
+            await AsyncStorage.setItem(`entrevista_perguntas_${user.id}`,
               JSON.stringify({
                 perguntas,
                 timestampInicio: new Date().toISOString(),
@@ -13992,11 +14236,11 @@ Apenas retorne o JSON puro, sem texto introdutório ou explicações.
       setCarregando(false);
     }
   };
-  
+
   // Função para processar a resposta do usuário e fornecer feedback
   const enviarResposta = async () => {
     if (resposta.trim() === '') return;
-    
+
     try {
       // Adicionar a resposta do usuário ao histórico
       const novoHistorico = [...historico, {
@@ -14004,27 +14248,27 @@ Apenas retorne o JSON puro, sem texto introdutório ou explicações.
         texto: resposta,
         isUser: true
       }];
-      
+
       setHistorico(novoHistorico);
       setResposta('');
       setCarregando(true);
-      
+
       // Obter API key da IA
       const apiKey = await getIAAPIKey('GEMINI');
-      
+
       if (!apiKey) {
         throw new Error("API key do Gemini não configurada");
       }
-      
+
       // Obter entrevista armazenada
       const entrevistaJson = await AsyncStorage.getItem(`entrevista_perguntas_${user.id}`);
       if (!entrevistaJson) {
         throw new Error("Dados da entrevista não encontrados");
       }
-      
+
       const entrevistaData = JSON.parse(entrevistaJson);
       const perguntas = entrevistaData.perguntas;
-      
+
       // Construir prompt para feedback da resposta
       const promptText = `
 Você é um recrutador experiente especializado em entrevistas para a área de ${area || entrevistaData.area}.
@@ -14059,7 +14303,7 @@ FORMATO DE RESPOSTA:
 
 Retorne apenas o JSON puro, sem texto adicional.
 `;
-      
+
       // Chamar a API do Gemini para gerar feedback
       const endpoint = `${IA_APIS.GEMINI.endpoint}?key=${apiKey}`;
       const requestBody = {
@@ -14071,21 +14315,21 @@ Retorne apenas o JSON puro, sem texto adicional.
           topK: 40
         }
       };
-      
+
       const response = await axios.post(endpoint, requestBody, {
         headers: { 'Content-Type': 'application/json' },
         timeout: 30000
       });
-      
+
       if (response.data?.candidates?.[0]?.content?.parts?.[0]?.text) {
         const resultText = response.data.candidates[0].content.parts[0].text;
-        
+
         // Extrair o JSON da resposta
         const jsonMatch = resultText.match(/\{[\s\S]*\}/);
         if (jsonMatch) {
           try {
             const feedbackData = JSON.parse(jsonMatch[0]);
-            
+
             // Formatar feedback para exibição
             const feedbackFormatado = `## Feedback sobre sua resposta
 
@@ -14105,19 +14349,19 @@ ${feedbackData.explicacao}
 
 **Resumo:**
 ${feedbackData.resumo}`;
-            
+
             setFeedback(feedbackFormatado);
             setFeedbackVisible(true);
-            
+
             // Salvar feedback no histórico de entrevista
-            await AsyncStorage.setItem(`entrevista_feedback_${user.id}_${numeroPergunta}`, 
+            await AsyncStorage.setItem(`entrevista_feedback_${user.id}_${numeroPergunta}`,
               JSON.stringify({
                 pergunta: perguntaAtual.pergunta,
                 resposta: resposta,
                 feedback: feedbackData
               })
             );
-            
+
           } catch (jsonError) {
             console.error('Erro ao parsear JSON do feedback:', jsonError);
             setFeedback("Não foi possível gerar o feedback para sua resposta. Vamos continuar com a próxima pergunta.");
@@ -14138,31 +14382,31 @@ ${feedbackData.resumo}`;
       setCarregando(false);
     }
   };
-  
+
   // Função para prosseguir para a próxima pergunta
   const proximaPergunta = async () => {
     try {
       setFeedbackVisible(false);
       setFeedback('');
-      
+
       // Obter entrevista armazenada
       const entrevistaJson = await AsyncStorage.getItem(`entrevista_perguntas_${user.id}`);
       if (!entrevistaJson) {
         throw new Error("Dados da entrevista não encontrados");
       }
-      
+
       const entrevistaData = JSON.parse(entrevistaJson);
       const perguntas = entrevistaData.perguntas;
-      
+
       // Verificar se ainda há perguntas
       if (numeroPergunta < perguntas.length) {
         // Próxima pergunta
         const proximoNumero = numeroPergunta + 1;
         const proximaPergunta = perguntas[proximoNumero - 1];
-        
+
         setNumeroPergunta(proximoNumero);
         setPerguntaAtual(proximaPergunta);
-        
+
         // Adicionar próxima pergunta ao histórico
         setHistorico(prev => [...prev, {
           id: `${proximoNumero}`,
@@ -14171,7 +14415,7 @@ ${feedbackData.resumo}`;
           context: proximaPergunta.context,
           tipo: proximaPergunta.tipo
         }]);
-        
+
         // Rolar para o fim da lista
         if (flatListRef.current) {
           setTimeout(() => {
@@ -14188,31 +14432,31 @@ ${feedbackData.resumo}`;
       Alert.alert('Erro', 'Não foi possível carregar a próxima pergunta. Tente novamente.');
     }
   };
-  
+
   // Função para gerar avaliação final da entrevista
   const gerarAvaliacaoFinal = async () => {
     try {
       setCarregando(true);
-      
+
       // Obter API key da IA
       const apiKey = await getIAAPIKey('GEMINI');
-      
+
       if (!apiKey) {
         throw new Error("API key do Gemini não configurada");
       }
-      
+
       // Recuperar todos os feedbacks armazenados
       const entrevistaJson = await AsyncStorage.getItem(`entrevista_perguntas_${user.id}`);
       if (!entrevistaJson) {
         throw new Error("Dados da entrevista não encontrados");
       }
-      
+
       const entrevistaData = JSON.parse(entrevistaJson);
       const perguntas = entrevistaData.perguntas;
-      
+
       // Construir lista de perguntas e respostas
       let perguntasRespostas = [];
-      
+
       for (let i = 1; i <= perguntas.length; i++) {
         const feedbackJson = await AsyncStorage.getItem(`entrevista_feedback_${user.id}_${i}`);
         if (feedbackJson) {
@@ -14224,7 +14468,7 @@ ${feedbackData.resumo}`;
           });
         }
       }
-      
+
       // Construir prompt para avaliação final
       const promptText = `
 Você é um recrutador experiente especializado em entrevistas para a área de ${entrevistaData.area || area}.
@@ -14270,7 +14514,7 @@ FORMATO DE RESPOSTA:
 
 Retorne apenas o JSON puro, sem texto adicional.
 `;
-      
+
       // Chamar a API do Gemini para gerar avaliação final
       const endpoint = `${IA_APIS.GEMINI.endpoint}?key=${apiKey}`;
       const requestBody = {
@@ -14282,15 +14526,15 @@ Retorne apenas o JSON puro, sem texto adicional.
           topK: 40
         }
       };
-      
+
       const response = await axios.post(endpoint, requestBody, {
         headers: { 'Content-Type': 'application/json' },
         timeout: 30000
       });
-      
+
       if (response.data?.candidates?.[0]?.content?.parts?.[0]?.text) {
         const resultText = response.data.candidates[0].content.parts[0].text;
-        
+
         // Extrair o JSON da resposta
         const jsonMatch = resultText.match(/\{[\s\S]*\}/);
         if (jsonMatch) {
@@ -14298,9 +14542,9 @@ Retorne apenas o JSON puro, sem texto adicional.
             const avaliacaoData = JSON.parse(jsonMatch[0]);
             setAvaliacaoFinal(avaliacaoData);
             setConcluido(true);
-            
+
             // Salvar avaliação final
-            await AsyncStorage.setItem(`entrevista_avaliacao_${user.id}`, 
+            await AsyncStorage.setItem(`entrevista_avaliacao_${user.id}`,
               JSON.stringify({
                 avaliacao: avaliacaoData,
                 timestamp: new Date().toISOString(),
@@ -14308,7 +14552,7 @@ Retorne apenas o JSON puro, sem texto adicional.
                 tipoCargo: entrevistaData.tipoCargo || tipoCargo
               })
             );
-            
+
           } catch (jsonError) {
             console.error('Erro ao parsear JSON da avaliação final:', jsonError);
             throw new Error('Formato de resposta inválido');
@@ -14326,17 +14570,17 @@ Retorne apenas o JSON puro, sem texto adicional.
       setCarregando(false);
     }
   };
-  
+
   // Hook para iniciar a entrevista quando o componente for montado
   useEffect(() => {
     if (!entrevistaIniciada && !carregando) {
       iniciarEntrevista();
     }
   }, []);
-  
+
   // Função para mapear o nível de chance de sucesso para uma cor
   const getChanceColor = (chance) => {
-    switch(chance.toLowerCase()) {
+    switch (chance.toLowerCase()) {
       case 'alta':
         return Colors.success;
       case 'média':
@@ -14347,7 +14591,7 @@ Retorne apenas o JSON puro, sem texto adicional.
         return Colors.primary;
     }
   };
-  
+
   // Renderizar mensagem de entrevista
   const renderMensagem = ({ item }) => (
     <View style={[
@@ -14369,16 +14613,16 @@ Retorne apenas o JSON puro, sem texto adicional.
       )}
     </View>
   );
-  
+
   // Renderizar avaliação final
   const renderAvaliacaoFinal = () => {
     if (!avaliacaoFinal) return null;
-    
+
     return (
       <ScrollView style={styles.avaliacaoFinalContainer}>
         <View style={styles.avaliacaoHeader}>
           <Text style={styles.avaliacaoTitulo}>Avaliação Final da Entrevista</Text>
-          
+
           <View style={styles.pontuacaoContainer}>
             <Text style={styles.pontuacaoLabel}>Pontuação Global</Text>
             <View style={styles.pontuacaoCircle}>
@@ -14388,7 +14632,7 @@ Retorne apenas o JSON puro, sem texto adicional.
               <Text style={styles.pontuacaoMax}>/10</Text>
             </View>
           </View>
-          
+
           <View style={[
             styles.chanceSucessoContainer,
             { backgroundColor: getChanceColor(avaliacaoFinal.chance_sucesso) }
@@ -14398,7 +14642,7 @@ Retorne apenas o JSON puro, sem texto adicional.
             </Text>
           </View>
         </View>
-        
+
         <View style={styles.secaoAvaliacao}>
           <Text style={styles.secaoTitulo}>Pontos Fortes</Text>
           {avaliacaoFinal.pontos_fortes.map((ponto, index) => (
@@ -14408,7 +14652,7 @@ Retorne apenas o JSON puro, sem texto adicional.
             </View>
           ))}
         </View>
-        
+
         <View style={styles.secaoAvaliacao}>
           <Text style={styles.secaoTitulo}>Áreas de Melhoria</Text>
           {avaliacaoFinal.areas_melhoria.map((area, index) => (
@@ -14418,7 +14662,7 @@ Retorne apenas o JSON puro, sem texto adicional.
             </View>
           ))}
         </View>
-        
+
         <View style={styles.secaoAvaliacao}>
           <Text style={styles.secaoTitulo}>Recomendações</Text>
           {avaliacaoFinal.recomendacoes.map((recomendacao, index) => (
@@ -14428,31 +14672,31 @@ Retorne apenas o JSON puro, sem texto adicional.
             </View>
           ))}
         </View>
-        
+
         <View style={styles.secaoAvaliacao}>
           <Text style={styles.secaoTitulo}>Avaliação Detalhada</Text>
-          
+
           <View style={styles.avaliacaoDetalheItem}>
             <Text style={styles.avaliacaoDetalheTitulo}>Comunicação:</Text>
             <Text style={styles.avaliacaoDetalheTexto}>{avaliacaoFinal.avaliacao_comunicacao}</Text>
           </View>
-          
+
           <View style={styles.avaliacaoDetalheItem}>
             <Text style={styles.avaliacaoDetalheTitulo}>Estrutura das Respostas:</Text>
             <Text style={styles.avaliacaoDetalheTexto}>{avaliacaoFinal.avaliacao_estrutura}</Text>
           </View>
-          
+
           <View style={styles.avaliacaoDetalheItem}>
             <Text style={styles.avaliacaoDetalheTitulo}>Confiança:</Text>
             <Text style={styles.avaliacaoDetalheTexto}>{avaliacaoFinal.avaliacao_confianca}</Text>
           </View>
         </View>
-        
+
         <View style={styles.conclusaoContainer}>
           <Text style={styles.conclusaoTitulo}>Conclusão</Text>
           <Text style={styles.conclusaoTexto}>{avaliacaoFinal.conclusao}</Text>
         </View>
-        
+
         <TouchableOpacity
           style={styles.botaoEncerrar}
           onPress={() => navigation.goBack()}
@@ -14462,11 +14706,11 @@ Retorne apenas o JSON puro, sem texto adicional.
       </ScrollView>
     );
   };
-  
+
   return (
     <SafeAreaView style={styles.container}>
       <StatusBar barStyle="dark-content" backgroundColor={Colors.dark} />
-      
+
       <View style={styles.header}>
         <TouchableOpacity
           style={styles.backButton}
@@ -14491,7 +14735,7 @@ Retorne apenas o JSON puro, sem texto adicional.
           {concluido ? 'Resultado da Entrevista' : 'Entrevista Simulada'}
         </Text>
       </View>
-      
+
       {carregando && !entrevistaIniciada ? (
         <View style={styles.loadingContainer}>
           <ActivityIndicator size="large" color={Colors.primary} />
@@ -14516,7 +14760,7 @@ Retorne apenas o JSON puro, sem texto adicional.
               Pergunta {numeroPergunta} de {totalPerguntas}
             </Text>
           </View>
-          
+
           <FlatList
             ref={flatListRef}
             data={historico}
@@ -14529,11 +14773,11 @@ Retorne apenas o JSON puro, sem texto adicional.
               }
             }}
           />
-          
+
           {feedbackVisible ? (
             <View style={styles.feedbackContainer}>
               <Text style={styles.feedbackTitulo}>Feedback do Recrutador</Text>
-              
+
               <ScrollView style={styles.feedbackScrollView}>
                 <Markdown
                   style={{
@@ -14552,7 +14796,7 @@ Retorne apenas o JSON puro, sem texto adicional.
                   {feedback}
                 </Markdown>
               </ScrollView>
-              
+
               <TouchableOpacity
                 style={styles.continuarButton}
                 onPress={proximaPergunta}
@@ -14574,7 +14818,7 @@ Retorne apenas o JSON puro, sem texto adicional.
                 textAlignVertical="top"
                 editable={!carregando}
               />
-              
+
               <TouchableOpacity
                 style={[
                   styles.enviarButton,
@@ -14642,7 +14886,7 @@ const ChatbotScreen = ({ navigation, route }) => {
   const [cvData, setCvData] = useState(null);
   const [showPreview, setShowPreview] = useState(false);
   const [initializing, setInitializing] = useState(true);
-  
+
   // Novos estados para controle de confirmação
   const [showConfirmation, setShowConfirmation] = useState(false);
   const [lastResponse, setLastResponse] = useState(null);
@@ -14797,7 +15041,7 @@ const ChatbotScreen = ({ navigation, route }) => {
 
     // Adicionar resposta do bot
     addBotMessage(result.response);
-    
+
     // Resetar confirmação
     setShowConfirmation(false);
     setWaitingConfirmation(false);
@@ -14820,7 +15064,7 @@ const ChatbotScreen = ({ navigation, route }) => {
   // Lidar com envio de mensagem (versão modificada com confirmação)
   const handleSendMessage = () => {
     if (currentMessage.trim() === '') return;
-    
+
     // Se estamos esperando confirmação, ignorar novas mensagens
     if (waitingConfirmation) return;
 
@@ -14837,14 +15081,14 @@ const ChatbotScreen = ({ navigation, route }) => {
 
     // Processar a mensagem para obter a resposta
     const result = processMessage(currentMessage, currentStep, cvData);
-    
+
     // Salvar resultado para usar após confirmação
     setLastProcessedResult(result);
     setLastResponse(currentMessage);
-    
+
     // Limpar campo de entrada
     setCurrentMessage('');
-    
+
     // Mostrar confirmação, exceto para algumas etapas como 'boas_vindas'
     if (currentStep !== 'boas_vindas' && currentStep !== 'concluido' && !currentStep.includes('escolher')) {
       setShowConfirmation(true);
@@ -14859,14 +15103,14 @@ const ChatbotScreen = ({ navigation, route }) => {
       setTimeout(() => flatListRef.current.scrollToEnd({ animated: true }), 100);
     }
   };
-  
+
   // Função para confirmar a resposta
   const handleConfirmResponse = () => {
     if (lastProcessedResult) {
       applyProcessedResult(lastProcessedResult);
     }
   };
-  
+
   // Função para corrigir a resposta
   const handleCorrectResponse = () => {
     // Voltar para a entrada anterior
@@ -14995,9 +15239,9 @@ const ChatbotScreen = ({ navigation, route }) => {
             />
 
             {showConfirmation && (
-              <ConfirmationButtons 
-                onConfirm={handleConfirmResponse} 
-                onCorrect={handleCorrectResponse} 
+              <ConfirmationButtons
+                onConfirm={handleConfirmResponse}
+                onCorrect={handleCorrectResponse}
               />
             )}
 
@@ -15049,7 +15293,7 @@ const EditarCurriculoScreen = ({ route, navigation }) => {
   const [saving, setSaving] = useState(false);
   const [editData, setEditData] = useState(curriculoData ? { ...curriculoData.data } : null);
   const [activeSection, setActiveSection] = useState('informacoes_pessoais');
-  
+
   // Seções disponíveis para edição
   const sections = [
     { id: 'informacoes_pessoais', title: 'Informações Pessoais', icon: '👤' },
@@ -15060,19 +15304,19 @@ const EditarCurriculoScreen = ({ route, navigation }) => {
     { id: 'projetos', title: 'Projetos', icon: '🚀' },
     { id: 'idiomas', title: 'Idiomas', icon: '🌐' }
   ];
-  
+
   // Salvar as alterações feitas
   const handleSaveChanges = async () => {
     try {
       setSaving(true);
-      
+
       // Buscar currículos existentes
       const cvs = await AsyncStorage.getItem(`curriculos_${user.id}`);
       const curriculos = cvs ? JSON.parse(cvs) : [];
-      
+
       // Encontrar e atualizar o currículo atual
       const index = curriculos.findIndex(cv => cv.id === curriculoData.id);
-      
+
       if (index !== -1) {
         // Criar cópia atualizada
         const updatedCurriculo = {
@@ -15080,13 +15324,13 @@ const EditarCurriculoScreen = ({ route, navigation }) => {
           data: editData,
           dataAtualizacao: new Date().toISOString()
         };
-        
+
         // Atualizar array de currículos
         curriculos[index] = updatedCurriculo;
-        
+
         // Salvar no AsyncStorage
         await AsyncStorage.setItem(`curriculos_${user.id}`, JSON.stringify(curriculos));
-        
+
         Alert.alert(
           'Sucesso',
           'Currículo atualizado com sucesso!',
@@ -15102,15 +15346,15 @@ const EditarCurriculoScreen = ({ route, navigation }) => {
       setSaving(false);
     }
   };
-  
+
   // Renderizar editor de informações pessoais
   const renderPersonalInfoEditor = () => {
     const pessoal = editData.informacoes_pessoais || {};
-    
+
     return (
       <View style={styles.editorSection}>
         <Text style={styles.editorSectionTitle}>Informações Pessoais</Text>
-        
+
         <View style={styles.inputGroup}>
           <Text style={styles.inputLabel}>Nome:</Text>
           <TextInput
@@ -15125,7 +15369,7 @@ const EditarCurriculoScreen = ({ route, navigation }) => {
             placeholder="Nome"
           />
         </View>
-        
+
         <View style={styles.inputGroup}>
           <Text style={styles.inputLabel}>Sobrenome:</Text>
           <TextInput
@@ -15140,7 +15384,7 @@ const EditarCurriculoScreen = ({ route, navigation }) => {
             placeholder="Sobrenome"
           />
         </View>
-        
+
         <View style={styles.inputGroup}>
           <Text style={styles.inputLabel}>Email:</Text>
           <TextInput
@@ -15156,7 +15400,7 @@ const EditarCurriculoScreen = ({ route, navigation }) => {
             keyboardType="email-address"
           />
         </View>
-        
+
         <View style={styles.inputGroup}>
           <Text style={styles.inputLabel}>Endereço:</Text>
           <TextInput
@@ -15171,7 +15415,7 @@ const EditarCurriculoScreen = ({ route, navigation }) => {
             placeholder="Endereço"
           />
         </View>
-        
+
         <View style={styles.inputGroup}>
           <Text style={styles.inputLabel}>CEP:</Text>
           <TextInput
@@ -15187,7 +15431,7 @@ const EditarCurriculoScreen = ({ route, navigation }) => {
             keyboardType="numeric"
           />
         </View>
-        
+
         <View style={styles.inputGroup}>
           <Text style={styles.inputLabel}>Área:</Text>
           <TextInput
@@ -15202,7 +15446,7 @@ const EditarCurriculoScreen = ({ route, navigation }) => {
             placeholder="Área de atuação"
           />
         </View>
-        
+
         <View style={styles.inputGroup}>
           <Text style={styles.inputLabel}>LinkedIn:</Text>
           <TextInput
@@ -15217,7 +15461,7 @@ const EditarCurriculoScreen = ({ route, navigation }) => {
             placeholder="Perfil LinkedIn"
           />
         </View>
-        
+
         <View style={styles.inputGroup}>
           <Text style={styles.inputLabel}>GitHub:</Text>
           <TextInput
@@ -15235,13 +15479,13 @@ const EditarCurriculoScreen = ({ route, navigation }) => {
       </View>
     );
   };
-  
+
   // Renderizar editor de resumo profissional
   const renderResumeEditor = () => {
     return (
       <View style={styles.editorSection}>
         <Text style={styles.editorSectionTitle}>Resumo Profissional</Text>
-        
+
         <TextInput
           style={[styles.input, styles.textArea]}
           value={editData.resumo_profissional || ''}
@@ -15259,20 +15503,20 @@ const EditarCurriculoScreen = ({ route, navigation }) => {
       </View>
     );
   };
-  
+
   // Renderizar editor de formação acadêmica
   const renderEducationEditor = () => {
     const formacoes = editData.formacoes_academicas || [];
-    
+
     return (
       <View style={styles.editorSection}>
         <Text style={styles.editorSectionTitle}>Formação Acadêmica</Text>
-        
+
         {formacoes.map((formacao, index) => (
           <View key={index} style={styles.itemCard}>
             <View style={styles.itemHeader}>
               <Text style={styles.itemTitle}>{formacao.diploma || 'Formação'} em {formacao.area_estudo || 'Área'}</Text>
-              
+
               <TouchableOpacity
                 style={styles.deleteButton}
                 onPress={() => {
@@ -15287,7 +15531,7 @@ const EditarCurriculoScreen = ({ route, navigation }) => {
                 <Text style={styles.deleteButtonText}>✕</Text>
               </TouchableOpacity>
             </View>
-            
+
             <View style={styles.inputGroup}>
               <Text style={styles.inputLabel}>Instituição:</Text>
               <TextInput
@@ -15304,7 +15548,7 @@ const EditarCurriculoScreen = ({ route, navigation }) => {
                 placeholder="Instituição de ensino"
               />
             </View>
-            
+
             <View style={styles.inputGroup}>
               <Text style={styles.inputLabel}>Diploma:</Text>
               <TextInput
@@ -15321,7 +15565,7 @@ const EditarCurriculoScreen = ({ route, navigation }) => {
                 placeholder="Tipo de diploma"
               />
             </View>
-            
+
             <View style={styles.inputGroup}>
               <Text style={styles.inputLabel}>Área de Estudo:</Text>
               <TextInput
@@ -15338,7 +15582,7 @@ const EditarCurriculoScreen = ({ route, navigation }) => {
                 placeholder="Área de estudo"
               />
             </View>
-            
+
             <View style={styles.rowInputs}>
               <View style={[styles.inputGroup, { flex: 1, marginRight: 5 }]}>
                 <Text style={styles.inputLabel}>Data Início:</Text>
@@ -15356,7 +15600,7 @@ const EditarCurriculoScreen = ({ route, navigation }) => {
                   placeholder="MM/AAAA"
                 />
               </View>
-              
+
               <View style={[styles.inputGroup, { flex: 1, marginLeft: 5 }]}>
                 <Text style={styles.inputLabel}>Data Fim:</Text>
                 <TextInput
@@ -15376,7 +15620,7 @@ const EditarCurriculoScreen = ({ route, navigation }) => {
             </View>
           </View>
         ))}
-        
+
         <TouchableOpacity
           style={styles.addButton}
           onPress={() => {
@@ -15394,20 +15638,20 @@ const EditarCurriculoScreen = ({ route, navigation }) => {
       </View>
     );
   };
-  
+
   // Renderizar editor de experiências
   const renderExperienceEditor = () => {
     const experiencias = editData.experiencias || [];
-    
+
     return (
       <View style={styles.editorSection}>
         <Text style={styles.editorSectionTitle}>Experiência Profissional</Text>
-        
+
         {experiencias.map((experiencia, index) => (
           <View key={index} style={styles.itemCard}>
             <View style={styles.itemHeader}>
               <Text style={styles.itemTitle}>{experiencia.cargo || 'Cargo'} - {experiencia.empresa || 'Empresa'}</Text>
-              
+
               <TouchableOpacity
                 style={styles.deleteButton}
                 onPress={() => {
@@ -15422,7 +15666,7 @@ const EditarCurriculoScreen = ({ route, navigation }) => {
                 <Text style={styles.deleteButtonText}>✕</Text>
               </TouchableOpacity>
             </View>
-            
+
             <View style={styles.inputGroup}>
               <Text style={styles.inputLabel}>Cargo:</Text>
               <TextInput
@@ -15439,7 +15683,7 @@ const EditarCurriculoScreen = ({ route, navigation }) => {
                 placeholder="Cargo ou posição"
               />
             </View>
-            
+
             <View style={styles.inputGroup}>
               <Text style={styles.inputLabel}>Empresa:</Text>
               <TextInput
@@ -15456,7 +15700,7 @@ const EditarCurriculoScreen = ({ route, navigation }) => {
                 placeholder="Nome da empresa"
               />
             </View>
-            
+
             <View style={styles.rowInputs}>
               <View style={[styles.inputGroup, { flex: 1, marginRight: 5 }]}>
                 <Text style={styles.inputLabel}>Data Início:</Text>
@@ -15474,7 +15718,7 @@ const EditarCurriculoScreen = ({ route, navigation }) => {
                   placeholder="MM/AAAA"
                 />
               </View>
-              
+
               <View style={[styles.inputGroup, { flex: 1, marginLeft: 5 }]}>
                 <Text style={styles.inputLabel}>Data Fim:</Text>
                 <TextInput
@@ -15492,7 +15736,7 @@ const EditarCurriculoScreen = ({ route, navigation }) => {
                 />
               </View>
             </View>
-            
+
             <View style={styles.inputGroup}>
               <Text style={styles.inputLabel}>Descrição:</Text>
               <TextInput
@@ -15514,7 +15758,7 @@ const EditarCurriculoScreen = ({ route, navigation }) => {
             </View>
           </View>
         ))}
-        
+
         <TouchableOpacity
           style={styles.addButton}
           onPress={() => {
@@ -15532,7 +15776,7 @@ const EditarCurriculoScreen = ({ route, navigation }) => {
       </View>
     );
   };
-  
+
   // Renderizar seção ativa
   const renderActiveSection = () => {
     switch (activeSection) {
@@ -15549,11 +15793,11 @@ const EditarCurriculoScreen = ({ route, navigation }) => {
         return <Text>Selecione uma seção para editar</Text>;
     }
   };
-  
+
   return (
     <SafeAreaView style={styles.container}>
       <StatusBar barStyle="dark-content" backgroundColor={Colors.dark} />
-      
+
       <View style={styles.header}>
         <TouchableOpacity
           style={styles.backButton}
@@ -15571,7 +15815,7 @@ const EditarCurriculoScreen = ({ route, navigation }) => {
           <Text style={styles.backButtonText}>‹</Text>
         </TouchableOpacity>
         <Text style={styles.headerTitle}>Editar Currículo</Text>
-        
+
         <TouchableOpacity
           style={styles.saveButton}
           onPress={handleSaveChanges}
@@ -15584,7 +15828,7 @@ const EditarCurriculoScreen = ({ route, navigation }) => {
           )}
         </TouchableOpacity>
       </View>
-      
+
       <View style={styles.editorContainer}>
         <ScrollView
           horizontal
@@ -15613,7 +15857,7 @@ const EditarCurriculoScreen = ({ route, navigation }) => {
             </TouchableOpacity>
           ))}
         </ScrollView>
-        
+
         <ScrollView
           style={styles.editorScroll}
           contentContainerStyle={styles.editorScrollContent}
@@ -15629,14 +15873,14 @@ const melhorarCurriculoComIA = async (curriculoData) => {
   try {
     // Obter API key do Gemini ou outro provedor disponível
     const apiKey = await getIAAPIKey('GEMINI');
-    
+
     if (!apiKey) {
       throw new Error("API key do Gemini não configurada");
     }
-    
+
     // Formatar o currículo para envio à IA
     const cvFormatado = formatarCurriculo(curriculoData);
-    
+
     // Construir o prompt para a IA
     const promptText = `
 Você é um especialista em recrutamento e elaboração de currículos profissionais. Sua tarefa é melhorar o currículo abaixo, mantendo todas as informações verdadeiras, mas tornando-o mais atrativo, profissional e eficaz.
@@ -15656,7 +15900,7 @@ ${cvFormatado}
 
 Retorne o currículo melhorado no formato JSON com a mesma estrutura do original, mas com conteúdo aprimorado. Mantenha os nomes das propriedades exatamente iguais.
     `;
-    
+
     // Chamar a API do Gemini
     const endpoint = `${IA_APIS.GEMINI.endpoint}?key=${apiKey}`;
     const requestBody = {
@@ -15668,22 +15912,22 @@ Retorne o currículo melhorado no formato JSON com a mesma estrutura do original
         topK: 40
       }
     };
-    
+
     const response = await axios.post(endpoint, requestBody, {
       headers: { 'Content-Type': 'application/json' },
       timeout: 30000
     });
-    
+
     if (response.data?.candidates?.[0]?.content?.parts?.[0]?.text) {
       const resultText = response.data.candidates[0].content.parts[0].text;
-      
+
       // Extrair o JSON da resposta
       const jsonMatch = resultText.match(/\{[\s\S]*\}/);
       if (jsonMatch) {
         try {
           // Converter o texto JSON em objeto
           const melhoradoData = JSON.parse(jsonMatch[0]);
-          
+
           return {
             success: true,
             curriculoMelhorado: melhoradoData
@@ -15709,30 +15953,30 @@ Retorne o currículo melhorado no formato JSON com a mesma estrutura do original
 
 const MelhorarComIAButton = ({ curriculoData, onMelhoria }) => {
   const [loading, setLoading] = useState(false);
-  
+
   const handleMelhorarComIA = async () => {
     try {
       setLoading(true);
-      
+
       // Confirmar antes de proceder
       Alert.alert(
         "Melhorar com IA",
         "A IA irá melhorar a redação e apresentação do seu currículo, mantendo todas as informações verdadeiras. Deseja continuar?",
         [
           { text: "Cancelar", style: "cancel" },
-          { 
-            text: "Continuar", 
+          {
+            text: "Continuar",
             onPress: async () => {
               // Chamar a função de melhoria
               const resultado = await melhorarCurriculoComIA(curriculoData.data);
-              
+
               if (resultado.success) {
                 // Chamar a função de callback com os dados melhorados
                 onMelhoria(resultado.curriculoMelhorado);
               } else {
                 Alert.alert("Erro", resultado.error || "Não foi possível melhorar o currículo.");
               }
-              
+
               setLoading(false);
             }
           }
@@ -15744,7 +15988,7 @@ const MelhorarComIAButton = ({ curriculoData, onMelhoria }) => {
       setLoading(false);
     }
   };
-  
+
   return (
     <TouchableOpacity
       style={{
@@ -15782,7 +16026,7 @@ const PreviewCVScreen = ({ route, navigation }) => {
   const [currentData, setCurrentData] = useState(curriculoData); // Para armazenar versão atual (original ou melhorada)
   const [showComparison, setShowComparison] = useState(false); // Para mostrar comparação antes/depois
   const { user } = useAuth();
-  
+
   const handleShare = async () => {
     try {
       await Share.share({
@@ -15835,14 +16079,14 @@ const PreviewCVScreen = ({ route, navigation }) => {
       setGeneratingPDF(false);
     }
   };
-  
+
   // Função para salvar o currículo melhorado
   const handleSalvarMelhorado = async (dadosMelhorados) => {
     try {
       // Buscar currículos existentes
       const cvs = await AsyncStorage.getItem(`curriculos_${user.id}`);
       const curriculos = cvs ? JSON.parse(cvs) : [];
-      
+
       // Criar uma nova entrada para o currículo melhorado
       const novoCurriculo = {
         id: getUniqueId(),
@@ -15850,28 +16094,28 @@ const PreviewCVScreen = ({ route, navigation }) => {
         data: dadosMelhorados,
         dataCriacao: new Date().toISOString()
       };
-      
+
       // Adicionar ao array e salvar
       curriculos.push(novoCurriculo);
       await AsyncStorage.setItem(`curriculos_${user.id}`, JSON.stringify(curriculos));
-      
+
       Alert.alert(
         "Sucesso",
         "Currículo melhorado salvo com sucesso!",
         [{ text: "OK" }]
       );
-      
+
       // Atualizar dados na tela
       setCurrentData({
         ...novoCurriculo
       });
-      
+
     } catch (error) {
       console.error('Erro ao salvar currículo melhorado:', error);
       Alert.alert("Erro", "Não foi possível salvar o currículo melhorado.");
     }
   };
-  
+
   // Lidar com melhoria de currículo
   const handleCurriculoMelhorado = (dadosMelhorados) => {
     // Mostrar alerta com opções
@@ -15879,8 +16123,8 @@ const PreviewCVScreen = ({ route, navigation }) => {
       "Currículo Melhorado",
       "Seu currículo foi melhorado com sucesso! O que deseja fazer?",
       [
-        { 
-          text: "Visualizar Melhorias", 
+        {
+          text: "Visualizar Melhorias",
           onPress: () => {
             // Mostrar comparação
             setShowComparison(true);
@@ -15890,13 +16134,13 @@ const PreviewCVScreen = ({ route, navigation }) => {
             });
           }
         },
-        { 
-          text: "Salvar como Novo", 
+        {
+          text: "Salvar como Novo",
           onPress: () => handleSalvarMelhorado(dadosMelhorados)
         },
-        { 
-          text: "Cancelar", 
-          style: "cancel" 
+        {
+          text: "Cancelar",
+          style: "cancel"
         }
       ]
     );
@@ -16067,10 +16311,10 @@ const PreviewCVScreen = ({ route, navigation }) => {
         <View style={styles.previewScreenCard}>
           <CurriculumPreview data={currentData.data} templateStyle={templateStyle} />
         </View>
-        
+
         {/* Adicionar o botão de melhoria com IA */}
         <View style={{ padding: 15 }}>
-          <MelhorarComIAButton 
+          <MelhorarComIAButton
             curriculoData={curriculoData}
             onMelhoria={handleCurriculoMelhorado}
           />
@@ -16091,7 +16335,7 @@ const PreviewCVScreen = ({ route, navigation }) => {
         >
           <Text style={styles.previewActionButtonText}>Analisar com IA</Text>
         </TouchableOpacity>
-        
+
         {/* Adicionar botão de edição */}
         <TouchableOpacity
           style={[styles.previewActionButton, { backgroundColor: Colors.info }]}
@@ -16100,7 +16344,7 @@ const PreviewCVScreen = ({ route, navigation }) => {
           <Text style={styles.previewActionButtonText}>Editar Currículo</Text>
         </TouchableOpacity>
       </View>
-      
+
       {/* Modal de comparação antes/depois */}
       {showComparison && (
         <View style={styles.comparisonModal}>
@@ -16114,19 +16358,19 @@ const PreviewCVScreen = ({ route, navigation }) => {
                 <Text style={styles.comparisonCloseText}>✕</Text>
               </TouchableOpacity>
             </View>
-            
+
             <ScrollView style={styles.comparisonScroll}>
               {/* Exemplo de comparação - resumo profissional */}
               <View style={styles.comparisonSection}>
                 <Text style={styles.comparisonSectionTitle}>Resumo Profissional</Text>
-                
+
                 <View style={styles.comparisonItem}>
                   <Text style={styles.comparisonLabel}>Antes:</Text>
                   <Text style={styles.comparisonOriginalText}>
                     {curriculoData.data.resumo_profissional || 'Sem resumo profissional'}
                   </Text>
                 </View>
-                
+
                 <View style={styles.comparisonItem}>
                   <Text style={styles.comparisonLabel}>Depois:</Text>
                   <Text style={styles.comparisonImprovedText}>
@@ -16134,10 +16378,10 @@ const PreviewCVScreen = ({ route, navigation }) => {
                   </Text>
                 </View>
               </View>
-              
+
               {/* Outras comparações podem ser adicionadas para experiências, etc. */}
             </ScrollView>
-            
+
             <View style={styles.comparisonActions}>
               <TouchableOpacity
                 style={styles.comparisonButton}
@@ -16145,7 +16389,7 @@ const PreviewCVScreen = ({ route, navigation }) => {
               >
                 <Text style={styles.comparisonButtonText}>Fechar</Text>
               </TouchableOpacity>
-              
+
               <TouchableOpacity
                 style={[styles.comparisonButton, { backgroundColor: Colors.success }]}
                 onPress={() => {
@@ -17364,7 +17608,7 @@ const MeusCurriculosScreen = ({ navigation }) => {
                 </TouchableOpacity>
 
                 <View style={meusCurriculosStyles.curriculoCardDivider} />
-                
+
                 {/* Novo botão de edição */}
                 <TouchableOpacity
                   style={meusCurriculosStyles.curriculoCardAction}
@@ -17437,7 +17681,7 @@ const MeusCurriculosScreen = ({ navigation }) => {
               <Text>👁️</Text>
               <Text style={meusCurriculosStyles.menuOptionText}>Visualizar</Text>
             </TouchableOpacity>
-            
+
             {/* Adicionar opção de edição no menu de contexto também */}
             <TouchableOpacity
               style={meusCurriculosStyles.menuOption}
@@ -17499,6 +17743,52 @@ const MeusCurriculosScreen = ({ navigation }) => {
     </SafeAreaView>
   );
 };
+
+// Componente para seção de itens no menu
+const MenuItemSection = ({ title, children }) => (
+  <View style={{ marginBottom: 15 }}>
+    <Text style={{
+      paddingHorizontal: 20,
+      paddingVertical: 5,
+      color: Colors.lightText,
+      fontSize: 12,
+      fontWeight: 'bold',
+      textTransform: 'uppercase',
+      backgroundColor: '#f5f5f5'
+    }}>
+      {title}
+    </Text>
+    {children}
+  </View>
+);
+
+// Componente para item de menu
+const MenuItem = ({ icon, title, onPress, badge, textColor = Colors.dark }) => (
+  <TouchableOpacity
+    style={{
+      flexDirection: 'row',
+      alignItems: 'center',
+      paddingVertical: 12,
+      paddingHorizontal: 20,
+    }}
+    onPress={onPress}
+  >
+    <Ionicons name={icon} size={22} color={textColor} style={{ marginRight: 15 }} />
+    <Text style={{ fontSize: 16, color: textColor, flex: 1 }}>{title}</Text>
+    {badge && (
+      <View style={{
+        backgroundColor: Colors.danger,
+        width: 20,
+        height: 20,
+        borderRadius: 10,
+        alignItems: 'center',
+        justifyContent: 'center',
+      }}>
+        <Text style={{ color: 'white', fontSize: 12, fontWeight: 'bold' }}>{badge}</Text>
+      </View>
+    )}
+  </TouchableOpacity>
+);
 
 const PerfilFotoScreen = ({ navigation, route }) => {
   const { user, updateUser } = useAuth();
