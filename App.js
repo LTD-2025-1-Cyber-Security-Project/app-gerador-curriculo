@@ -40,7 +40,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import IA_APIS from './src/api/IA_APIS';
 import salvarIAAPIKey from './src/api/salvarIAAPIKey';
 import getIAAPIKey from './src/api/getIAAPIKey';
-import ConfiguracoesAvancadasScreen from './screens/ConfiguracoesAvancadasScreen';
+import ConfigAvStackScreen from './screens/ConfigAvStackScreen';
 
 const Tab = createBottomTabNavigator();
 const HomeStack = createStackNavigator();
@@ -3603,12 +3603,6 @@ const ConfigStackScreen = () => (
     <ConfigStack.Screen name="Chatbot" component={ChatbotScreen} />
     <ConfigStack.Screen name="SobreApp" component={SobreAppScreen} />
   </ConfigStack.Navigator>
-);
-
-const ConfigAvStackScreen = () => (
-  <ConfigAvStack.Navigator screenOptions={{ headerShown: false }}>
-    <ConfigAvStack.Screen name="ConfigAvMain" component={ConfiguracoesAvancadasScreen} />
-  </ConfigAvStack.Navigator>
 );
 
 const TabNavigator = () => (
