@@ -69,6 +69,8 @@ import ConfirmationButtons from './src/ConfirmationButtons';
 import getCurrentTime from './src/getCurrentTime';
 import getUniqueId from './src/getUniqueId';
 import MelhorarComIAButton from './src/MelhorarComIAButton';
+import BuscaVagasScreen from './screens/BuscaVagasScreen';
+import ConfiguracoesIAScreen from './screens/ConfiguracoesIAScreen';
 
 const Tab = createBottomTabNavigator();
 const HomeStack = createStackNavigator();
@@ -95,6 +97,11 @@ axios.interceptors.response.use(response => {
   console.log('Error Data:', error.response?.data);
   return Promise.reject(error);
 });
+
+
+
+
+
 
 
 const GraficosRegionaisScreen = ({ navigation, route }) => {
@@ -662,6 +669,2299 @@ Forneça apenas informações factuais e verificáveis, focando especificamente 
           </View>
         </ScrollView>
       )}
+    </SafeAreaView>
+  );
+};
+const SimularEntrevistaScreen = ({ navigation }) => {
+  const { user } = useAuth();
+  const [curriculos, setCurriculos] = useState([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    carregarCurriculos();
+  }, []);
+
+  const carregarCurriculos = async () => {
+    try {
+      setLoading(true);
+      const cvs = await AsyncStorage.getItem(`curriculos_${user.id}`);
+      setCurriculos(cvs ? JSON.parse(cvs) : []);
+    } catch (error) {
+      console.error('Erro ao carregar currículos:', error);
+      Alert.alert('Erro', 'Não foi possível carregar seus currículos.');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleIniciarEntrevista = (curriculo) => {
+    navigation.navigate('EntrevistaSimulada', { curriculoData: curriculo });
+  };
+
+  const handleEntrevistaGenerica = () => {
+    navigation.navigate('EntrevistaSimulada', { curriculoData: null });
+  };
+
+  const formatDate = (dateString) => {
+    try {
+      if (!dateString) return 'Data não disponível';
+      const date = new Date(dateString);
+      return `${date.getDate().toString().padStart(2, '0')}/${(date.getMonth() + 1).toString().padStart(2, '0')}/${date.getFullYear()}`;
+    } catch (error) {
+      return 'Data inválida';
+    }
+  };
+
+  // Extrair informações do currículo para exibição
+  const getResumoCurriculo = (curriculo) => {
+    const cv = curriculo.data;
+    const experiencias = cv.experiencias?.length || 0;
+    const formacoes = cv.formacoes_academicas?.length || 0;
+    const area = cv.informacoes_pessoais?.area || 'Não especificada';
+
+    return { experiencias, formacoes, area };
+  };
+
+  return (
+    <SafeAreaView style={styles.container}>
+      <StatusBar barStyle="dark-content" backgroundColor={Colors.dark} />
+
+      <View style={styles.header}>
+        <TouchableOpacity
+          style={styles.backButton}
+          onPress={() => navigation.goBack()}
+        >
+          <Text style={styles.backButtonText}>‹</Text>
+        </TouchableOpacity>
+        <Text style={styles.headerTitle}>Simular Entrevista</Text>
+      </View>
+
+      {loading ? (
+        <View style={styles.loadingContainer}>
+          <ActivityIndicator size="large" color={Colors.primary} />
+          <Text style={{ marginTop: 10 }}>Carregando currículos...</Text>
+        </View>
+      ) : (
+        <View style={{ flex: 1, padding: 15 }}>
+          <View style={{
+            backgroundColor: '#e1f5fe',
+            padding: 15,
+            borderRadius: 10,
+            marginBottom: 20,
+            borderLeftWidth: 4,
+            borderLeftColor: Colors.info,
+          }}>
+            <Text style={{
+              fontSize: 18,
+              fontWeight: 'bold',
+              marginBottom: 5,
+              color: Colors.dark,
+            }}>
+              Simulador de Entrevista com IA
+            </Text>
+            <Text style={{
+              fontSize: 14,
+              color: '#01579b',
+              lineHeight: 22,
+            }}>
+              Prepare-se para suas entrevistas de emprego com nosso simulador inteligente. A IA fará perguntas baseadas no seu currículo ou em um formato genérico, avaliará suas respostas e fornecerá feedback para melhorar seu desempenho.
+            </Text>
+          </View>
+
+          {curriculos.length > 0 ? (
+            <>
+              <Text style={{
+                fontSize: 16,
+                fontWeight: 'bold',
+                marginBottom: 10,
+                color: Colors.dark,
+              }}>
+                Selecione um currículo para uma entrevista personalizada:
+              </Text>
+
+              <FlatList
+                data={curriculos}
+                keyExtractor={(item) => item.id}
+                renderItem={({ item }) => {
+                  const resumo = getResumoCurriculo(item);
+
+                  return (
+                    <TouchableOpacity
+                      style={{
+                        backgroundColor: Colors.white,
+                        borderRadius: 10,
+                        marginBottom: 15,
+                        padding: 16,
+                        ...Platform.select({
+                          ios: {
+                            shadowColor: '#000',
+                            shadowOffset: { width: 0, height: 2 },
+                            shadowOpacity: 0.1,
+                            shadowRadius: 3,
+                          },
+                          android: {
+                            elevation: 2,
+                          },
+                        }),
+                        borderLeftWidth: 4,
+                        borderLeftColor: Colors.primary,
+                      }}
+                      onPress={() => handleIniciarEntrevista(item)}
+                    >
+                      <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
+                        <Text style={{
+                          fontSize: 18,
+                          fontWeight: 'bold',
+                          color: Colors.dark,
+                          marginBottom: 5,
+                        }}>
+                          {item.nome || 'Currículo sem nome'}
+                        </Text>
+
+                        <View style={{
+                          backgroundColor: Colors.primary,
+                          paddingVertical: 4,
+                          paddingHorizontal: 8,
+                          borderRadius: 15,
+                        }}>
+                          <Text style={{ color: Colors.white, fontSize: 12 }}>
+                            Selecionar
+                          </Text>
+                        </View>
+                      </View>
+
+                      <Text style={{
+                        fontSize: 14,
+                        color: Colors.lightText,
+                        marginBottom: 10,
+                      }}>
+                        Criado em: {formatDate(item.dataCriacao)}
+                      </Text>
+
+                      <View style={{
+                        backgroundColor: '#f5f5f5',
+                        padding: 10,
+                        borderRadius: 5,
+                        marginTop: 5,
+                      }}>
+                        <Text style={{ color: Colors.dark }}>
+                          <Text style={{ fontWeight: 'bold' }}>Área: </Text>
+                          {resumo.area}
+                        </Text>
+
+                        <View style={{ flexDirection: 'row', marginTop: 5, flexWrap: 'wrap' }}>
+                          <View style={{
+                            backgroundColor: Colors.primary,
+                            paddingVertical: 3,
+                            paddingHorizontal: 8,
+                            borderRadius: 12,
+                            marginRight: 8,
+                            marginBottom: 5,
+                          }}>
+                            <Text style={{ color: Colors.white, fontSize: 12 }}>
+                              {resumo.experiencias} experiência(s)
+                            </Text>
+                          </View>
+
+                          <View style={{
+                            backgroundColor: Colors.secondary,
+                            paddingVertical: 3,
+                            paddingHorizontal: 8,
+                            borderRadius: 12,
+                            marginRight: 8,
+                            marginBottom: 5,
+                          }}>
+                            <Text style={{ color: Colors.white, fontSize: 12 }}>
+                              {resumo.formacoes} formação(ões)
+                            </Text>
+                          </View>
+                        </View>
+                      </View>
+                    </TouchableOpacity>
+                  );
+                }}
+              />
+            </>
+          ) : (
+            <View style={{ alignItems: 'center', marginTop: 20 }}>
+              <Text style={{ textAlign: 'center', marginBottom: 20 }}>
+                Você ainda não tem currículos cadastrados. Crie um currículo primeiro ou use o modo de entrevista genérica.
+              </Text>
+              <TouchableOpacity
+                style={{
+                  backgroundColor: Colors.primary,
+                  paddingVertical: 12,
+                  paddingHorizontal: 20,
+                  borderRadius: 8,
+                  marginBottom: 15,
+                }}
+                onPress={() => navigation.navigate('Chatbot')}
+              >
+                <Text style={{ color: Colors.white, fontWeight: 'bold' }}>
+                  Criar Novo Currículo
+                </Text>
+              </TouchableOpacity>
+            </View>
+          )}
+
+          <View style={{
+            backgroundColor: '#f9fbe7',
+            padding: 15,
+            borderRadius: 10,
+            marginTop: 10,
+            marginBottom: 20,
+            borderLeftWidth: 4,
+            borderLeftColor: '#9e9d24',
+          }}>
+            <Text style={{
+              fontSize: 16,
+              fontWeight: 'bold',
+              marginBottom: 5,
+              color: Colors.dark,
+            }}>
+              Entrevista Genérica
+            </Text>
+            <Text style={{
+              fontSize: 14,
+              color: '#616161',
+              marginBottom: 10,
+            }}>
+              Prefere uma entrevista sem vínculo com um currículo específico? Faça uma simulação com perguntas genéricas para qualquer cargo.
+            </Text>
+            <TouchableOpacity
+              style={{
+                backgroundColor: '#9e9d24',
+                paddingVertical: 10,
+                paddingHorizontal: 15,
+                borderRadius: 8,
+                alignSelf: 'flex-start',
+              }}
+              onPress={handleEntrevistaGenerica}
+            >
+              <Text style={{ color: Colors.white, fontWeight: 'bold' }}>
+                Iniciar Entrevista Genérica
+              </Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      )}
+    </SafeAreaView>
+  );
+};
+const EntrevistaSimuladaScreen = ({ route, navigation }) => {
+  const { user } = useAuth();
+  const { curriculoData } = route.params;
+  const [entrevistaIniciada, setEntrevistaIniciada] = useState(false);
+  const [carregando, setCarregando] = useState(false);
+  const [perguntaAtual, setPerguntaAtual] = useState(null);
+  const [resposta, setResposta] = useState('');
+  const [historico, setHistorico] = useState([]);
+  const [numeroPergunta, setNumeroPergunta] = useState(0);
+  const [totalPerguntas, setTotalPerguntas] = useState(0);
+  const [feedbackVisible, setFeedbackVisible] = useState(false);
+  const [feedback, setFeedback] = useState('');
+  const [finalizando, setFinalizando] = useState(false);
+  const [concluido, setConcluido] = useState(false);
+  const [avaliacaoFinal, setAvaliacaoFinal] = useState(null);
+  const [tipoCargo, setTipoCargo] = useState('');
+  const [area, setArea] = useState('');
+  
+  const flatListRef = useRef();
+  const respostaInputRef = useRef();
+
+  // Função para iniciar a entrevista
+  const iniciarEntrevista = async () => {
+    try {
+      setCarregando(true);
+      
+      // Verificar se é uma entrevista baseada em currículo ou genérica
+      if (curriculoData) {
+        // Extrair a área e cargo do currículo para personalizar a entrevista
+        const cv = curriculoData.data;
+        const areaDoCV = cv.informacoes_pessoais?.area || '';
+        setArea(areaDoCV);
+        
+        // Determinar o cargo com base na experiência mais recente, se disponível
+        if (cv.experiencias && cv.experiencias.length > 0) {
+          setTipoCargo(cv.experiencias[0].cargo || '');
+        }
+      } else {
+        // Para entrevista genérica, solicitar informações
+        Alert.prompt(
+          "Informações para Entrevista",
+          "Qual cargo ou área você está buscando?",
+          [
+            {
+              text: "Cancelar",
+              onPress: () => navigation.goBack(),
+              style: "cancel"
+            },
+            {
+              text: "Continuar",
+              onPress: input => {
+                setArea(input || "Área não especificada");
+                prepararEntrevista(input);
+              }
+            }
+          ],
+          "plain-text"
+        );
+        return; // Aguardar input do usuário
+      }
+      
+      // Se temos currículo, continuar diretamente
+      prepararEntrevista();
+      
+    } catch (error) {
+      console.error('Erro ao iniciar entrevista:', error);
+      Alert.alert('Erro', 'Não foi possível iniciar a entrevista. Tente novamente.');
+      setCarregando(false);
+    }
+  };
+  
+  // Função para preparar o conjunto de perguntas da entrevista
+  const prepararEntrevista = async (areaInput = null) => {
+    try {
+      setCarregando(true);
+      
+      // Usar área do input para entrevista genérica, ou do currículo para específica
+      const areaFinal = areaInput || area;
+      
+      // Obter API key da IA
+      const apiKey = await getIAAPIKey('GEMINI');
+      
+      if (!apiKey) {
+        throw new Error("API key do Gemini não configurada");
+      }
+      
+      // Construir prompt para gerar perguntas de entrevista
+      let promptText = "";
+      
+      if (curriculoData) {
+        // Formatamos os dados do currículo
+        const cv = curriculoData.data;
+        const experiencias = cv.experiencias?.map(exp => 
+          `${exp.cargo} em ${exp.empresa} (${exp.data_inicio || ''} - ${exp.data_fim || 'atual'}): ${exp.descricao || ''}`
+        ).join('\n') || 'Sem experiências profissionais';
+        
+        const formacoes = cv.formacoes_academicas?.map(form => 
+          `${form.diploma} em ${form.area_estudo} pela ${form.instituicao} (${form.data_inicio || ''} - ${form.data_fim || ''})`
+        ).join('\n') || 'Sem formação acadêmica';
+        
+        const habilidades = cv.projetos?.map(proj => proj.habilidades).filter(Boolean).join(', ') || 'Não especificadas';
+        
+        promptText = `
+Você é um recrutador experiente especializado em entrevistas para a área de ${areaFinal}. Conduza uma entrevista simulada de emprego detalhada e realista para um candidato à posição de ${tipoCargo || areaFinal}.
+
+CURRÍCULO DO CANDIDATO:
+Nome: ${cv.informacoes_pessoais?.nome || ''} ${cv.informacoes_pessoais?.sobrenome || ''}
+Área: ${areaFinal}
+
+Experiências:
+${experiencias}
+
+Formação:
+${formacoes}
+
+Habilidades:
+${habilidades}
+
+INSTRUÇÕES PARA A ENTREVISTA:
+1. Crie exatamente 10 perguntas desafiadoras e realistas baseadas no currículo do candidato
+2. As perguntas devem incluir:
+   - Perguntas comportamentais (situações específicas)
+   - Perguntas técnicas relevantes para a área
+   - Perguntas sobre experiências anteriores
+   - Perguntas sobre soft skills e trabalho em equipe
+   - Pelo menos uma pergunta situacional de resolução de problemas
+   - Pelo menos uma pergunta de motivação profissional
+
+3. Elabore perguntas que um recrutador real faria, usando linguagem profissional
+4. Foque em perguntas que extraiam informações sobre competências, experiências e fit cultural
+5. Use as informações do currículo para personalizar as perguntas
+6. Inclua perguntas sobre possíveis gaps no currículo ou áreas de melhoria
+
+FORMATO DE RESPOSTA:
+Forneça apenas um array JSON de objetos, cada um representando uma pergunta, na seguinte estrutura:
+[
+  {
+    "pergunta": "texto da pergunta 1",
+    "context": "contexto breve sobre por que essa pergunta está sendo feita",
+    "tipo": "comportamental/técnica/experiência/motivacional/situacional"
+  },
+  {
+    "pergunta": "texto da pergunta 2",
+    "context": "contexto breve sobre por que essa pergunta está sendo feita",
+    "tipo": "comportamental/técnica/experiência/motivacional/situacional"
+  }
+]
+
+Apenas retorne o JSON puro, sem texto introdutório ou explicações.
+`;
+      } else {
+        // Prompt para entrevista genérica
+        promptText = `
+Você é um recrutador experiente especializado em entrevistas para a área de ${areaFinal}. Conduza uma entrevista simulada de emprego detalhada e realista para um candidato.
+
+INSTRUÇÕES PARA A ENTREVISTA GENÉRICA:
+1. Crie exatamente 10 perguntas desafiadoras e realistas para uma entrevista de emprego na área de ${areaFinal}
+2. As perguntas devem incluir:
+   - Perguntas comportamentais (situações específicas)
+   - Perguntas técnicas relevantes para a área
+   - Perguntas sobre experiências anteriores
+   - Perguntas sobre soft skills e trabalho em equipe
+   - Pelo menos uma pergunta situacional de resolução de problemas
+   - Pelo menos uma pergunta de motivação profissional
+
+3. Elabore perguntas que um recrutador real faria, usando linguagem profissional
+4. Foque em perguntas que extraiam informações sobre competências, experiências e fit cultural
+5. As perguntas devem ser genéricas o suficiente para qualquer pessoa na área, mas específicas o suficiente para avaliar conhecimentos relevantes
+6. Inclua perguntas típicas de entrevistas para ${areaFinal} baseadas nas melhores práticas do mercado
+
+FORMATO DE RESPOSTA:
+Forneça apenas um array JSON de objetos, cada um representando uma pergunta, na seguinte estrutura:
+[
+  {
+    "pergunta": "texto da pergunta 1",
+    "context": "contexto breve sobre por que essa pergunta está sendo feita",
+    "tipo": "comportamental/técnica/experiência/motivacional/situacional"
+  },
+  {
+    "pergunta": "texto da pergunta 2",
+    "context": "contexto breve sobre por que essa pergunta está sendo feita",
+    "tipo": "comportamental/técnica/experiência/motivacional/situacional"
+  }
+]
+
+Apenas retorne o JSON puro, sem texto introdutório ou explicações.
+`;
+      }
+      
+      // Chamar a API do Gemini para gerar perguntas
+      const endpoint = `${IA_APIS.GEMINI.endpoint}?key=${apiKey}`;
+      const requestBody = {
+        contents: [{ parts: [{ text: promptText }] }],
+        generationConfig: {
+          temperature: 0.2,
+          maxOutputTokens: 4000,
+          topP: 0.8,
+          topK: 40
+        }
+      };
+      
+      const response = await axios.post(endpoint, requestBody, {
+        headers: { 'Content-Type': 'application/json' },
+        timeout: 30000
+      });
+      
+      if (response.data?.candidates?.[0]?.content?.parts?.[0]?.text) {
+        const resultText = response.data.candidates[0].content.parts[0].text;
+        
+        // Extrair o JSON da resposta
+        const jsonMatch = resultText.match(/\[[\s\S]*\]/);
+        if (jsonMatch) {
+          try {
+            const perguntas = JSON.parse(jsonMatch[0]);
+            setTotalPerguntas(perguntas.length);
+            setNumeroPergunta(1);
+            setPerguntaAtual(perguntas[0]);
+            
+            // Adicionar primeira pergunta ao histórico
+            setHistorico([{
+              id: '0',
+              texto: perguntas[0].pergunta,
+              isUser: false,
+              context: perguntas[0].context,
+              tipo: perguntas[0].tipo
+            }]);
+            
+            // Salvar perguntas restantes no estado
+            setEntrevistaIniciada(true);
+            
+            // Armazenar perguntas em AsyncStorage para recuperação caso a app feche
+            await AsyncStorage.setItem(`entrevista_perguntas_${user.id}`, 
+              JSON.stringify({
+                perguntas,
+                timestampInicio: new Date().toISOString(),
+                curriculoId: curriculoData?.id || null,
+                area: areaFinal,
+                tipoCargo: tipoCargo
+              })
+            );
+          } catch (jsonError) {
+            console.error('Erro ao parsear JSON da resposta:', jsonError);
+            throw new Error('Formato de resposta inválido');
+          }
+        } else {
+          throw new Error('Não foi possível extrair perguntas da resposta');
+        }
+      } else {
+        throw new Error('Formato de resposta inesperado do Gemini');
+      }
+    } catch (error) {
+      console.error('Erro ao preparar entrevista:', error);
+      Alert.alert('Erro', 'Não foi possível preparar a entrevista. Tente novamente mais tarde.');
+    } finally {
+      setCarregando(false);
+    }
+  };
+  
+  // Função para processar a resposta do usuário e fornecer feedback
+  const enviarResposta = async () => {
+    if (resposta.trim() === '') return;
+    
+    try {
+      // Adicionar a resposta do usuário ao histórico
+      const novoHistorico = [...historico, {
+        id: `u-${numeroPergunta}`,
+        texto: resposta,
+        isUser: true
+      }];
+      
+      setHistorico(novoHistorico);
+      setResposta('');
+      setCarregando(true);
+      
+      // Obter API key da IA
+      const apiKey = await getIAAPIKey('GEMINI');
+      
+      if (!apiKey) {
+        throw new Error("API key do Gemini não configurada");
+      }
+      
+      // Obter entrevista armazenada
+      const entrevistaJson = await AsyncStorage.getItem(`entrevista_perguntas_${user.id}`);
+      if (!entrevistaJson) {
+        throw new Error("Dados da entrevista não encontrados");
+      }
+      
+      const entrevistaData = JSON.parse(entrevistaJson);
+      const perguntas = entrevistaData.perguntas;
+      
+      // Construir prompt para feedback da resposta
+      const promptText = `
+Você é um recrutador experiente especializado em entrevistas para a área de ${area || entrevistaData.area}.
+
+PERGUNTA DA ENTREVISTA:
+"${perguntaAtual.pergunta}"
+
+Contexto da pergunta: ${perguntaAtual.context}
+Tipo de pergunta: ${perguntaAtual.tipo}
+
+RESPOSTA DO CANDIDATO:
+"${resposta}"
+
+TAREFA:
+Analise a resposta do candidato à pergunta de entrevista acima e forneça um feedback detalhado:
+
+1. Avalie a qualidade da resposta (escala de 1-10)
+2. Identifique pontos fortes da resposta
+3. Identifique pontos fracos ou informações faltantes
+4. Forneça sugestões específicas para melhorar a resposta
+5. Explique o que um recrutador buscaria neste tipo de resposta
+
+FORMATO DE RESPOSTA:
+{
+  "pontuacao": 7,
+  "pontos_fortes": ["ponto forte 1", "ponto forte 2"],
+  "pontos_fracos": ["ponto fraco 1", "ponto fraco 2"],
+  "sugestoes": ["sugestão 1", "sugestão 2"],
+  "explicacao": "Explicação sobre o que um recrutador busca nesta resposta",
+  "resumo": "Um resumo conciso do feedback em um parágrafo"
+}
+
+Retorne apenas o JSON puro, sem texto adicional.
+`;
+      
+      // Chamar a API do Gemini para gerar feedback
+      const endpoint = `${IA_APIS.GEMINI.endpoint}?key=${apiKey}`;
+      const requestBody = {
+        contents: [{ parts: [{ text: promptText }] }],
+        generationConfig: {
+          temperature: 0.3,
+          maxOutputTokens: 2000,
+          topP: 0.8,
+          topK: 40
+        }
+      };
+      
+      const response = await axios.post(endpoint, requestBody, {
+        headers: { 'Content-Type': 'application/json' },
+        timeout: 30000
+      });
+      
+      if (response.data?.candidates?.[0]?.content?.parts?.[0]?.text) {
+        const resultText = response.data.candidates[0].content.parts[0].text;
+        
+        // Extrair o JSON da resposta
+        const jsonMatch = resultText.match(/\{[\s\S]*\}/);
+        if (jsonMatch) {
+          try {
+            const feedbackData = JSON.parse(jsonMatch[0]);
+            
+            // Formatar feedback para exibição
+            const feedbackFormatado = `## Feedback sobre sua resposta
+
+**Pontuação:** ${feedbackData.pontuacao}/10
+
+**Pontos fortes:**
+${feedbackData.pontos_fortes.map(ponto => `- ${ponto}`).join('\n')}
+
+**Pontos a melhorar:**
+${feedbackData.pontos_fracos.map(ponto => `- ${ponto}`).join('\n')}
+
+**Sugestões:**
+${feedbackData.sugestoes.map(sugestao => `- ${sugestao}`).join('\n')}
+
+**O que o recrutador busca:**
+${feedbackData.explicacao}
+
+**Resumo:**
+${feedbackData.resumo}`;
+            
+            setFeedback(feedbackFormatado);
+            setFeedbackVisible(true);
+            
+            // Salvar feedback no histórico de entrevista
+            await AsyncStorage.setItem(`entrevista_feedback_${user.id}_${numeroPergunta}`, 
+              JSON.stringify({
+                pergunta: perguntaAtual.pergunta,
+                resposta: resposta,
+                feedback: feedbackData
+              })
+            );
+            
+          } catch (jsonError) {
+            console.error('Erro ao parsear JSON do feedback:', jsonError);
+            setFeedback("Não foi possível gerar o feedback para sua resposta. Vamos continuar com a próxima pergunta.");
+            setFeedbackVisible(true);
+          }
+        } else {
+          setFeedback("Não foi possível gerar o feedback para sua resposta. Vamos continuar com a próxima pergunta.");
+          setFeedbackVisible(true);
+        }
+      } else {
+        setFeedback("Não foi possível gerar o feedback para sua resposta. Vamos continuar com a próxima pergunta.");
+        setFeedbackVisible(true);
+      }
+    } catch (error) {
+      console.error('Erro ao processar resposta:', error);
+      Alert.alert('Erro', 'Não foi possível processar sua resposta. Tente novamente.');
+    } finally {
+      setCarregando(false);
+    }
+  };
+  
+  // Função para prosseguir para a próxima pergunta
+  const proximaPergunta = async () => {
+    try {
+      setFeedbackVisible(false);
+      setFeedback('');
+      
+      // Obter entrevista armazenada
+      const entrevistaJson = await AsyncStorage.getItem(`entrevista_perguntas_${user.id}`);
+      if (!entrevistaJson) {
+        throw new Error("Dados da entrevista não encontrados");
+      }
+      
+      const entrevistaData = JSON.parse(entrevistaJson);
+      const perguntas = entrevistaData.perguntas;
+      
+      // Verificar se ainda há perguntas
+      if (numeroPergunta < perguntas.length) {
+        // Próxima pergunta
+        const proximoNumero = numeroPergunta + 1;
+        const proximaPergunta = perguntas[proximoNumero - 1];
+        
+        setNumeroPergunta(proximoNumero);
+        setPerguntaAtual(proximaPergunta);
+        
+        // Adicionar próxima pergunta ao histórico
+        setHistorico(prev => [...prev, {
+          id: `${proximoNumero}`,
+          texto: proximaPergunta.pergunta,
+          isUser: false,
+          context: proximaPergunta.context,
+          tipo: proximaPergunta.tipo
+        }]);
+        
+        // Rolar para o fim da lista
+        if (flatListRef.current) {
+          setTimeout(() => {
+            flatListRef.current.scrollToEnd({ animated: true });
+          }, 200);
+        }
+      } else {
+        // Finalizar entrevista
+        setFinalizando(true);
+        gerarAvaliacaoFinal();
+      }
+    } catch (error) {
+      console.error('Erro ao avançar para próxima pergunta:', error);
+      Alert.alert('Erro', 'Não foi possível carregar a próxima pergunta. Tente novamente.');
+    }
+  };
+  
+  // Função para gerar avaliação final da entrevista
+  const gerarAvaliacaoFinal = async () => {
+    try {
+      setCarregando(true);
+      
+      // Obter API key da IA
+      const apiKey = await getIAAPIKey('GEMINI');
+      
+      if (!apiKey) {
+        throw new Error("API key do Gemini não configurada");
+      }
+      
+      // Recuperar todos os feedbacks armazenados
+      const entrevistaJson = await AsyncStorage.getItem(`entrevista_perguntas_${user.id}`);
+      if (!entrevistaJson) {
+        throw new Error("Dados da entrevista não encontrados");
+      }
+      
+      const entrevistaData = JSON.parse(entrevistaJson);
+      const perguntas = entrevistaData.perguntas;
+      
+      // Construir lista de perguntas e respostas
+      let perguntasRespostas = [];
+      
+      for (let i = 1; i <= perguntas.length; i++) {
+        const feedbackJson = await AsyncStorage.getItem(`entrevista_feedback_${user.id}_${i}`);
+        if (feedbackJson) {
+          const feedbackData = JSON.parse(feedbackJson);
+          perguntasRespostas.push({
+            pergunta: feedbackData.pergunta,
+            resposta: feedbackData.resposta,
+            feedback: feedbackData.feedback
+          });
+        }
+      }
+      
+      // Construir prompt para avaliação final
+      const promptText = `
+Você é um recrutador experiente especializado em entrevistas para a área de ${entrevistaData.area || area}.
+
+CONTEXTO:
+Foi conduzida uma entrevista simulada com um candidato para uma posição na área de ${entrevistaData.area || area}${entrevistaData.tipoCargo ? `, com foco em ${entrevistaData.tipoCargo}` : ''}.
+
+RESUMO DA ENTREVISTA:
+${perguntasRespostas.map((item, index) => `
+Pergunta ${index + 1}: "${item.pergunta}"
+Resposta: "${item.resposta}"
+Pontuação: ${item.feedback.pontuacao}/10
+`).join('\n')}
+
+TAREFA:
+Baseado nas respostas do candidato, faça uma avaliação completa de seu desempenho na entrevista:
+
+1. Calcule a pontuação global (média das pontuações individuais)
+2. Identifique os 3-5 principais pontos fortes demonstrados
+3. Identifique as 3-5 principais áreas de melhoria
+4. Forneça 3-5 recomendações específicas para melhorar em futuras entrevistas
+5. Avalie as habilidades de comunicação, estruturação de respostas e confiança do candidato
+6. Dê uma avaliação geral sobre as chances do candidato neste processo seletivo (baixa/média/alta)
+
+FORMATO DE RESPOSTA:
+{
+  "pontuacao_global": 7.5,
+  "pontos_fortes": [
+    {"ponto": "Descrição do ponto forte 1", "exemplo": "Exemplo específico da entrevista"},
+    {"ponto": "Descrição do ponto forte 2", "exemplo": "Exemplo específico da entrevista"}
+  ],
+  "areas_melhoria": [
+    {"area": "Descrição da área 1", "sugestao": "Sugestão específica"},
+    {"area": "Descrição da área 2", "sugestao": "Sugestão específica"}
+  ],
+  "recomendacoes": ["Recomendação 1", "Recomendação 2", "Recomendação 3"],
+  "avaliacao_comunicacao": "Análise da comunicação",
+  "avaliacao_estrutura": "Análise da estrutura das respostas",
+  "avaliacao_confianca": "Análise da confiança demonstrada",
+  "chance_sucesso": "média",
+  "conclusao": "Conclusão geral sobre o desempenho em um parágrafo"
+}
+
+Retorne apenas o JSON puro, sem texto adicional.
+`;
+      
+      // Chamar a API do Gemini para gerar avaliação final
+      const endpoint = `${IA_APIS.GEMINI.endpoint}?key=${apiKey}`;
+      const requestBody = {
+        contents: [{ parts: [{ text: promptText }] }],
+        generationConfig: {
+          temperature: 0.2,
+          maxOutputTokens: 4000,
+          topP: 0.8,
+          topK: 40
+        }
+      };
+      
+      const response = await axios.post(endpoint, requestBody, {
+        headers: { 'Content-Type': 'application/json' },
+        timeout: 30000
+      });
+      
+      if (response.data?.candidates?.[0]?.content?.parts?.[0]?.text) {
+        const resultText = response.data.candidates[0].content.parts[0].text;
+        
+        // Extrair o JSON da resposta
+        const jsonMatch = resultText.match(/\{[\s\S]*\}/);
+        if (jsonMatch) {
+          try {
+            const avaliacaoData = JSON.parse(jsonMatch[0]);
+            setAvaliacaoFinal(avaliacaoData);
+            setConcluido(true);
+            
+            // Salvar avaliação final
+            await AsyncStorage.setItem(`entrevista_avaliacao_${user.id}`, 
+              JSON.stringify({
+                avaliacao: avaliacaoData,
+                timestamp: new Date().toISOString(),
+                area: entrevistaData.area || area,
+                tipoCargo: entrevistaData.tipoCargo || tipoCargo
+              })
+            );
+            
+          } catch (jsonError) {
+            console.error('Erro ao parsear JSON da avaliação final:', jsonError);
+            throw new Error('Formato de resposta inválido');
+          }
+        } else {
+          throw new Error('Não foi possível extrair avaliação final da resposta');
+        }
+      } else {
+        throw new Error('Formato de resposta inesperado do Gemini');
+      }
+    } catch (error) {
+      console.error('Erro ao gerar avaliação final:', error);
+      Alert.alert('Erro', 'Não foi possível gerar a avaliação final da entrevista. Tente novamente mais tarde.');
+    } finally {
+      setCarregando(false);
+    }
+  };
+  
+  // Hook para iniciar a entrevista quando o componente for montado
+  useEffect(() => {
+    if (!entrevistaIniciada && !carregando) {
+      iniciarEntrevista();
+    }
+  }, []);
+  
+  // Função para mapear o nível de chance de sucesso para uma cor
+  const getChanceColor = (chance) => {
+    switch(chance.toLowerCase()) {
+      case 'alta':
+        return Colors.success;
+      case 'média':
+        return Colors.warning;
+      case 'baixa':
+        return Colors.danger;
+      default:
+        return Colors.primary;
+    }
+  };
+  
+  // Renderizar mensagem de entrevista
+  const renderMensagem = ({ item }) => (
+    <View style={[
+      styles.mensagemEntrevista,
+      item.isUser ? styles.mensagemUsuario : styles.mensagemRecrutador
+    ]}>
+      <Text style={[
+        styles.textoMensagem,
+        item.isUser ? styles.textoMensagemUsuario : styles.textoMensagemRecrutador
+      ]}>
+        {item.texto}
+      </Text>
+      {!item.isUser && item.tipo && (
+        <View style={styles.tipoPerguntaBadge}>
+          <Text style={styles.tipoPerguntaTexto}>
+            {item.tipo}
+          </Text>
+        </View>
+      )}
+    </View>
+  );
+  
+  // Renderizar avaliação final
+  const renderAvaliacaoFinal = () => {
+    if (!avaliacaoFinal) return null;
+    
+    return (
+      <ScrollView style={styles.avaliacaoFinalContainer}>
+        <View style={styles.avaliacaoHeader}>
+          <Text style={styles.avaliacaoTitulo}>Avaliação Final da Entrevista</Text>
+          
+          <View style={styles.pontuacaoContainer}>
+            <Text style={styles.pontuacaoLabel}>Pontuação Global</Text>
+            <View style={styles.pontuacaoCircle}>
+              <Text style={styles.pontuacaoValor}>
+                {avaliacaoFinal.pontuacao_global.toFixed(1)}
+              </Text>
+              <Text style={styles.pontuacaoMax}>/10</Text>
+            </View>
+          </View>
+          
+          <View style={[
+            styles.chanceSucessoContainer,
+            { backgroundColor: getChanceColor(avaliacaoFinal.chance_sucesso) }
+          ]}>
+            <Text style={styles.chanceSucessoTexto}>
+              Chance de sucesso: {avaliacaoFinal.chance_sucesso.toUpperCase()}
+            </Text>
+          </View>
+        </View>
+        
+        <View style={styles.secaoAvaliacao}>
+          <Text style={styles.secaoTitulo}>Pontos Fortes</Text>
+          {avaliacaoFinal.pontos_fortes.map((ponto, index) => (
+            <View key={`forte-${index}`} style={styles.pontoItem}>
+              <Text style={styles.pontoTitulo}>{ponto.ponto}</Text>
+              <Text style={styles.pontoExemplo}>{ponto.exemplo}</Text>
+            </View>
+          ))}
+        </View>
+        
+        <View style={styles.secaoAvaliacao}>
+          <Text style={styles.secaoTitulo}>Áreas de Melhoria</Text>
+          {avaliacaoFinal.areas_melhoria.map((area, index) => (
+            <View key={`melhoria-${index}`} style={styles.pontoItem}>
+              <Text style={styles.pontoTitulo}>{area.area}</Text>
+              <Text style={styles.pontoExemplo}>{area.sugestao}</Text>
+            </View>
+          ))}
+        </View>
+        
+        <View style={styles.secaoAvaliacao}>
+          <Text style={styles.secaoTitulo}>Recomendações</Text>
+          {avaliacaoFinal.recomendacoes.map((recomendacao, index) => (
+            <View key={`rec-${index}`} style={styles.recomendacaoItem}>
+              <Text style={styles.recomendacaoNumero}>{index + 1}</Text>
+              <Text style={styles.recomendacaoTexto}>{recomendacao}</Text>
+            </View>
+          ))}
+        </View>
+        
+        <View style={styles.secaoAvaliacao}>
+          <Text style={styles.secaoTitulo}>Avaliação Detalhada</Text>
+          
+          <View style={styles.avaliacaoDetalheItem}>
+            <Text style={styles.avaliacaoDetalheTitulo}>Comunicação:</Text>
+            <Text style={styles.avaliacaoDetalheTexto}>{avaliacaoFinal.avaliacao_comunicacao}</Text>
+          </View>
+          
+          <View style={styles.avaliacaoDetalheItem}>
+            <Text style={styles.avaliacaoDetalheTitulo}>Estrutura das Respostas:</Text>
+            <Text style={styles.avaliacaoDetalheTexto}>{avaliacaoFinal.avaliacao_estrutura}</Text>
+          </View>
+          
+          <View style={styles.avaliacaoDetalheItem}>
+            <Text style={styles.avaliacaoDetalheTitulo}>Confiança:</Text>
+            <Text style={styles.avaliacaoDetalheTexto}>{avaliacaoFinal.avaliacao_confianca}</Text>
+          </View>
+        </View>
+        
+        <View style={styles.conclusaoContainer}>
+          <Text style={styles.conclusaoTitulo}>Conclusão</Text>
+          <Text style={styles.conclusaoTexto}>{avaliacaoFinal.conclusao}</Text>
+        </View>
+        
+        <TouchableOpacity
+          style={styles.botaoEncerrar}
+          onPress={() => navigation.goBack()}
+        >
+          <Text style={styles.textoEncerrar}>Encerrar Entrevista</Text>
+        </TouchableOpacity>
+      </ScrollView>
+    );
+  };
+  
+  return (
+    <SafeAreaView style={styles.container}>
+      <StatusBar barStyle="dark-content" backgroundColor={Colors.dark} />
+      
+      <View style={styles.header}>
+        <TouchableOpacity
+          style={styles.backButton}
+          onPress={() => {
+            if (entrevistaIniciada && !concluido) {
+              Alert.alert(
+                "Sair da entrevista",
+                "Tem certeza que deseja sair? Seu progresso será perdido.",
+                [
+                  { text: "Cancelar", style: "cancel" },
+                  { text: "Sair", onPress: () => navigation.goBack() }
+                ]
+              );
+            } else {
+              navigation.goBack();
+            }
+          }}
+        >
+          <Text style={styles.backButtonText}>‹</Text>
+        </TouchableOpacity>
+        <Text style={styles.headerTitle}>
+          {concluido ? 'Resultado da Entrevista' : 'Entrevista Simulada'}
+        </Text>
+      </View>
+      
+      {carregando && !entrevistaIniciada ? (
+        <View style={styles.loadingContainer}>
+          <ActivityIndicator size="large" color={Colors.primary} />
+          <Text style={styles.loadingText}>
+            Preparando sua entrevista{curriculoData ? ' personalizada' : ' genérica'}...
+          </Text>
+        </View>
+      ) : concluido ? (
+        renderAvaliacaoFinal()
+      ) : (
+        <View style={styles.entrevistaContainer}>
+          <View style={styles.progressoContainer}>
+            <View style={styles.progressoTrack}>
+              <View
+                style={[
+                  styles.progressoFill,
+                  { width: `${(numeroPergunta / totalPerguntas) * 100}%` }
+                ]}
+              />
+            </View>
+            <Text style={styles.progressoTexto}>
+              Pergunta {numeroPergunta} de {totalPerguntas}
+            </Text>
+          </View>
+          
+          <FlatList
+            ref={flatListRef}
+            data={historico}
+            keyExtractor={(item) => item.id}
+            renderItem={renderMensagem}
+            contentContainerStyle={styles.mensagensLista}
+            onLayout={() => {
+              if (flatListRef.current) {
+                flatListRef.current.scrollToEnd({ animated: true });
+              }
+            }}
+          />
+          
+          {feedbackVisible ? (
+            <View style={styles.feedbackContainer}>
+              <Text style={styles.feedbackTitulo}>Feedback do Recrutador</Text>
+              
+              <ScrollView style={styles.feedbackScrollView}>
+                <Markdown
+                  style={{
+                    body: { fontSize: 14, lineHeight: 20, color: Colors.dark },
+                    heading2: {
+                      fontSize: 16,
+                      fontWeight: 'bold',
+                      marginBottom: 10,
+                      color: Colors.dark
+                    },
+                    bullet_list: { marginVertical: 5 },
+                    paragraph: { marginBottom: 10 },
+                    strong: { fontWeight: 'bold' },
+                  }}
+                >
+                  {feedback}
+                </Markdown>
+              </ScrollView>
+              
+              <TouchableOpacity
+                style={styles.continuarButton}
+                onPress={proximaPergunta}
+              >
+                <Text style={styles.continuarButtonText}>
+                  {numeroPergunta === totalPerguntas ? 'Finalizar Entrevista' : 'Próxima Pergunta'}
+                </Text>
+              </TouchableOpacity>
+            </View>
+          ) : (
+            <View style={styles.inputContainer}>
+              <TextInput
+                ref={respostaInputRef}
+                style={styles.input}
+                placeholder="Digite sua resposta aqui..."
+                value={resposta}
+                onChangeText={setResposta}
+                multiline
+                textAlignVertical="top"
+                editable={!carregando}
+              />
+              
+              <TouchableOpacity
+                style={[
+                  styles.enviarButton,
+                  (resposta.trim() === '' || carregando) && styles.enviarButtonDisabled
+                ]}
+                onPress={enviarResposta}
+                disabled={resposta.trim() === '' || carregando}
+              >
+                {carregando ? (
+                  <ActivityIndicator color={Colors.white} size="small" />
+                ) : (
+                  <Text style={styles.enviarButtonText}>Enviar</Text>
+                )}
+              </TouchableOpacity>
+            </View>
+          )}
+        </View>
+      )}
+    </SafeAreaView>
+  );
+};
+const ChatbotScreen = ({ navigation, route }) => {
+  const { user } = useAuth();
+  const [messages, setMessages] = useState([]);
+  const [currentMessage, setCurrentMessage] = useState('');
+  const [options, setOptions] = useState(['Começar']);
+  const [isTyping, setIsTyping] = useState(false);
+  const [currentStep, setCurrentStep] = useState('boas_vindas');
+  const [cvData, setCvData] = useState(null);
+  const [showPreview, setShowPreview] = useState(false);
+  const [initializing, setInitializing] = useState(true);
+  const [showConfirmation, setShowConfirmation] = useState(false);
+  const [lastResponse, setLastResponse] = useState(null);
+  const [waitingConfirmation, setWaitingConfirmation] = useState(false);
+  const [lastProcessedResult, setLastProcessedResult] = useState(null);
+
+  const flatListRef = useRef();
+
+  // Função para inicializar o chat com mensagem de boas-vindas
+  const inicializarChat = () => {
+    console.log('Inicializando chat com mensagem de boas-vindas');
+    const welcomeMessage = {
+      id: getUniqueId(),
+      text: "Olá! Sou o CurriculoBot, seu assistente para criar um currículo profissional. Digite 'começar' quando estiver pronto!",
+      isUser: false,
+      time: getCurrentTime()
+    };
+
+    setMessages([welcomeMessage]);
+    setCurrentStep('boas_vindas');
+    setCvData(null);
+    setOptions(['Começar']);
+  };
+
+  // Verificar se estamos retomando um currículo em progresso
+  useEffect(() => {
+    const carregarDados = async () => {
+      try {
+        console.log('Carregando dados iniciais do chat');
+
+        // Flag para verificar se devemos restaurar ou inicializar
+        let restaurado = false;
+
+        // Verificar se estamos restaurando de um progresso salvo
+        if (route.params?.continuarProgresso) {
+          console.log('Tentando restaurar progresso...');
+          const progresso = await recuperarProgressoCurriculo(user.id);
+
+          if (progresso && progresso.data) {
+            // Verificar se o progresso é válido (menos de 24h)
+            const dataProgresso = new Date(progresso.timestamp);
+            const agora = new Date();
+            const diferencaHoras = (agora - dataProgresso) / (1000 * 60 * 60);
+
+            if (diferencaHoras < 24 && progresso.data.messages && progresso.data.messages.length > 0) {
+              console.log('Restaurando progresso de', dataProgresso);
+
+              // Restaurar o estado do chat
+              setCvData(progresso.data.cvData || null);
+              setCurrentStep(progresso.data.currentStep || 'boas_vindas');
+              setOptions(progresso.data.options || ['Começar']);
+              setMessages(progresso.data.messages || []);
+
+              restaurado = true;
+
+              // Notificar o usuário que o progresso foi restaurado
+              setTimeout(() => {
+                Alert.alert(
+                  "Progresso Restaurado",
+                  "Seu currículo em andamento foi restaurado com sucesso!"
+                );
+              }, 500);
+            } else {
+              console.log('Progresso muito antigo ou inválido:', diferencaHoras, 'horas');
+            }
+          } else {
+            console.log('Nenhum progresso encontrado para restaurar');
+          }
+        }
+
+        // Se não conseguimos restaurar, inicializar normalmente
+        if (!restaurado) {
+          console.log('Inicializando chat normalmente');
+          inicializarChat();
+        }
+      } catch (error) {
+        console.error('Erro ao carregar dados iniciais:', error);
+        // Em caso de erro, garantir que o chat seja inicializado
+        inicializarChat();
+      } finally {
+        // Sempre marcar a inicialização como concluída
+        setInitializing(false);
+      }
+    };
+
+    carregarDados();
+  }, []);
+
+  // Efeito para rolar para o final da lista quando mensagens mudarem
+  useEffect(() => {
+    if (messages.length > 0 && flatListRef.current && !initializing) {
+      setTimeout(() => {
+        flatListRef.current.scrollToEnd({ animated: true });
+      }, 100);
+    }
+  }, [messages, initializing]);
+
+  // Salvar progresso quando sair da tela
+  useEffect(() => {
+    return () => {
+      // Só salvar se houver progresso significativo (além da mensagem inicial) e não estiver concluído
+      if (messages.length > 1 && currentStep !== 'boas_vindas' && currentStep !== 'concluido' && cvData) {
+        console.log('Salvando progresso ao sair da tela');
+        salvarProgressoCurriculo(user.id, {
+          cvData,
+          currentStep,
+          options,
+          messages,
+        });
+      }
+    };
+  }, [messages, currentStep, cvData, options, user.id]);
+
+  // Limpar o progresso salvo quando finalizar o currículo
+  useEffect(() => {
+    if (currentStep === 'concluido' && cvData) {
+      console.log('Currículo concluído, limpando progresso salvo');
+      limparProgressoCurriculo(user.id);
+    }
+  }, [currentStep, cvData, user.id]);
+
+  // Adicionar mensagem do bot
+  const addBotMessage = (text) => {
+    setIsTyping(true);
+
+    // Simular tempo de digitação do bot (mais curto para melhor responsividade)
+    setTimeout(() => {
+      const newMessage = {
+        id: getUniqueId(),
+        text,
+        isUser: false,
+        time: getCurrentTime()
+      };
+
+      setMessages(prevMessages => [...prevMessages, newMessage]);
+      setIsTyping(false);
+
+      // Rolar para o final da lista
+      if (flatListRef.current) {
+        setTimeout(() => flatListRef.current.scrollToEnd({ animated: true }), 100);
+      }
+    }, 700);
+  };
+
+  // Função para aplicar o resultado processado
+  const applyProcessedResult = (result) => {
+    // Atualizar estados
+    setCvData(result.cvData);
+    setCurrentStep(result.nextStep);
+    setOptions(result.options || []);
+
+    // Adicionar resposta do bot
+    addBotMessage(result.response);
+    
+    // Resetar confirmação
+    setShowConfirmation(false);
+    setWaitingConfirmation(false);
+
+    // Salvar currículo se finalizado
+    if (result.isFinished) {
+      salvarCurriculo(result.cvData, user.id)
+        .then(id => {
+          console.log('Currículo salvo com ID:', id);
+          // Limpar o progresso salvo ao finalizar
+          limparProgressoCurriculo(user.id);
+        })
+        .catch(error => {
+          console.error('Erro ao salvar currículo:', error);
+          Alert.alert('Erro', 'Não foi possível salvar o currículo.');
+        });
+    }
+  };
+
+  // Lidar com envio de mensagem (versão modificada com confirmação)
+  const handleSendMessage = () => {
+    if (currentMessage.trim() === '') return;
+    
+    // Se estamos esperando confirmação, ignorar novas mensagens
+    if (waitingConfirmation) return;
+
+    // Adicionar mensagem do usuário
+    const userMessage = {
+      id: getUniqueId(),
+      text: currentMessage,
+      isUser: true,
+      time: getCurrentTime()
+    };
+
+    // Atualizar mensagens
+    setMessages(prevMessages => [...prevMessages, userMessage]);
+
+    // Processar a mensagem para obter a resposta
+    const result = processMessage(currentMessage, currentStep, cvData);
+    
+    // Salvar resultado para usar após confirmação
+    setLastProcessedResult(result);
+    setLastResponse(currentMessage);
+    
+    // Limpar campo de entrada
+    setCurrentMessage('');
+    
+    // Mostrar confirmação, exceto para algumas etapas como 'boas_vindas'
+    if (currentStep !== 'boas_vindas' && currentStep !== 'concluido' && !currentStep.includes('escolher')) {
+      setShowConfirmation(true);
+      setWaitingConfirmation(true);
+    } else {
+      // Para etapas que não precisam de confirmação, proceder normalmente
+      applyProcessedResult(result);
+    }
+
+    // Rolar para o final da lista
+    if (flatListRef.current) {
+      setTimeout(() => flatListRef.current.scrollToEnd({ animated: true }), 100);
+    }
+  };
+  
+  // Função para confirmar a resposta
+  const handleConfirmResponse = () => {
+    if (lastProcessedResult) {
+      applyProcessedResult(lastProcessedResult);
+    }
+  };
+  
+  // Função para corrigir a resposta
+  const handleCorrectResponse = () => {
+    // Voltar para a entrada anterior
+    setCurrentMessage(lastResponse || '');
+    setShowConfirmation(false);
+    setWaitingConfirmation(false);
+  };
+
+  // Selecionar uma opção pré-definida
+  const handleOptionSelect = (option) => {
+    setCurrentMessage(option);
+    handleSendMessage();
+  };
+
+  // Exibir indicador de carregamento enquanto inicializa
+  if (initializing) {
+    return (
+      <SafeAreaView style={styles.chatContainer}>
+        <StatusBar barStyle="dark-content" backgroundColor={Colors.dark} />
+        <View style={styles.chatHeader}>
+          <TouchableOpacity
+            style={styles.chatBackButton}
+            onPress={() => navigation.goBack()}
+          >
+            <Text style={styles.chatBackButtonText}>‹</Text>
+          </TouchableOpacity>
+          <Text style={styles.chatHeaderTitle}>CurriculoBot</Text>
+          <View style={{ width: 80 }} />
+        </View>
+        <View style={{
+          flex: 1,
+          justifyContent: 'center',
+          alignItems: 'center',
+          backgroundColor: '#f5f7fa'
+        }}>
+          <ActivityIndicator size="large" color={Colors.primary} />
+          <Text style={{ marginTop: 20, color: Colors.dark }}>
+            Preparando o assistente...
+          </Text>
+        </View>
+      </SafeAreaView>
+    );
+  }
+
+  // Renderizar chatbot
+  return (
+    <SafeAreaView style={styles.chatContainer}>
+      <StatusBar barStyle="dark-content" backgroundColor={Colors.dark} />
+
+      <View style={styles.chatHeader}>
+        <TouchableOpacity
+          style={styles.chatBackButton}
+          onPress={() => {
+            // Se há progresso significativo, confirmar antes de voltar
+            if (messages.length > 1 && currentStep !== 'boas_vindas' && currentStep !== 'concluido') {
+              Alert.alert(
+                "Sair da criação?",
+                "Seu progresso será salvo e você poderá continuar depois. Deseja sair?",
+                [
+                  { text: "Cancelar", style: "cancel" },
+                  {
+                    text: "Sair",
+                    onPress: () => navigation.goBack()
+                  }
+                ]
+              );
+            } else {
+              navigation.goBack();
+            }
+          }}
+        >
+          <Text style={styles.chatBackButtonText}>‹</Text>
+        </TouchableOpacity>
+        <Text style={styles.chatHeaderTitle}>CurriculoBot</Text>
+        <TouchableOpacity
+          style={styles.previewToggle}
+          onPress={() => setShowPreview(!showPreview)}
+        >
+          <Text style={styles.previewToggleText}>
+            {showPreview ? 'Esconder Prévia' : 'Ver Prévia'}
+          </Text>
+        </TouchableOpacity>
+      </View>
+
+      <View style={styles.chatContent}>
+        {showPreview ? (
+          <ScrollView style={styles.previewScroll}>
+            <CurriculumPreview data={cvData} />
+          </ScrollView>
+        ) : (
+          <>
+            <FlatList
+              ref={flatListRef}
+              data={messages}
+              keyExtractor={(item) => item.id}
+              renderItem={({ item }) => (
+                <ChatMessage
+                  message={item.text}
+                  isUser={item.isUser}
+                  time={item.time}
+                />
+              )}
+              contentContainerStyle={styles.messagesContainer}
+              onContentSizeChange={() => {
+                if (flatListRef.current) {
+                  flatListRef.current.scrollToEnd({ animated: true });
+                }
+              }}
+              onLayout={() => {
+                if (flatListRef.current) {
+                  flatListRef.current.scrollToEnd({ animated: false });
+                }
+              }}
+              ListFooterComponent={
+                isTyping ? (
+                  <View style={styles.typingContainer}>
+                    <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+                      <View style={[styles.typingDot, { opacity: 0.7 }]} />
+                      <View style={[styles.typingDot, { opacity: 0.8, marginHorizontal: 4 }]} />
+                      <View style={[styles.typingDot, { opacity: 0.9 }]} />
+                    </View>
+                    <Text style={styles.typingText}>Bot está digitando...</Text>
+                  </View>
+                ) : null
+              }
+            />
+
+            {showConfirmation && (
+              <ConfirmationButtons 
+                onConfirm={handleConfirmResponse} 
+                onCorrect={handleCorrectResponse} 
+              />
+            )}
+
+            {options && options.length > 0 && !waitingConfirmation && (
+              <ChatOptions options={options} onSelect={handleOptionSelect} />
+            )}
+          </>
+        )}
+      </View>
+
+      <KeyboardAvoidingView
+        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+        keyboardVerticalOffset={Platform.OS === 'ios' ? 10 : 0}
+        style={{ width: '100%' }}
+      >
+        <View style={styles.chatInputContainer}>
+          <TextInput
+            style={styles.improvedChatInput}
+            placeholder="Digite sua mensagem..."
+            value={currentMessage}
+            onChangeText={setCurrentMessage}
+            onSubmitEditing={handleSendMessage}
+            returnKeyType="send"
+            multiline={true}
+            numberOfLines={3}
+          />
+          <TouchableOpacity
+            style={[
+              styles.improvedSendButton,
+              {
+                opacity: currentMessage.trim() === '' ? 0.5 : 1,
+              }
+            ]}
+            onPress={handleSendMessage}
+            disabled={currentMessage.trim() === ''}
+          >
+            <Text style={styles.improvedSendButtonText}>Enviar</Text>
+          </TouchableOpacity>
+        </View>
+      </KeyboardAvoidingView>
+    </SafeAreaView>
+  );
+};
+const PreviewCVScreen = ({ route, navigation }) => {
+  const { user } = useAuth();
+  const { curriculoData } = route.params;
+  const [templateStyle, setTemplateStyle] = useState('modern');
+  const [showTemplateSelector, setShowTemplateSelector] = useState(false);
+  const [generatingPDF, setGeneratingPDF] = useState(false);
+  const [currentData, setCurrentData] = useState(curriculoData); // Para armazenar versão atual (original ou melhorada)
+  const [showComparison, setShowComparison] = useState(false); // Para mostrar comparação antes/depois
+  
+  const handleShare = async () => {
+    try {
+      await Share.share({
+        message: `Currículo de ${curriculoData.nome || 'Usuário'}`,
+        title: `Currículo - ${curriculoData.nome || 'Usuário'}`
+      });
+    } catch (error) {
+      console.error('Erro ao compartilhar:', error);
+      Alert.alert('Erro', 'Não foi possível compartilhar o currículo.');
+    }
+  };
+
+  // Emular criação de PDF (já que não temos a biblioteca)
+  const handleExportPDF = async () => {
+    setGeneratingPDF(true);
+
+    try {
+      // Simular processo de geração de PDF
+      await new Promise(resolve => setTimeout(resolve, 2000));
+
+      // Exibir alerta com opções de ação
+      Alert.alert(
+        'PDF Gerado com Sucesso!',
+        'O que você gostaria de fazer com o PDF?',
+        [
+          {
+            text: 'Compartilhar',
+            onPress: () => handleShare(),
+          },
+          {
+            text: 'Salvar na Galeria',
+            onPress: () => {
+              Alert.alert(
+                'Salvando na Galeria...',
+                'Funcionalidade simulada. Em um app real, o PDF seria salvo na galeria.',
+                [{ text: 'OK' }]
+              );
+            },
+          },
+          {
+            text: 'Cancelar',
+            style: 'cancel',
+          },
+        ]
+      );
+    } catch (error) {
+      console.error('Erro ao gerar PDF:', error);
+      Alert.alert('Erro', 'Não foi possível gerar o PDF.');
+    } finally {
+      setGeneratingPDF(false);
+    }
+  };
+  
+  // Função para salvar o currículo melhorado
+  const handleSalvarMelhorado = async (dadosMelhorados) => {
+    try {
+      // Buscar currículos existentes
+      const cvs = await AsyncStorage.getItem(`curriculos_${user.id}`);
+      const curriculos = cvs ? JSON.parse(cvs) : [];
+      
+      // Criar uma nova entrada para o currículo melhorado
+      const novoCurriculo = {
+        id: getUniqueId(),
+        nome: `${curriculoData.nome || 'Currículo'} (Melhorado)`,
+        data: dadosMelhorados,
+        dataCriacao: new Date().toISOString()
+      };
+      
+      // Adicionar ao array e salvar
+      curriculos.push(novoCurriculo);
+      await AsyncStorage.setItem(`curriculos_${user.id}`, JSON.stringify(curriculos));
+      
+      Alert.alert(
+        "Sucesso",
+        "Currículo melhorado salvo com sucesso!",
+        [{ text: "OK" }]
+      );
+      
+      // Atualizar dados na tela
+      setCurrentData({
+        ...novoCurriculo
+      });
+      
+    } catch (error) {
+      console.error('Erro ao salvar currículo melhorado:', error);
+      Alert.alert("Erro", "Não foi possível salvar o currículo melhorado.");
+    }
+  };
+  
+  // Lidar com melhoria de currículo
+  const handleCurriculoMelhorado = (dadosMelhorados) => {
+    // Mostrar alerta com opções
+    Alert.alert(
+      "Currículo Melhorado",
+      "Seu currículo foi melhorado com sucesso! O que deseja fazer?",
+      [
+        { 
+          text: "Visualizar Melhorias", 
+          onPress: () => {
+            // Mostrar comparação
+            setShowComparison(true);
+            setCurrentData({
+              ...curriculoData,
+              data: dadosMelhorados
+            });
+          }
+        },
+        { 
+          text: "Salvar como Novo", 
+          onPress: () => handleSalvarMelhorado(dadosMelhorados)
+        },
+        { 
+          text: "Cancelar", 
+          style: "cancel" 
+        }
+      ]
+    );
+  };
+
+  const templateOptions = [
+    { id: 'modern', name: 'Moderno', category: 'Moderno', color: Colors.primary },
+    // Clássicos
+    { id: 'classic', name: 'Clássico', category: 'Clássico', color: Colors.dark },
+    { id: 'traditional', name: 'Tradicional', category: 'Clássico', color: '#333333' },
+    // Criativos
+    { id: 'consulting', name: 'Consultoria', category: 'Profissional', color: '#1a237e' },
+  ];
+
+  return (
+    <SafeAreaView style={styles.container}>
+      <StatusBar barStyle="dark-content" backgroundColor={Colors.dark} />
+
+      <View style={styles.header}>
+        <TouchableOpacity
+          style={styles.backButton}
+          onPress={() => navigation.goBack()}
+        >
+          <Text style={styles.backButtonText}>‹</Text>
+        </TouchableOpacity>
+        <Text style={styles.headerTitle}>Visualizar Currículo</Text>
+      </View>
+
+      {/* Barra de ferramentas */}
+      <View style={{
+        flexDirection: 'row',
+        backgroundColor: '#f0f0f0',
+        padding: 10,
+        borderBottomWidth: 1,
+        borderBottomColor: Colors.mediumGray,
+      }}>
+        <TouchableOpacity
+          style={{
+            flex: 1,
+            flexDirection: 'row',
+            alignItems: 'center',
+            justifyContent: 'center',
+            paddingVertical: 8,
+            borderRightWidth: 1,
+            borderRightColor: Colors.mediumGray,
+          }}
+          onPress={() => setShowTemplateSelector(!showTemplateSelector)}
+        >
+          <Text style={{ marginRight: 5 }}>Template: {templateOptions.find(t => t.id === templateStyle)?.name}</Text>
+          <Text>▼</Text>
+        </TouchableOpacity>
+
+        <TouchableOpacity
+          style={{
+            flex: 1,
+            flexDirection: 'row',
+            alignItems: 'center',
+            justifyContent: 'center',
+            paddingVertical: 8,
+          }}
+          onPress={handleExportPDF}
+          disabled={generatingPDF}
+        >
+          {generatingPDF ? (
+            <ActivityIndicator size="small" color={Colors.primary} />
+          ) : (
+            <>
+              <Text style={{ marginRight: 5 }}>Exportar PDF</Text>
+              <Text>📄</Text>
+            </>
+          )}
+        </TouchableOpacity>
+      </View>
+
+      {/* Template selector overlay (em vez de Modal) */}
+      {showTemplateSelector && (
+        <View style={{
+          position: 'absolute',
+          top: 0,
+          left: 0,
+          right: 0,
+          bottom: 0,
+          backgroundColor: 'rgba(0, 0, 0, 0.5)',
+          zIndex: 100,
+        }}>
+          <TouchableOpacity
+            style={{ flex: 1 }}
+            onPress={() => setShowTemplateSelector(false)}
+          />
+
+          <View style={{
+            backgroundColor: Colors.white,
+            borderTopLeftRadius: 20,
+            borderTopRightRadius: 20,
+            padding: 20,
+          }}>
+            <View style={{
+              flexDirection: 'row',
+              justifyContent: 'space-between',
+              alignItems: 'center',
+              marginBottom: 15,
+            }}>
+              <Text style={{
+                fontSize: 18,
+                fontWeight: 'bold',
+                color: Colors.dark,
+              }}>
+                Escolher Template
+              </Text>
+
+              <TouchableOpacity
+                onPress={() => setShowTemplateSelector(false)}
+              >
+                <Text style={{
+                  fontSize: 22,
+                  color: Colors.lightText,
+                  paddingHorizontal: 5,
+                }}>
+                  ×
+                </Text>
+              </TouchableOpacity>
+            </View>
+
+            {templateOptions.map(template => (
+              <TouchableOpacity
+                key={template.id}
+                style={{
+                  flexDirection: 'row',
+                  alignItems: 'center',
+                  padding: 15,
+                  borderBottomWidth: 1,
+                  borderBottomColor: Colors.mediumGray,
+                  backgroundColor: templateStyle === template.id ? '#e3f2fd' : 'transparent',
+                }}
+                onPress={() => {
+                  setTemplateStyle(template.id);
+                  setShowTemplateSelector(false);
+                }}
+              >
+                <View style={{
+                  width: 24,
+                  height: 24,
+                  borderRadius: 12,
+                  backgroundColor: template.color,
+                  marginRight: 15,
+                }} />
+
+                <View style={{ flex: 1 }}>
+                  <Text style={{
+                    fontSize: 16,
+                    fontWeight: templateStyle === template.id ? 'bold' : 'normal',
+                    color: Colors.dark,
+                  }}>
+                    {template.name}
+                  </Text>
+                </View>
+
+                {templateStyle === template.id && (
+                  <Text style={{ fontSize: 18, color: Colors.primary }}>✓</Text>
+                )}
+              </TouchableOpacity>
+            ))}
+          </View>
+        </View>
+      )}
+
+      <ScrollView style={styles.previewScreenScroll}>
+        <View style={styles.previewScreenCard}>
+          <CurriculumPreview data={currentData.data} templateStyle={templateStyle} />
+        </View>
+        
+        {/* Adicionar o botão de melhoria com IA */}
+        <View style={{ padding: 15 }}>
+          <MelhorarComIAButton 
+            curriculoData={curriculoData}
+            onMelhoria={handleCurriculoMelhorado}
+          />
+        </View>
+      </ScrollView>
+
+      <View style={styles.previewActions}>
+        <TouchableOpacity
+          style={styles.previewActionButton}
+          onPress={handleShare}
+        >
+          <Text style={styles.previewActionButtonText}>Compartilhar</Text>
+        </TouchableOpacity>
+
+        <TouchableOpacity
+          style={[styles.previewActionButton, { backgroundColor: Colors.secondary }]}
+          onPress={() => navigation.navigate('AnaliseCV', { curriculoData })}
+        >
+          <Text style={styles.previewActionButtonText}>Analisar com IA</Text>
+        </TouchableOpacity>
+        
+        {/* Adicionar botão de edição */}
+        <TouchableOpacity
+          style={[styles.previewActionButton, { backgroundColor: Colors.info }]}
+          onPress={() => navigation.navigate('EditarCurriculo', { curriculoData: currentData })}
+        >
+          <Text style={styles.previewActionButtonText}>Editar Currículo</Text>
+        </TouchableOpacity>
+      </View>
+      
+      {/* Modal de comparação antes/depois */}
+      {showComparison && (
+        <View style={styles.comparisonModal}>
+          <View style={styles.comparisonContainer}>
+            <View style={styles.comparisonHeader}>
+              <Text style={styles.comparisonTitle}>Antes e Depois</Text>
+              <TouchableOpacity
+                style={styles.comparisonCloseButton}
+                onPress={() => setShowComparison(false)}
+              >
+                <Text style={styles.comparisonCloseText}>✕</Text>
+              </TouchableOpacity>
+            </View>
+            
+            <ScrollView style={styles.comparisonScroll}>
+              {/* Exemplo de comparação - resumo profissional */}
+              <View style={styles.comparisonSection}>
+                <Text style={styles.comparisonSectionTitle}>Resumo Profissional</Text>
+                
+                <View style={styles.comparisonItem}>
+                  <Text style={styles.comparisonLabel}>Antes:</Text>
+                  <Text style={styles.comparisonOriginalText}>
+                    {curriculoData.data.resumo_profissional || 'Sem resumo profissional'}
+                  </Text>
+                </View>
+                
+                <View style={styles.comparisonItem}>
+                  <Text style={styles.comparisonLabel}>Depois:</Text>
+                  <Text style={styles.comparisonImprovedText}>
+                    {currentData.data.resumo_profissional || 'Sem resumo profissional'}
+                  </Text>
+                </View>
+              </View>
+              
+              {/* Outras comparações podem ser adicionadas para experiências, etc. */}
+            </ScrollView>
+            
+            <View style={styles.comparisonActions}>
+              <TouchableOpacity
+                style={styles.comparisonButton}
+                onPress={() => setShowComparison(false)}
+              >
+                <Text style={styles.comparisonButtonText}>Fechar</Text>
+              </TouchableOpacity>
+              
+              <TouchableOpacity
+                style={[styles.comparisonButton, { backgroundColor: Colors.success }]}
+                onPress={() => {
+                  handleSalvarMelhorado(currentData.data);
+                  setShowComparison(false);
+                }}
+              >
+                <Text style={styles.comparisonButtonText}>Salvar Melhorias</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        </View>
+      )}
+    </SafeAreaView>
+  );
+};
+const RegisterScreen = ({ navigation }) => {
+  const { register } = useAuth();
+  const [nome, setNome] = useState('');
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
+  const [confirmPassword, setConfirmPassword] = useState('');
+  const [loading, setLoading] = useState(false);
+
+  const handleRegister = async () => {
+    if (!nome || !email || !password || !confirmPassword) {
+      Alert.alert('Erro', 'Por favor, preencha todos os campos.');
+      return;
+    }
+
+    if (password !== confirmPassword) {
+      Alert.alert('Erro', 'As senhas não coincidem.');
+      return;
+    }
+
+    setLoading(true);
+    const result = await register(nome, email, password);
+    setLoading(false);
+
+    if (result.success) {
+      // Registro bem-sucedido
+    } else {
+      Alert.alert('Erro', result.message || 'Erro ao fazer cadastro.');
+    }
+  };
+
+  return (
+    <SafeAreaView style={styles.authContainer}>
+      <StatusBar barStyle="dark-content" backgroundColor={Colors.primary} />
+      <View style={styles.authHeader}>
+        <TouchableOpacity
+          style={styles.backButton}
+          onPress={() => navigation.goBack()}
+        >
+          <Text style={styles.backButtonText}>‹</Text>
+        </TouchableOpacity>
+        <Text style={styles.authTitle}>Cadastro</Text>
+        <Text style={styles.authSubtitle}>Crie sua conta para continuar</Text>
+      </View>
+
+      <View style={styles.authForm}>
+        <View style={styles.inputContainer}>
+          <Text style={styles.inputLabel}>Nome</Text>
+          <View style={styles.enhancedInputWrapper}>
+            <TextInput
+              style={styles.enhancedInput}
+              placeholder="Seu nome completo"
+              value={nome}
+              onChangeText={setNome}
+              placeholderTextColor="#9e9e9e"
+            />
+          </View>
+        </View>
+
+        <View style={styles.inputContainer}>
+          <Text style={styles.inputLabel}>Email</Text>
+          <View style={styles.enhancedInputWrapper}>
+            <TextInput
+              style={styles.enhancedInput}
+              placeholder="Seu email profissional"
+              value={email}
+              onChangeText={setEmail}
+              keyboardType="email-address"
+              autoCapitalize="none"
+              placeholderTextColor="#9e9e9e"
+            />
+          </View>
+        </View>
+
+        <View style={styles.inputContainer}>
+          <Text style={styles.inputLabel}>Senha</Text>
+          <View style={styles.enhancedInputWrapper}>
+            <TextInput
+              style={styles.enhancedInput}
+              placeholder="Crie uma senha forte"
+              value={password}
+              onChangeText={setPassword}
+              secureTextEntry
+              placeholderTextColor="#9e9e9e"
+            />
+          </View>
+        </View>
+
+        <View style={styles.inputContainer}>
+          <Text style={styles.inputLabel}>Confirmar Senha</Text>
+          <View style={styles.enhancedInputWrapper}>
+            <TextInput
+              style={styles.enhancedInput}
+              placeholder="Confirme sua senha"
+              value={confirmPassword}
+              onChangeText={setConfirmPassword}
+              secureTextEntry
+              placeholderTextColor="#9e9e9e"
+            />
+          </View>
+        </View>
+
+        <TouchableOpacity
+          style={styles.enhancedPrimaryButton}
+          onPress={handleRegister}
+          disabled={loading}
+        >
+          {loading ? (
+            <ActivityIndicator size="small" color={Colors.white} />
+          ) : (
+            <Text style={styles.enhancedPrimaryButtonText}>Cadastrar</Text>
+          )}
+        </TouchableOpacity>
+
+        <TouchableOpacity
+          style={styles.textButton}
+          onPress={() => navigation.goBack()}
+        >
+          <Text style={styles.textButtonText}>Já tem uma conta? Faça login</Text>
+        </TouchableOpacity>
+      </View>
+    </SafeAreaView>
+  );
+};
+const LoginScreen = ({ navigation }) => {
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
+  const [loading, setLoading] = useState(false);
+  const { login } = useAuth();
+
+  const handleLogin = async () => {
+    if (!email || !password) {
+      Alert.alert('Erro', 'Por favor, preencha todos os campos.');
+      return;
+    }
+
+    setLoading(true);
+    const result = await login(email, password);
+    setLoading(false);
+
+    if (result.success) {
+      // Login bem-sucedido
+    } else {
+      Alert.alert('Erro', result.message || 'Erro ao fazer login.');
+    }
+  };
+
+  return (
+    <SafeAreaView style={styles.authContainer}>
+      <StatusBar barStyle="dark-content" backgroundColor={Colors.primary} />
+      <View style={styles.authHeader}>
+        <Text style={styles.authTitle}>Login</Text>
+        <Text style={styles.authSubtitle}>Entre na sua conta para continuar</Text>
+      </View>
+
+      <View style={styles.authForm}>
+        <View style={styles.inputContainer}>
+          <Text style={styles.inputLabel}>Email</Text>
+          <View style={styles.enhancedInputWrapper}>
+            <TextInput
+              style={styles.enhancedInput}
+              placeholder="Seu email"
+              value={email}
+              onChangeText={setEmail}
+              keyboardType="email-address"
+              autoCapitalize="none"
+              placeholderTextColor="#9e9e9e"
+            />
+          </View>
+        </View>
+
+        <View style={styles.inputContainer}>
+          <Text style={styles.inputLabel}>Senha</Text>
+          <View style={styles.enhancedInputWrapper}>
+            <TextInput
+              style={styles.enhancedInput}
+              placeholder="Sua senha"
+              value={password}
+              onChangeText={setPassword}
+              secureTextEntry
+              placeholderTextColor="#9e9e9e"
+            />
+          </View>
+        </View>
+
+        <TouchableOpacity
+          style={styles.enhancedPrimaryButton}
+          onPress={handleLogin}
+          disabled={loading}
+        >
+          {loading ? (
+            <ActivityIndicator size="small" color={Colors.white} />
+          ) : (
+            <Text style={styles.enhancedPrimaryButtonText}>Entrar</Text>
+          )}
+        </TouchableOpacity>
+
+        <TouchableOpacity
+          style={styles.textButton}
+          onPress={() => navigation.navigate('Register')}
+        >
+          <Text style={styles.textButtonText}>Não tem uma conta? Cadastre-se</Text>
+        </TouchableOpacity>
+      </View>
+    </SafeAreaView>
+  );
+};
+const AuthProvider = ({ children }) => {
+  const [user, setUser] = useState(null);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    // Verificar se há usuário logado
+    const checkUser = async () => {
+      try {
+        const userData = await AsyncStorage.getItem('currentUser');
+        if (userData) {
+          setUser(JSON.parse(userData));
+        }
+      } catch (error) {
+        console.error('Erro ao verificar usuário:', error);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    checkUser();
+  }, []);
+
+  const login = async (email, password) => {
+    try {
+      // Buscar usuários
+      const usuarios = await AsyncStorage.getItem('usuarios');
+      const usuariosArray = usuarios ? JSON.parse(usuarios) : [];
+
+      // Verificar credenciais
+      const usuarioEncontrado = usuariosArray.find(
+        u => u.email === email && u.password === password
+      );
+
+      if (usuarioEncontrado) {
+        setUser(usuarioEncontrado);
+        await AsyncStorage.setItem('currentUser', JSON.stringify(usuarioEncontrado));
+        return { success: true };
+      } else {
+        return { success: false, message: 'Email ou senha incorretos' };
+      }
+    } catch (error) {
+      console.error('Erro ao fazer login:', error);
+      return { success: false, message: 'Erro ao fazer login' };
+    }
+  };
+
+  const register = async (nome, email, password) => {
+    try {
+      // Verificar se o email já está em uso
+      const usuarios = await AsyncStorage.getItem('usuarios');
+      const usuariosArray = usuarios ? JSON.parse(usuarios) : [];
+
+      if (usuariosArray.some(u => u.email === email)) {
+        return { success: false, message: 'Email já cadastrado' };
+      }
+
+      // Criar novo usuário
+      const novoUsuario = {
+        id: Date.now().toString(),
+        nome,
+        email,
+        password,
+        dataCadastro: new Date().toISOString()
+      };
+
+      // Salvar usuário
+      const novosUsuarios = [...usuariosArray, novoUsuario];
+      await AsyncStorage.setItem('usuarios', JSON.stringify(novosUsuarios));
+
+      // Fazer login automático
+      setUser(novoUsuario);
+      await AsyncStorage.setItem('currentUser', JSON.stringify(novoUsuario));
+
+      return { success: true };
+    } catch (error) {
+      console.error('Erro ao cadastrar:', error);
+      return { success: false, message: 'Erro ao cadastrar' };
+    }
+  };
+
+  // Função de logout corrigida
+  const logout = async () => {
+    try {
+      // Primeiro, definimos o estado para null para evitar acesso a dados antigos
+      setUser(null);
+
+      // Depois removemos os dados de usuário do AsyncStorage
+      await AsyncStorage.removeItem('currentUser');
+
+      // Talvez seja necessário limpar outras informações também
+      // Por exemplo, limpar cache de análises, etc.
+
+      console.log('Logout realizado com sucesso');
+      return true;
+    } catch (error) {
+      console.error('Erro ao fazer logout:', error);
+      // Mesmo com erro, definir o usuário como null para evitar problemas
+      setUser(null);
+      return false;
+    }
+  };
+
+  // Função para atualizar o user (opcional, se você tiver)
+  const updateUser = (userData) => {
+    try {
+      setUser(userData);
+    } catch (error) {
+      console.error('Erro ao atualizar dados do usuário:', error);
+    }
+  };
+
+  return (
+    <AuthContext.Provider value={{ user, loading, login, register, logout, updateUser }}>
+      {children}
+    </AuthContext.Provider>
+  );
+};
+const ChatMessage = ({ message, isUser, time }) => (
+  <View style={[
+    styles.messageContainer,
+    isUser ? styles.userMessageContainer : styles.botMessageContainer
+  ]}>
+    <Text style={[
+      styles.messageText,
+      isUser ? styles.userMessageText : styles.botMessageText
+    ]}>
+      {message}
+    </Text>
+    <Text style={styles.messageTime}>{time}</Text>
+  </View>
+);
+
+
+
+
+const SplashScreen = ({ navigation }) => {
+  useEffect(() => {
+    // Simular carregamento
+    const timer = setTimeout(() => {
+      if (navigation && navigation.replace) {
+        navigation.replace('Auth');
+      }
+    }, 2000);
+
+    return () => clearTimeout(timer);
+  }, [navigation]);
+
+  return (
+    <SafeAreaView style={styles.splashContainer}>
+      <StatusBar barStyle="dark-content" backgroundColor={Colors.primary} />
+      <Text style={styles.splashTitle}>CurriculoBot</Text>
+      <Text style={styles.splashSubtitle}>Premium</Text>
+      <ActivityIndicator size="large" color={Colors.white} style={{ marginTop: 20 }} />
     </SafeAreaView>
   );
 };
@@ -1764,30 +4064,6 @@ const ConfiguracoesScreen = ({ navigation }) => {
     </SafeAreaView>
   );
 };
-const HomeStackScreen = () => (
-  <HomeStack.Navigator screenOptions={{ headerShown: false }}>
-    {/* Rotas existentes */}
-    <HomeStack.Screen name="HomeMain" component={HomeScreen} />
-    <HomeStack.Screen name="Chatbot" component={ChatbotScreen} />
-    <HomeStack.Screen name="MeusCurriculos" component={MeusCurriculosScreen} />
-    <HomeStack.Screen name="PreviewCV" component={PreviewCVScreen} />
-    <HomeStack.Screen name="CurriculosAnalise" component={CurriculosAnaliseScreen} />
-    <HomeStack.Screen name="AnaliseCV" component={AnaliseCVScreen} />
-    <HomeStack.Screen name="SelecionarCurriculo" component={SelecionarCurriculoScreen} />
-    <HomeStack.Screen name="BuscaVagas" component={BuscaVagasScreen} />
-    <HomeStack.Screen name="SobreApp" component={SobreAppScreen} />
-    <HomeStack.Screen name="ConfiguracoesIA" component={ConfiguracoesIAScreen} />
-    <HomeStack.Screen name="EditarCurriculo" component={EditarCurriculoScreen} />
-    
-    {/* Novas rotas para simulação de entrevista */}
-    <HomeStack.Screen name="SimularEntrevista" component={SimularEntrevistaScreen} />
-    <HomeStack.Screen name="EntrevistaSimulada" component={EntrevistaSimuladaScreen} />
-    
-    {/* Outras rotas */}
-    <HomeStack.Screen name="DadosMercado" component={DadosMercadoScreen} />
-    <HomeStack.Screen name="GraficosRegionais" component={GraficosRegionaisScreen} />
-  </HomeStack.Navigator>
-);
 const DashboardStackScreen = () => (
   <DashboardStack.Navigator screenOptions={{ headerShown: false }}>
     <DashboardStack.Screen name="DashboardMain" component={DashboardScreen} />
@@ -1810,3059 +4086,6 @@ const ConfigStackScreen = () => (
     <ConfigStack.Screen name="SobreApp" component={SobreAppScreen} />
   </ConfigStack.Navigator>
 );
-const BuscaVagasScreen = ({ route, navigation }) => {
-  const { curriculoData } = route.params;
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState(null);
-  const [vagasResultado, setVagasResultado] = useState(null);
-  const [loadingProgress, setLoadingProgress] = useState(0);
-  const [fromCache, setFromCache] = useState(false);
-  const [lastUpdate, setLastUpdate] = useState(null);
-
-  useEffect(() => {
-    // Simular progresso durante a busca para feedback visual
-    const progressInterval = setInterval(() => {
-      setLoadingProgress(prev => {
-        const newProgress = prev + (0.1 * Math.random());
-        return newProgress > 0.9 ? 0.9 : newProgress;
-      });
-    }, 800);
-
-    // Iniciar a busca de vagas
-    buscarVagas();
-
-    return () => clearInterval(progressInterval);
-  }, []);
-
-  const buscarVagas = async (forceRefresh = false) => {
-    try {
-      setLoading(true);
-      setError(null);
-      setLoadingProgress(0.1);
-
-      if (forceRefresh) {
-        // Mostrar tooltip/mensagem quando forçar a atualização
-        Alert.alert(
-          'Buscando Novas Vagas',
-          'Estamos buscando novas vagas compatíveis com seu perfil. Isso pode levar alguns instantes...'
-        );
-      }
-
-      // Chamar a função de busca com o parâmetro de forçar atualização
-      const resultado = await buscarVagasComGemini(curriculoData, forceRefresh);
-
-      if (resultado.success) {
-        setVagasResultado(resultado.vagas);
-        setFromCache(resultado.fromCache || false);
-        setLastUpdate(resultado.timestamp || new Date().toISOString());
-      } else {
-        setError(resultado.error);
-      }
-    } catch (error) {
-      console.error('Erro na busca de vagas:', error);
-      setError('Não foi possível completar a busca de vagas. Tente novamente mais tarde.');
-    } finally {
-      setLoading(false);
-      setLoadingProgress(1);
-    }
-  };
-
-  const handleRefresh = () => {
-    // Forçar atualização (ignorar cache)
-    buscarVagas(true);
-  };
-
-  const handleTryAgain = () => {
-    setLoading(true);
-    setError(null);
-    setLoadingProgress(0.1);
-    buscarVagas();
-  };
-
-  const handleShare = async () => {
-    try {
-      await Share.share({
-        message: vagasResultado,
-        title: 'Vagas recomendadas para seu perfil'
-      });
-    } catch (error) {
-      console.error('Erro ao compartilhar:', error);
-      Alert.alert('Erro', 'Não foi possível compartilhar as vagas.');
-    }
-  };
-
-  // Funções de processamento de links (manter de antes)
-  const processarConteudo = (texto) => {
-    if (!texto) return { conteudoProcessado: '', links: [] };
-
-    // Extrair links do formato markdown [texto](url)
-    const regex = /\[([^\]]+)\]\(([^)]+)\)/g;
-    let match;
-    const links = [];
-
-    while ((match = regex.exec(texto)) !== null) {
-      links.push({
-        texto: match[1],
-        url: match[2],
-        completo: match[0]
-      });
-    }
-
-    return {
-      conteudoProcessado: texto,
-      links
-    };
-  };
-
-  // Componente VagaLink (manter de antes)
-  const VagaLink = ({ url, label }) => {
-    const handlePress = async () => {
-      // Verificar se a URL é válida
-      if (!url.startsWith('http')) {
-        url = 'https://' + url;
-      }
-
-      try {
-        const supported = await Linking.canOpenURL(url);
-
-        if (supported) {
-          await Linking.openURL(url);
-        } else {
-          Alert.alert('Erro', `Não foi possível abrir o link: ${url}`);
-        }
-      } catch (error) {
-        console.error('Erro ao abrir link:', error);
-        Alert.alert('Erro', 'Não foi possível abrir este link.');
-      }
-    };
-
-    return (
-      <TouchableOpacity
-        onPress={handlePress}
-        style={{
-          backgroundColor: Colors.primary,
-          paddingVertical: 8,
-          paddingHorizontal: 12,
-          borderRadius: 5,
-          alignSelf: 'flex-start',
-          margin: 5,
-        }}
-      >
-        <Text style={{ color: Colors.white, fontWeight: '500' }}>
-          {label || 'Acessar Vaga'}
-        </Text>
-      </TouchableOpacity>
-    );
-  };
-
-  // Manter de antes
-  const renderizarLinksVagas = () => {
-    const { conteudoProcessado, links } = processarConteudo(vagasResultado);
-
-    // Agrupar links por vaga (baseado na ocorrência de "Vaga X" no texto)
-    const secoes = conteudoProcessado.split(/## Vaga \d+:/);
-
-    if (secoes.length <= 1) return null;
-
-    return (
-      <View style={{
-        backgroundColor: '#e8f5e9',
-        padding: 15,
-        borderRadius: 10,
-        marginBottom: 15,
-      }}>
-        <Text style={{
-          fontSize: 16,
-          fontWeight: 'bold',
-          marginBottom: 10,
-          color: Colors.dark,
-        }}>
-          Links Diretos para as Vagas:
-        </Text>
-
-        {secoes.map((secao, index) => {
-          if (index === 0) return null; // Pular a introdução
-
-          // Extrair o título da vaga
-          const tituloMatch = secao.match(/\[([^\]]+)\]\s*-\s*\[([^\]]+)\]/);
-          const titulo = tituloMatch
-            ? `${tituloMatch[1]} - ${tituloMatch[2]}`
-            : `Vaga ${index}`;
-
-          // Encontrar links nesta seção
-          const linksVaga = links.filter(link =>
-            secao.includes(link.completo) &&
-            (link.texto.includes('Link') ||
-              link.texto.includes('vaga') ||
-              link.texto.includes('Aplicar'))
-          );
-
-          if (linksVaga.length === 0) return null;
-
-          return (
-            <View key={index} style={{
-              marginBottom: 10,
-              padding: 10,
-              backgroundColor: Colors.white,
-              borderRadius: 5,
-              borderLeftWidth: 3,
-              borderLeftColor: Colors.success,
-            }}>
-              <Text style={{ fontWeight: 'bold', marginBottom: 5 }}>
-                {titulo}
-              </Text>
-
-              <View style={{ flexDirection: 'row', flexWrap: 'wrap' }}>
-                {linksVaga.map((link, linkIndex) => (
-                  <VagaLink
-                    key={linkIndex}
-                    url={link.url}
-                    label={link.texto}
-                  />
-                ))}
-              </View>
-            </View>
-          );
-        })}
-      </View>
-    );
-  };
-
-  // Para processar os resultados
-  const { conteudoProcessado, links } = vagasResultado ? processarConteudo(vagasResultado) : { conteudoProcessado: '', links: [] };
-
-  return (
-    <SafeAreaView style={styles.container}>
-      <StatusBar barStyle="dark-content" backgroundColor={Colors.dark} />
-
-      <View style={styles.header}>
-        <TouchableOpacity
-          style={styles.backButton}
-          onPress={() => navigation.goBack()}
-        >
-          <Text style={styles.backButtonText}>‹</Text>
-        </TouchableOpacity>
-        <Text style={styles.headerTitle}>Vagas para Você</Text>
-
-        {/* Novo botão de atualização */}
-        {!loading && !error && (
-          <TouchableOpacity
-            style={{
-              backgroundColor: 'rgba(255, 255, 255, 0.2)',
-              paddingVertical: 5,
-              paddingHorizontal: 10,
-              borderRadius: 5,
-            }}
-            onPress={handleRefresh}
-          >
-            <Text style={{ color: Colors.white, fontSize: 12 }}>Atualizar</Text>
-          </TouchableOpacity>
-        )}
-      </View>
-
-      {loading ? (
-        <View style={styles.loadingContainer}>
-          <Text style={{
-            fontSize: 18,
-            fontWeight: 'bold',
-            color: Colors.dark,
-            marginBottom: 20,
-            textAlign: 'center'
-          }}>
-            Buscando vagas personalizadas
-          </Text>
-
-          <View style={{
-            width: '80%',
-            height: 10,
-            backgroundColor: Colors.lightGray,
-            borderRadius: 5,
-            marginBottom: 20
-          }}>
-            <View style={{
-              width: `${loadingProgress * 100}%`,
-              height: '100%',
-              backgroundColor: Colors.primary,
-              borderRadius: 5
-            }} />
-          </View>
-
-          <View style={{
-            backgroundColor: 'rgba(0, 188, 212, 0.1)',
-            padding: 15,
-            borderRadius: 8,
-            marginTop: 20,
-            maxWidth: '90%'
-          }}>
-            <Text style={{ textAlign: 'center', color: Colors.dark }}>
-              Nossa IA está analisando seu perfil e buscando vagas que correspondam às suas qualificações e objetivos de carreira.
-            </Text>
-          </View>
-        </View>
-      ) : error ? (
-        <View style={styles.errorContainer}>
-          <Text style={styles.errorText}>{error}</Text>
-          <TouchableOpacity
-            style={styles.retryButton}
-            onPress={handleTryAgain}
-          >
-            <Text style={styles.retryButtonText}>Tentar Novamente</Text>
-          </TouchableOpacity>
-        </View>
-      ) : (
-        <View style={{ flex: 1 }}>
-          <ScrollView style={{ padding: 15 }}>
-            {/* Título e informações */}
-            <View style={{
-              backgroundColor: Colors.white,
-              borderRadius: 10,
-              padding: 15,
-              marginBottom: 15,
-              ...Platform.select({
-                ios: {
-                  shadowColor: '#000',
-                  shadowOffset: { width: 0, height: 2 },
-                  shadowOpacity: 0.1,
-                  shadowRadius: 4,
-                },
-                android: {
-                  elevation: 2,
-                },
-              }),
-            }}>
-              <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
-                <Text style={{
-                  fontSize: 18,
-                  fontWeight: 'bold',
-                  color: Colors.dark,
-                }}>
-                  Vagas Personalizadas para Seu Perfil
-                </Text>
-
-                {/* Botão de refresh alternativo */}
-                <TouchableOpacity
-                  style={{
-                    backgroundColor: Colors.primary,
-                    padding: 8,
-                    borderRadius: 20,
-                    width: 36,
-                    height: 36,
-                    justifyContent: 'center',
-                    alignItems: 'center',
-                  }}
-                  onPress={handleRefresh}
-                >
-                  <Text style={{ color: Colors.white, fontSize: 16 }}>↻</Text>
-                </TouchableOpacity>
-              </View>
-
-              <Text style={{
-                fontSize: 14,
-                color: Colors.lightText,
-                marginBottom: 6,
-              }}>
-                Com base nas informações do seu currículo, encontramos estas vagas que correspondem ao seu perfil profissional.
-              </Text>
-
-              {fromCache && (
-                <View style={{
-                  backgroundColor: '#e3f2fd',
-                  padding: 8,
-                  borderRadius: 4,
-                  marginTop: 5,
-                  flexDirection: 'row',
-                  alignItems: 'center',
-                  justifyContent: 'space-between'
-                }}>
-                  <Text style={{
-                    fontSize: 12,
-                    color: '#0d47a1',
-                    flex: 1,
-                  }}>
-                    Última atualização: {new Date(lastUpdate).toLocaleDateString()} às {new Date(lastUpdate).toLocaleTimeString()}
-                  </Text>
-
-                  <TouchableOpacity
-                    style={{
-                      backgroundColor: '#1976d2',
-                      paddingVertical: 4,
-                      paddingHorizontal: 8,
-                      borderRadius: 4,
-                      marginLeft: 10,
-                    }}
-                    onPress={handleRefresh}
-                  >
-                    <Text style={{ color: Colors.white, fontSize: 12 }}>Buscar Novas</Text>
-                  </TouchableOpacity>
-                </View>
-              )}
-            </View>
-
-            {/* Renderizar links para vagas */}
-            {renderizarLinksVagas()}
-
-            {/* Resultados da IA */}
-            <View style={{
-              backgroundColor: Colors.white,
-              borderRadius: 10,
-              padding: 15,
-              marginBottom: 15,
-              ...Platform.select({
-                ios: {
-                  shadowColor: '#000',
-                  shadowOffset: { width: 0, height: 2 },
-                  shadowOpacity: 0.1,
-                  shadowRadius: 4,
-                },
-                android: {
-                  elevation: 2,
-                },
-              }),
-            }}>
-              <Markdown
-                style={{
-                  body: { fontSize: 16, lineHeight: 24, color: Colors.dark },
-                  heading1: {
-                    fontSize: 22,
-                    fontWeight: 'bold',
-                    marginBottom: 10,
-                    color: Colors.dark,
-                    borderBottomWidth: 1,
-                    borderBottomColor: Colors.mediumGray,
-                    paddingBottom: 5,
-                  },
-                  heading2: {
-                    fontSize: 20,
-                    fontWeight: 'bold',
-                    marginBottom: 10,
-                    marginTop: 15,
-                    color: Colors.dark
-                  },
-                  heading3: {
-                    fontSize: 18,
-                    fontWeight: 'bold',
-                    marginTop: 10,
-                    marginBottom: 5,
-                    color: Colors.dark
-                  },
-                  paragraph: {
-                    fontSize: 16,
-                    lineHeight: 24,
-                    marginBottom: 10,
-                    color: Colors.dark
-                  },
-                  list_item: {
-                    marginBottom: 5,
-                    flexDirection: 'row',
-                    alignItems: 'flex-start',
-                  },
-                  bullet_list: {
-                    marginVertical: 10,
-                  },
-                  strong: {
-                    fontWeight: 'bold',
-                  },
-                  em: {
-                    fontStyle: 'italic',
-                  },
-                  link: {
-                    color: Colors.primary,
-                    textDecorationLine: 'underline',
-                  },
-                }}
-                onLinkPress={(url) => {
-                  Linking.openURL(url).catch(err => {
-                    console.error('Erro ao abrir link:', err);
-                    Alert.alert('Erro', 'Não foi possível abrir este link.');
-                  });
-                }}
-              >
-                {conteudoProcessado}
-              </Markdown>
-            </View>
-          </ScrollView>
-
-          {/* Botão para compartilhar */}
-          <View style={{
-            padding: 15,
-            backgroundColor: Colors.white,
-            borderTopWidth: 1,
-            borderTopColor: Colors.mediumGray,
-            flexDirection: 'row',
-            justifyContent: 'space-between',
-          }}>
-            {/* Botão de atualização grande para facilitar o acesso */}
-            <TouchableOpacity
-              style={{
-                backgroundColor: Colors.secondary,
-                paddingVertical: 12,
-                paddingHorizontal: 15,
-                borderRadius: 8,
-                alignItems: 'center',
-                flex: 1,
-                marginRight: 8,
-              }}
-              onPress={handleRefresh}
-            >
-              <Text style={{
-                color: Colors.white,
-                fontWeight: 'bold',
-                fontSize: 16,
-              }}>
-                Buscar Novas Vagas
-              </Text>
-            </TouchableOpacity>
-
-            <TouchableOpacity
-              style={{
-                backgroundColor: Colors.primary,
-                paddingVertical: 12,
-                paddingHorizontal: 15,
-                borderRadius: 8,
-                alignItems: 'center',
-                flex: 1,
-                marginLeft: 8,
-              }}
-              onPress={handleShare}
-            >
-              <Text style={{
-                color: Colors.white,
-                fontWeight: 'bold',
-                fontSize: 16,
-              }}>
-                Compartilhar
-              </Text>
-            </TouchableOpacity>
-          </View>
-        </View>
-      )}
-    </SafeAreaView>
-  );
-};
-const ConfiguracoesIAScreen = ({ navigation }) => {
-  const [iasSalvas, setIasSalvas] = useState({});
-  const [iaAtual, setIaAtual] = useState('GEMINI');
-  const [apiKey, setApiKey] = useState('');
-  const [isSaving, setIsSaving] = useState(false);
-  const [showApiKey, setShowApiKey] = useState(false);
-
-  useEffect(() => {
-    carregarConfiguracoes();
-  }, []);
-
-  const carregarConfiguracoes = async () => {
-    try {
-      // Carregar IA padrão
-      const defaultIA = await AsyncStorage.getItem('ia_padrao');
-      if (defaultIA) setIaAtual(defaultIA);
-
-      // Carregar status das IAs
-      const iasStatus = {};
-      for (const [key, value] of Object.entries(IA_APIS)) {
-        const apiKey = await getIAAPIKey(key);
-        iasStatus[key] = {
-          configurada: value.chaveNecessaria ? !!apiKey : true,
-          apiKey: apiKey
-        };
-      }
-
-      setIasSalvas(iasStatus);
-
-      // Carregar a API key da IA selecionada
-      if (defaultIA) {
-        const currentKey = await getIAAPIKey(defaultIA);
-        setApiKey(currentKey);
-      }
-    } catch (error) {
-      console.error('Erro ao carregar configurações:', error);
-      Alert.alert('Erro', 'Não foi possível carregar as configurações das IAs.');
-    }
-  };
-
-  const salvarConfiguracao = async () => {
-    setIsSaving(true);
-    try {
-      // Salvar a IA padrão
-      await AsyncStorage.setItem('ia_padrao', iaAtual);
-
-      // Salvar a API key da IA selecionada
-      await salvarIAAPIKey(iaAtual, apiKey);
-
-      // Atualizar o estado
-      const novasIasSalvas = { ...iasSalvas };
-      novasIasSalvas[iaAtual] = {
-        configurada: IA_APIS[iaAtual].chaveNecessaria ? !!apiKey : true,
-        apiKey: apiKey
-      };
-      setIasSalvas(novasIasSalvas);
-
-      Alert.alert('Sucesso', `Configuração de ${IA_APIS[iaAtual].nome} salva com sucesso!`);
-    } catch (error) {
-      console.error('Erro ao salvar configuração:', error);
-      Alert.alert('Erro', 'Não foi possível salvar a configuração.');
-    } finally {
-      setIsSaving(false);
-    }
-  };
-
-  const selecionarIA = async (tipoIA) => {
-    setIaAtual(tipoIA);
-    const key = await getIAAPIKey(tipoIA);
-    setApiKey(key || '');
-  };
-
-  const obterUrlAjuda = (tipoIA) => {
-    switch (tipoIA) {
-      case 'GEMINI':
-        return 'https://ai.google.dev/tutorials/setup';
-      case 'OPENAI':
-        return 'https://platform.openai.com/api-keys';
-      case 'CLAUDE':
-        return 'https://console.anthropic.com/settings/keys';
-      case 'PERPLEXITY':
-        return 'https://www.perplexity.ai/settings/api';
-      default:
-        return null;
-    }
-  };
-
-  const abrirUrlAjuda = (tipoIA) => {
-    const url = obterUrlAjuda(tipoIA);
-    if (url) {
-      Alert.alert(
-        "Abrir site externo",
-        `Deseja abrir o site de ${IA_APIS[tipoIA].nome} para obter sua API key?`,
-        [
-          { text: "Cancelar", style: "cancel" },
-          { text: "Abrir", onPress: () => { /* Implementar abertura de URL */ } }
-        ]
-      );
-    }
-  };
-
-  return (
-    <SafeAreaView style={styles.container}>
-      <StatusBar barStyle="dark-content" backgroundColor={HeaderColors.background} />
-
-      <View style={styles.header}>
-        <TouchableOpacity
-          style={styles.backButton}
-          onPress={() => navigation.goBack()}
-        >
-          <Text style={styles.backButtonText}>‹</Text>
-        </TouchableOpacity>
-        <Text style={styles.headerTitle}>Configurar IA</Text>
-      </View>
-
-      <ScrollView style={styles.configContent}>
-        <View style={styles.configCard}>
-          <Text style={styles.configIntroTitle}>Configure suas IAs</Text>
-          <Text style={styles.configIntroText}>
-            Adicione suas chaves de API para utilizar diferentes modelos de IA
-            na análise de currículos. Uma chave API é necessária para cada serviço.
-          </Text>
-        </View>
-
-        <Text style={styles.configTitle}>Selecione uma IA para configurar:</Text>
-
-        <ScrollView
-          horizontal
-          showsHorizontalScrollIndicator={false}
-          contentContainerStyle={styles.iaCardsContainer}
-        >
-          {Object.entries(IA_APIS).map(([key, value]) => (
-            <TouchableOpacity
-              key={key}
-              style={[
-                styles.iaCard,
-                iaAtual === key && styles.iaCardSelected
-              ]}
-              onPress={() => selecionarIA(key)}
-            >
-              <View style={styles.iaCardHeader}>
-                <Text style={[
-                  styles.iaCardTitle,
-                  iaAtual === key && styles.iaCardTitleSelected
-                ]}>
-                  {value.nome}
-                </Text>
-                {iasSalvas[key]?.configurada && (
-                  <View style={styles.configuredBadge}>
-                    <Text style={styles.configuredBadgeText}>✓</Text>
-                  </View>
-                )}
-              </View>
-              <Text style={styles.iaCardDescription}>
-                {value.chaveNecessaria ? "Requer API Key" : "Não requer API Key"}
-              </Text>
-            </TouchableOpacity>
-          ))}
-        </ScrollView>
-
-        {IA_APIS[iaAtual]?.chaveNecessaria ? (
-          <View style={styles.apiKeyContainer}>
-            <View style={styles.apiKeyHeader}>
-              <Text style={styles.apiKeyLabel}>
-                API Key para {IA_APIS[iaAtual]?.nome}:
-              </Text>
-              <TouchableOpacity
-                onPress={() => abrirUrlAjuda(iaAtual)}
-                style={styles.helpButton}
-              >
-                <Text style={styles.helpButtonText}>Como obter?</Text>
-              </TouchableOpacity>
-            </View>
-
-            <View style={styles.apiKeyInputContainer}>
-              <TextInput
-                style={styles.apiKeyInput}
-                value={apiKey}
-                onChangeText={setApiKey}
-                placeholder="Insira sua API Key aqui"
-                secureTextEntry={!showApiKey}
-              />
-              <TouchableOpacity
-                style={styles.toggleVisibilityButton}
-                onPress={() => setShowApiKey(!showApiKey)}
-              >
-                <Text style={styles.toggleVisibilityText}>
-                  {showApiKey ? "Ocultar" : "Mostrar"}
-                </Text>
-              </TouchableOpacity>
-            </View>
-
-            <Text style={styles.apiKeyHelper}>
-              A API Key é necessária para usar os recursos de {IA_APIS[iaAtual]?.nome}.
-            </Text>
-          </View>
-        ) : (
-          <View style={styles.noApiKeyContainer}>
-            <Text style={styles.noApiKeyText}>
-              {IA_APIS[iaAtual]?.nome} não necessita de API Key.
-            </Text>
-          </View>
-        )}
-
-        <TouchableOpacity
-          style={[
-            styles.saveButton,
-            (isSaving) && styles.saveButtonDisabled
-          ]}
-          onPress={salvarConfiguracao}
-          disabled={isSaving}
-        >
-          {isSaving ? (
-            <ActivityIndicator size="small" color={Colors.white} />
-          ) : (
-            <Text style={styles.saveButtonText}>Salvar Configuração</Text>
-          )}
-        </TouchableOpacity>
-
-        <View style={styles.tipsContainer}>
-          <Text style={styles.tipsTitle}>Dicas:</Text>
-          <Text style={styles.tipItem}>• O Google Gemini já vem com uma chave padrão</Text>
-          <Text style={styles.tipItem}>• Para obter resultados melhores, configure sua própria API key</Text>
-          <Text style={styles.tipItem}>• O modo offline não requer API key</Text>
-        </View>
-      </ScrollView>
-    </SafeAreaView>
-  );
-};
-const SplashScreen = ({ navigation }) => {
-  useEffect(() => {
-    // Simular carregamento
-    const timer = setTimeout(() => {
-      if (navigation && navigation.replace) {
-        navigation.replace('Auth');
-      }
-    }, 2000);
-
-    return () => clearTimeout(timer);
-  }, [navigation]);
-
-  return (
-    <SafeAreaView style={styles.splashContainer}>
-      <StatusBar barStyle="dark-content" backgroundColor={Colors.primary} />
-      <Text style={styles.splashTitle}>CurriculoBot</Text>
-      <Text style={styles.splashSubtitle}>Premium</Text>
-      <ActivityIndicator size="large" color={Colors.white} style={{ marginTop: 20 }} />
-    </SafeAreaView>
-  );
-};
-const LoginScreen = ({ navigation }) => {
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
-  const [loading, setLoading] = useState(false);
-  const { login } = useAuth();
-
-  const handleLogin = async () => {
-    if (!email || !password) {
-      Alert.alert('Erro', 'Por favor, preencha todos os campos.');
-      return;
-    }
-
-    setLoading(true);
-    const result = await login(email, password);
-    setLoading(false);
-
-    if (result.success) {
-      // Login bem-sucedido
-    } else {
-      Alert.alert('Erro', result.message || 'Erro ao fazer login.');
-    }
-  };
-
-  return (
-    <SafeAreaView style={styles.authContainer}>
-      <StatusBar barStyle="dark-content" backgroundColor={Colors.primary} />
-      <View style={styles.authHeader}>
-        <Text style={styles.authTitle}>Login</Text>
-        <Text style={styles.authSubtitle}>Entre na sua conta para continuar</Text>
-      </View>
-
-      <View style={styles.authForm}>
-        <View style={styles.inputContainer}>
-          <Text style={styles.inputLabel}>Email</Text>
-          <View style={styles.enhancedInputWrapper}>
-            <TextInput
-              style={styles.enhancedInput}
-              placeholder="Seu email"
-              value={email}
-              onChangeText={setEmail}
-              keyboardType="email-address"
-              autoCapitalize="none"
-              placeholderTextColor="#9e9e9e"
-            />
-          </View>
-        </View>
-
-        <View style={styles.inputContainer}>
-          <Text style={styles.inputLabel}>Senha</Text>
-          <View style={styles.enhancedInputWrapper}>
-            <TextInput
-              style={styles.enhancedInput}
-              placeholder="Sua senha"
-              value={password}
-              onChangeText={setPassword}
-              secureTextEntry
-              placeholderTextColor="#9e9e9e"
-            />
-          </View>
-        </View>
-
-        <TouchableOpacity
-          style={styles.enhancedPrimaryButton}
-          onPress={handleLogin}
-          disabled={loading}
-        >
-          {loading ? (
-            <ActivityIndicator size="small" color={Colors.white} />
-          ) : (
-            <Text style={styles.enhancedPrimaryButtonText}>Entrar</Text>
-          )}
-        </TouchableOpacity>
-
-        <TouchableOpacity
-          style={styles.textButton}
-          onPress={() => navigation.navigate('Register')}
-        >
-          <Text style={styles.textButtonText}>Não tem uma conta? Cadastre-se</Text>
-        </TouchableOpacity>
-      </View>
-    </SafeAreaView>
-  );
-};
-const RegisterScreen = ({ navigation }) => {
-  const [nome, setNome] = useState('');
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
-  const [confirmPassword, setConfirmPassword] = useState('');
-  const [loading, setLoading] = useState(false);
-  const { register } = useAuth();
-
-  const handleRegister = async () => {
-    if (!nome || !email || !password || !confirmPassword) {
-      Alert.alert('Erro', 'Por favor, preencha todos os campos.');
-      return;
-    }
-
-    if (password !== confirmPassword) {
-      Alert.alert('Erro', 'As senhas não coincidem.');
-      return;
-    }
-
-    setLoading(true);
-    const result = await register(nome, email, password);
-    setLoading(false);
-
-    if (result.success) {
-      // Registro bem-sucedido
-    } else {
-      Alert.alert('Erro', result.message || 'Erro ao fazer cadastro.');
-    }
-  };
-
-  return (
-    <SafeAreaView style={styles.authContainer}>
-      <StatusBar barStyle="dark-content" backgroundColor={Colors.primary} />
-      <View style={styles.authHeader}>
-        <TouchableOpacity
-          style={styles.backButton}
-          onPress={() => navigation.goBack()}
-        >
-          <Text style={styles.backButtonText}>‹</Text>
-        </TouchableOpacity>
-        <Text style={styles.authTitle}>Cadastro</Text>
-        <Text style={styles.authSubtitle}>Crie sua conta para continuar</Text>
-      </View>
-
-      <View style={styles.authForm}>
-        <View style={styles.inputContainer}>
-          <Text style={styles.inputLabel}>Nome</Text>
-          <View style={styles.enhancedInputWrapper}>
-            <TextInput
-              style={styles.enhancedInput}
-              placeholder="Seu nome completo"
-              value={nome}
-              onChangeText={setNome}
-              placeholderTextColor="#9e9e9e"
-            />
-          </View>
-        </View>
-
-        <View style={styles.inputContainer}>
-          <Text style={styles.inputLabel}>Email</Text>
-          <View style={styles.enhancedInputWrapper}>
-            <TextInput
-              style={styles.enhancedInput}
-              placeholder="Seu email profissional"
-              value={email}
-              onChangeText={setEmail}
-              keyboardType="email-address"
-              autoCapitalize="none"
-              placeholderTextColor="#9e9e9e"
-            />
-          </View>
-        </View>
-
-        <View style={styles.inputContainer}>
-          <Text style={styles.inputLabel}>Senha</Text>
-          <View style={styles.enhancedInputWrapper}>
-            <TextInput
-              style={styles.enhancedInput}
-              placeholder="Crie uma senha forte"
-              value={password}
-              onChangeText={setPassword}
-              secureTextEntry
-              placeholderTextColor="#9e9e9e"
-            />
-          </View>
-        </View>
-
-        <View style={styles.inputContainer}>
-          <Text style={styles.inputLabel}>Confirmar Senha</Text>
-          <View style={styles.enhancedInputWrapper}>
-            <TextInput
-              style={styles.enhancedInput}
-              placeholder="Confirme sua senha"
-              value={confirmPassword}
-              onChangeText={setConfirmPassword}
-              secureTextEntry
-              placeholderTextColor="#9e9e9e"
-            />
-          </View>
-        </View>
-
-        <TouchableOpacity
-          style={styles.enhancedPrimaryButton}
-          onPress={handleRegister}
-          disabled={loading}
-        >
-          {loading ? (
-            <ActivityIndicator size="small" color={Colors.white} />
-          ) : (
-            <Text style={styles.enhancedPrimaryButtonText}>Cadastrar</Text>
-          )}
-        </TouchableOpacity>
-
-        <TouchableOpacity
-          style={styles.textButton}
-          onPress={() => navigation.goBack()}
-        >
-          <Text style={styles.textButtonText}>Já tem uma conta? Faça login</Text>
-        </TouchableOpacity>
-      </View>
-    </SafeAreaView>
-  );
-};
-const SimularEntrevistaScreen = ({ navigation }) => {
-  const { user } = useAuth();
-  const [curriculos, setCurriculos] = useState([]);
-  const [loading, setLoading] = useState(true);
-
-  useEffect(() => {
-    carregarCurriculos();
-  }, []);
-
-  const carregarCurriculos = async () => {
-    try {
-      setLoading(true);
-      const cvs = await AsyncStorage.getItem(`curriculos_${user.id}`);
-      setCurriculos(cvs ? JSON.parse(cvs) : []);
-    } catch (error) {
-      console.error('Erro ao carregar currículos:', error);
-      Alert.alert('Erro', 'Não foi possível carregar seus currículos.');
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const handleIniciarEntrevista = (curriculo) => {
-    navigation.navigate('EntrevistaSimulada', { curriculoData: curriculo });
-  };
-
-  const handleEntrevistaGenerica = () => {
-    navigation.navigate('EntrevistaSimulada', { curriculoData: null });
-  };
-
-  const formatDate = (dateString) => {
-    try {
-      if (!dateString) return 'Data não disponível';
-      const date = new Date(dateString);
-      return `${date.getDate().toString().padStart(2, '0')}/${(date.getMonth() + 1).toString().padStart(2, '0')}/${date.getFullYear()}`;
-    } catch (error) {
-      return 'Data inválida';
-    }
-  };
-
-  // Extrair informações do currículo para exibição
-  const getResumoCurriculo = (curriculo) => {
-    const cv = curriculo.data;
-    const experiencias = cv.experiencias?.length || 0;
-    const formacoes = cv.formacoes_academicas?.length || 0;
-    const area = cv.informacoes_pessoais?.area || 'Não especificada';
-
-    return { experiencias, formacoes, area };
-  };
-
-  return (
-    <SafeAreaView style={styles.container}>
-      <StatusBar barStyle="dark-content" backgroundColor={Colors.dark} />
-
-      <View style={styles.header}>
-        <TouchableOpacity
-          style={styles.backButton}
-          onPress={() => navigation.goBack()}
-        >
-          <Text style={styles.backButtonText}>‹</Text>
-        </TouchableOpacity>
-        <Text style={styles.headerTitle}>Simular Entrevista</Text>
-      </View>
-
-      {loading ? (
-        <View style={styles.loadingContainer}>
-          <ActivityIndicator size="large" color={Colors.primary} />
-          <Text style={{ marginTop: 10 }}>Carregando currículos...</Text>
-        </View>
-      ) : (
-        <View style={{ flex: 1, padding: 15 }}>
-          <View style={{
-            backgroundColor: '#e1f5fe',
-            padding: 15,
-            borderRadius: 10,
-            marginBottom: 20,
-            borderLeftWidth: 4,
-            borderLeftColor: Colors.info,
-          }}>
-            <Text style={{
-              fontSize: 18,
-              fontWeight: 'bold',
-              marginBottom: 5,
-              color: Colors.dark,
-            }}>
-              Simulador de Entrevista com IA
-            </Text>
-            <Text style={{
-              fontSize: 14,
-              color: '#01579b',
-              lineHeight: 22,
-            }}>
-              Prepare-se para suas entrevistas de emprego com nosso simulador inteligente. A IA fará perguntas baseadas no seu currículo ou em um formato genérico, avaliará suas respostas e fornecerá feedback para melhorar seu desempenho.
-            </Text>
-          </View>
-
-          {curriculos.length > 0 ? (
-            <>
-              <Text style={{
-                fontSize: 16,
-                fontWeight: 'bold',
-                marginBottom: 10,
-                color: Colors.dark,
-              }}>
-                Selecione um currículo para uma entrevista personalizada:
-              </Text>
-
-              <FlatList
-                data={curriculos}
-                keyExtractor={(item) => item.id}
-                renderItem={({ item }) => {
-                  const resumo = getResumoCurriculo(item);
-
-                  return (
-                    <TouchableOpacity
-                      style={{
-                        backgroundColor: Colors.white,
-                        borderRadius: 10,
-                        marginBottom: 15,
-                        padding: 16,
-                        ...Platform.select({
-                          ios: {
-                            shadowColor: '#000',
-                            shadowOffset: { width: 0, height: 2 },
-                            shadowOpacity: 0.1,
-                            shadowRadius: 3,
-                          },
-                          android: {
-                            elevation: 2,
-                          },
-                        }),
-                        borderLeftWidth: 4,
-                        borderLeftColor: Colors.primary,
-                      }}
-                      onPress={() => handleIniciarEntrevista(item)}
-                    >
-                      <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
-                        <Text style={{
-                          fontSize: 18,
-                          fontWeight: 'bold',
-                          color: Colors.dark,
-                          marginBottom: 5,
-                        }}>
-                          {item.nome || 'Currículo sem nome'}
-                        </Text>
-
-                        <View style={{
-                          backgroundColor: Colors.primary,
-                          paddingVertical: 4,
-                          paddingHorizontal: 8,
-                          borderRadius: 15,
-                        }}>
-                          <Text style={{ color: Colors.white, fontSize: 12 }}>
-                            Selecionar
-                          </Text>
-                        </View>
-                      </View>
-
-                      <Text style={{
-                        fontSize: 14,
-                        color: Colors.lightText,
-                        marginBottom: 10,
-                      }}>
-                        Criado em: {formatDate(item.dataCriacao)}
-                      </Text>
-
-                      <View style={{
-                        backgroundColor: '#f5f5f5',
-                        padding: 10,
-                        borderRadius: 5,
-                        marginTop: 5,
-                      }}>
-                        <Text style={{ color: Colors.dark }}>
-                          <Text style={{ fontWeight: 'bold' }}>Área: </Text>
-                          {resumo.area}
-                        </Text>
-
-                        <View style={{ flexDirection: 'row', marginTop: 5, flexWrap: 'wrap' }}>
-                          <View style={{
-                            backgroundColor: Colors.primary,
-                            paddingVertical: 3,
-                            paddingHorizontal: 8,
-                            borderRadius: 12,
-                            marginRight: 8,
-                            marginBottom: 5,
-                          }}>
-                            <Text style={{ color: Colors.white, fontSize: 12 }}>
-                              {resumo.experiencias} experiência(s)
-                            </Text>
-                          </View>
-
-                          <View style={{
-                            backgroundColor: Colors.secondary,
-                            paddingVertical: 3,
-                            paddingHorizontal: 8,
-                            borderRadius: 12,
-                            marginRight: 8,
-                            marginBottom: 5,
-                          }}>
-                            <Text style={{ color: Colors.white, fontSize: 12 }}>
-                              {resumo.formacoes} formação(ões)
-                            </Text>
-                          </View>
-                        </View>
-                      </View>
-                    </TouchableOpacity>
-                  );
-                }}
-              />
-            </>
-          ) : (
-            <View style={{ alignItems: 'center', marginTop: 20 }}>
-              <Text style={{ textAlign: 'center', marginBottom: 20 }}>
-                Você ainda não tem currículos cadastrados. Crie um currículo primeiro ou use o modo de entrevista genérica.
-              </Text>
-              <TouchableOpacity
-                style={{
-                  backgroundColor: Colors.primary,
-                  paddingVertical: 12,
-                  paddingHorizontal: 20,
-                  borderRadius: 8,
-                  marginBottom: 15,
-                }}
-                onPress={() => navigation.navigate('Chatbot')}
-              >
-                <Text style={{ color: Colors.white, fontWeight: 'bold' }}>
-                  Criar Novo Currículo
-                </Text>
-              </TouchableOpacity>
-            </View>
-          )}
-
-          <View style={{
-            backgroundColor: '#f9fbe7',
-            padding: 15,
-            borderRadius: 10,
-            marginTop: 10,
-            marginBottom: 20,
-            borderLeftWidth: 4,
-            borderLeftColor: '#9e9d24',
-          }}>
-            <Text style={{
-              fontSize: 16,
-              fontWeight: 'bold',
-              marginBottom: 5,
-              color: Colors.dark,
-            }}>
-              Entrevista Genérica
-            </Text>
-            <Text style={{
-              fontSize: 14,
-              color: '#616161',
-              marginBottom: 10,
-            }}>
-              Prefere uma entrevista sem vínculo com um currículo específico? Faça uma simulação com perguntas genéricas para qualquer cargo.
-            </Text>
-            <TouchableOpacity
-              style={{
-                backgroundColor: '#9e9d24',
-                paddingVertical: 10,
-                paddingHorizontal: 15,
-                borderRadius: 8,
-                alignSelf: 'flex-start',
-              }}
-              onPress={handleEntrevistaGenerica}
-            >
-              <Text style={{ color: Colors.white, fontWeight: 'bold' }}>
-                Iniciar Entrevista Genérica
-              </Text>
-            </TouchableOpacity>
-          </View>
-        </View>
-      )}
-    </SafeAreaView>
-  );
-};
-const EntrevistaSimuladaScreen = ({ route, navigation }) => {
-  const { curriculoData } = route.params;
-  const { user } = useAuth();
-  const [entrevistaIniciada, setEntrevistaIniciada] = useState(false);
-  const [carregando, setCarregando] = useState(false);
-  const [perguntaAtual, setPerguntaAtual] = useState(null);
-  const [resposta, setResposta] = useState('');
-  const [historico, setHistorico] = useState([]);
-  const [numeroPergunta, setNumeroPergunta] = useState(0);
-  const [totalPerguntas, setTotalPerguntas] = useState(0);
-  const [feedbackVisible, setFeedbackVisible] = useState(false);
-  const [feedback, setFeedback] = useState('');
-  const [finalizando, setFinalizando] = useState(false);
-  const [concluido, setConcluido] = useState(false);
-  const [avaliacaoFinal, setAvaliacaoFinal] = useState(null);
-  const [tipoCargo, setTipoCargo] = useState('');
-  const [area, setArea] = useState('');
-  
-  const flatListRef = useRef();
-  const respostaInputRef = useRef();
-
-  // Função para iniciar a entrevista
-  const iniciarEntrevista = async () => {
-    try {
-      setCarregando(true);
-      
-      // Verificar se é uma entrevista baseada em currículo ou genérica
-      if (curriculoData) {
-        // Extrair a área e cargo do currículo para personalizar a entrevista
-        const cv = curriculoData.data;
-        const areaDoCV = cv.informacoes_pessoais?.area || '';
-        setArea(areaDoCV);
-        
-        // Determinar o cargo com base na experiência mais recente, se disponível
-        if (cv.experiencias && cv.experiencias.length > 0) {
-          setTipoCargo(cv.experiencias[0].cargo || '');
-        }
-      } else {
-        // Para entrevista genérica, solicitar informações
-        Alert.prompt(
-          "Informações para Entrevista",
-          "Qual cargo ou área você está buscando?",
-          [
-            {
-              text: "Cancelar",
-              onPress: () => navigation.goBack(),
-              style: "cancel"
-            },
-            {
-              text: "Continuar",
-              onPress: input => {
-                setArea(input || "Área não especificada");
-                prepararEntrevista(input);
-              }
-            }
-          ],
-          "plain-text"
-        );
-        return; // Aguardar input do usuário
-      }
-      
-      // Se temos currículo, continuar diretamente
-      prepararEntrevista();
-      
-    } catch (error) {
-      console.error('Erro ao iniciar entrevista:', error);
-      Alert.alert('Erro', 'Não foi possível iniciar a entrevista. Tente novamente.');
-      setCarregando(false);
-    }
-  };
-  
-  // Função para preparar o conjunto de perguntas da entrevista
-  const prepararEntrevista = async (areaInput = null) => {
-    try {
-      setCarregando(true);
-      
-      // Usar área do input para entrevista genérica, ou do currículo para específica
-      const areaFinal = areaInput || area;
-      
-      // Obter API key da IA
-      const apiKey = await getIAAPIKey('GEMINI');
-      
-      if (!apiKey) {
-        throw new Error("API key do Gemini não configurada");
-      }
-      
-      // Construir prompt para gerar perguntas de entrevista
-      let promptText = "";
-      
-      if (curriculoData) {
-        // Formatamos os dados do currículo
-        const cv = curriculoData.data;
-        const experiencias = cv.experiencias?.map(exp => 
-          `${exp.cargo} em ${exp.empresa} (${exp.data_inicio || ''} - ${exp.data_fim || 'atual'}): ${exp.descricao || ''}`
-        ).join('\n') || 'Sem experiências profissionais';
-        
-        const formacoes = cv.formacoes_academicas?.map(form => 
-          `${form.diploma} em ${form.area_estudo} pela ${form.instituicao} (${form.data_inicio || ''} - ${form.data_fim || ''})`
-        ).join('\n') || 'Sem formação acadêmica';
-        
-        const habilidades = cv.projetos?.map(proj => proj.habilidades).filter(Boolean).join(', ') || 'Não especificadas';
-        
-        promptText = `
-Você é um recrutador experiente especializado em entrevistas para a área de ${areaFinal}. Conduza uma entrevista simulada de emprego detalhada e realista para um candidato à posição de ${tipoCargo || areaFinal}.
-
-CURRÍCULO DO CANDIDATO:
-Nome: ${cv.informacoes_pessoais?.nome || ''} ${cv.informacoes_pessoais?.sobrenome || ''}
-Área: ${areaFinal}
-
-Experiências:
-${experiencias}
-
-Formação:
-${formacoes}
-
-Habilidades:
-${habilidades}
-
-INSTRUÇÕES PARA A ENTREVISTA:
-1. Crie exatamente 10 perguntas desafiadoras e realistas baseadas no currículo do candidato
-2. As perguntas devem incluir:
-   - Perguntas comportamentais (situações específicas)
-   - Perguntas técnicas relevantes para a área
-   - Perguntas sobre experiências anteriores
-   - Perguntas sobre soft skills e trabalho em equipe
-   - Pelo menos uma pergunta situacional de resolução de problemas
-   - Pelo menos uma pergunta de motivação profissional
-
-3. Elabore perguntas que um recrutador real faria, usando linguagem profissional
-4. Foque em perguntas que extraiam informações sobre competências, experiências e fit cultural
-5. Use as informações do currículo para personalizar as perguntas
-6. Inclua perguntas sobre possíveis gaps no currículo ou áreas de melhoria
-
-FORMATO DE RESPOSTA:
-Forneça apenas um array JSON de objetos, cada um representando uma pergunta, na seguinte estrutura:
-[
-  {
-    "pergunta": "texto da pergunta 1",
-    "context": "contexto breve sobre por que essa pergunta está sendo feita",
-    "tipo": "comportamental/técnica/experiência/motivacional/situacional"
-  },
-  {
-    "pergunta": "texto da pergunta 2",
-    "context": "contexto breve sobre por que essa pergunta está sendo feita",
-    "tipo": "comportamental/técnica/experiência/motivacional/situacional"
-  }
-]
-
-Apenas retorne o JSON puro, sem texto introdutório ou explicações.
-`;
-      } else {
-        // Prompt para entrevista genérica
-        promptText = `
-Você é um recrutador experiente especializado em entrevistas para a área de ${areaFinal}. Conduza uma entrevista simulada de emprego detalhada e realista para um candidato.
-
-INSTRUÇÕES PARA A ENTREVISTA GENÉRICA:
-1. Crie exatamente 10 perguntas desafiadoras e realistas para uma entrevista de emprego na área de ${areaFinal}
-2. As perguntas devem incluir:
-   - Perguntas comportamentais (situações específicas)
-   - Perguntas técnicas relevantes para a área
-   - Perguntas sobre experiências anteriores
-   - Perguntas sobre soft skills e trabalho em equipe
-   - Pelo menos uma pergunta situacional de resolução de problemas
-   - Pelo menos uma pergunta de motivação profissional
-
-3. Elabore perguntas que um recrutador real faria, usando linguagem profissional
-4. Foque em perguntas que extraiam informações sobre competências, experiências e fit cultural
-5. As perguntas devem ser genéricas o suficiente para qualquer pessoa na área, mas específicas o suficiente para avaliar conhecimentos relevantes
-6. Inclua perguntas típicas de entrevistas para ${areaFinal} baseadas nas melhores práticas do mercado
-
-FORMATO DE RESPOSTA:
-Forneça apenas um array JSON de objetos, cada um representando uma pergunta, na seguinte estrutura:
-[
-  {
-    "pergunta": "texto da pergunta 1",
-    "context": "contexto breve sobre por que essa pergunta está sendo feita",
-    "tipo": "comportamental/técnica/experiência/motivacional/situacional"
-  },
-  {
-    "pergunta": "texto da pergunta 2",
-    "context": "contexto breve sobre por que essa pergunta está sendo feita",
-    "tipo": "comportamental/técnica/experiência/motivacional/situacional"
-  }
-]
-
-Apenas retorne o JSON puro, sem texto introdutório ou explicações.
-`;
-      }
-      
-      // Chamar a API do Gemini para gerar perguntas
-      const endpoint = `${IA_APIS.GEMINI.endpoint}?key=${apiKey}`;
-      const requestBody = {
-        contents: [{ parts: [{ text: promptText }] }],
-        generationConfig: {
-          temperature: 0.2,
-          maxOutputTokens: 4000,
-          topP: 0.8,
-          topK: 40
-        }
-      };
-      
-      const response = await axios.post(endpoint, requestBody, {
-        headers: { 'Content-Type': 'application/json' },
-        timeout: 30000
-      });
-      
-      if (response.data?.candidates?.[0]?.content?.parts?.[0]?.text) {
-        const resultText = response.data.candidates[0].content.parts[0].text;
-        
-        // Extrair o JSON da resposta
-        const jsonMatch = resultText.match(/\[[\s\S]*\]/);
-        if (jsonMatch) {
-          try {
-            const perguntas = JSON.parse(jsonMatch[0]);
-            setTotalPerguntas(perguntas.length);
-            setNumeroPergunta(1);
-            setPerguntaAtual(perguntas[0]);
-            
-            // Adicionar primeira pergunta ao histórico
-            setHistorico([{
-              id: '0',
-              texto: perguntas[0].pergunta,
-              isUser: false,
-              context: perguntas[0].context,
-              tipo: perguntas[0].tipo
-            }]);
-            
-            // Salvar perguntas restantes no estado
-            setEntrevistaIniciada(true);
-            
-            // Armazenar perguntas em AsyncStorage para recuperação caso a app feche
-            await AsyncStorage.setItem(`entrevista_perguntas_${user.id}`, 
-              JSON.stringify({
-                perguntas,
-                timestampInicio: new Date().toISOString(),
-                curriculoId: curriculoData?.id || null,
-                area: areaFinal,
-                tipoCargo: tipoCargo
-              })
-            );
-          } catch (jsonError) {
-            console.error('Erro ao parsear JSON da resposta:', jsonError);
-            throw new Error('Formato de resposta inválido');
-          }
-        } else {
-          throw new Error('Não foi possível extrair perguntas da resposta');
-        }
-      } else {
-        throw new Error('Formato de resposta inesperado do Gemini');
-      }
-    } catch (error) {
-      console.error('Erro ao preparar entrevista:', error);
-      Alert.alert('Erro', 'Não foi possível preparar a entrevista. Tente novamente mais tarde.');
-    } finally {
-      setCarregando(false);
-    }
-  };
-  
-  // Função para processar a resposta do usuário e fornecer feedback
-  const enviarResposta = async () => {
-    if (resposta.trim() === '') return;
-    
-    try {
-      // Adicionar a resposta do usuário ao histórico
-      const novoHistorico = [...historico, {
-        id: `u-${numeroPergunta}`,
-        texto: resposta,
-        isUser: true
-      }];
-      
-      setHistorico(novoHistorico);
-      setResposta('');
-      setCarregando(true);
-      
-      // Obter API key da IA
-      const apiKey = await getIAAPIKey('GEMINI');
-      
-      if (!apiKey) {
-        throw new Error("API key do Gemini não configurada");
-      }
-      
-      // Obter entrevista armazenada
-      const entrevistaJson = await AsyncStorage.getItem(`entrevista_perguntas_${user.id}`);
-      if (!entrevistaJson) {
-        throw new Error("Dados da entrevista não encontrados");
-      }
-      
-      const entrevistaData = JSON.parse(entrevistaJson);
-      const perguntas = entrevistaData.perguntas;
-      
-      // Construir prompt para feedback da resposta
-      const promptText = `
-Você é um recrutador experiente especializado em entrevistas para a área de ${area || entrevistaData.area}.
-
-PERGUNTA DA ENTREVISTA:
-"${perguntaAtual.pergunta}"
-
-Contexto da pergunta: ${perguntaAtual.context}
-Tipo de pergunta: ${perguntaAtual.tipo}
-
-RESPOSTA DO CANDIDATO:
-"${resposta}"
-
-TAREFA:
-Analise a resposta do candidato à pergunta de entrevista acima e forneça um feedback detalhado:
-
-1. Avalie a qualidade da resposta (escala de 1-10)
-2. Identifique pontos fortes da resposta
-3. Identifique pontos fracos ou informações faltantes
-4. Forneça sugestões específicas para melhorar a resposta
-5. Explique o que um recrutador buscaria neste tipo de resposta
-
-FORMATO DE RESPOSTA:
-{
-  "pontuacao": 7,
-  "pontos_fortes": ["ponto forte 1", "ponto forte 2"],
-  "pontos_fracos": ["ponto fraco 1", "ponto fraco 2"],
-  "sugestoes": ["sugestão 1", "sugestão 2"],
-  "explicacao": "Explicação sobre o que um recrutador busca nesta resposta",
-  "resumo": "Um resumo conciso do feedback em um parágrafo"
-}
-
-Retorne apenas o JSON puro, sem texto adicional.
-`;
-      
-      // Chamar a API do Gemini para gerar feedback
-      const endpoint = `${IA_APIS.GEMINI.endpoint}?key=${apiKey}`;
-      const requestBody = {
-        contents: [{ parts: [{ text: promptText }] }],
-        generationConfig: {
-          temperature: 0.3,
-          maxOutputTokens: 2000,
-          topP: 0.8,
-          topK: 40
-        }
-      };
-      
-      const response = await axios.post(endpoint, requestBody, {
-        headers: { 'Content-Type': 'application/json' },
-        timeout: 30000
-      });
-      
-      if (response.data?.candidates?.[0]?.content?.parts?.[0]?.text) {
-        const resultText = response.data.candidates[0].content.parts[0].text;
-        
-        // Extrair o JSON da resposta
-        const jsonMatch = resultText.match(/\{[\s\S]*\}/);
-        if (jsonMatch) {
-          try {
-            const feedbackData = JSON.parse(jsonMatch[0]);
-            
-            // Formatar feedback para exibição
-            const feedbackFormatado = `## Feedback sobre sua resposta
-
-**Pontuação:** ${feedbackData.pontuacao}/10
-
-**Pontos fortes:**
-${feedbackData.pontos_fortes.map(ponto => `- ${ponto}`).join('\n')}
-
-**Pontos a melhorar:**
-${feedbackData.pontos_fracos.map(ponto => `- ${ponto}`).join('\n')}
-
-**Sugestões:**
-${feedbackData.sugestoes.map(sugestao => `- ${sugestao}`).join('\n')}
-
-**O que o recrutador busca:**
-${feedbackData.explicacao}
-
-**Resumo:**
-${feedbackData.resumo}`;
-            
-            setFeedback(feedbackFormatado);
-            setFeedbackVisible(true);
-            
-            // Salvar feedback no histórico de entrevista
-            await AsyncStorage.setItem(`entrevista_feedback_${user.id}_${numeroPergunta}`, 
-              JSON.stringify({
-                pergunta: perguntaAtual.pergunta,
-                resposta: resposta,
-                feedback: feedbackData
-              })
-            );
-            
-          } catch (jsonError) {
-            console.error('Erro ao parsear JSON do feedback:', jsonError);
-            setFeedback("Não foi possível gerar o feedback para sua resposta. Vamos continuar com a próxima pergunta.");
-            setFeedbackVisible(true);
-          }
-        } else {
-          setFeedback("Não foi possível gerar o feedback para sua resposta. Vamos continuar com a próxima pergunta.");
-          setFeedbackVisible(true);
-        }
-      } else {
-        setFeedback("Não foi possível gerar o feedback para sua resposta. Vamos continuar com a próxima pergunta.");
-        setFeedbackVisible(true);
-      }
-    } catch (error) {
-      console.error('Erro ao processar resposta:', error);
-      Alert.alert('Erro', 'Não foi possível processar sua resposta. Tente novamente.');
-    } finally {
-      setCarregando(false);
-    }
-  };
-  
-  // Função para prosseguir para a próxima pergunta
-  const proximaPergunta = async () => {
-    try {
-      setFeedbackVisible(false);
-      setFeedback('');
-      
-      // Obter entrevista armazenada
-      const entrevistaJson = await AsyncStorage.getItem(`entrevista_perguntas_${user.id}`);
-      if (!entrevistaJson) {
-        throw new Error("Dados da entrevista não encontrados");
-      }
-      
-      const entrevistaData = JSON.parse(entrevistaJson);
-      const perguntas = entrevistaData.perguntas;
-      
-      // Verificar se ainda há perguntas
-      if (numeroPergunta < perguntas.length) {
-        // Próxima pergunta
-        const proximoNumero = numeroPergunta + 1;
-        const proximaPergunta = perguntas[proximoNumero - 1];
-        
-        setNumeroPergunta(proximoNumero);
-        setPerguntaAtual(proximaPergunta);
-        
-        // Adicionar próxima pergunta ao histórico
-        setHistorico(prev => [...prev, {
-          id: `${proximoNumero}`,
-          texto: proximaPergunta.pergunta,
-          isUser: false,
-          context: proximaPergunta.context,
-          tipo: proximaPergunta.tipo
-        }]);
-        
-        // Rolar para o fim da lista
-        if (flatListRef.current) {
-          setTimeout(() => {
-            flatListRef.current.scrollToEnd({ animated: true });
-          }, 200);
-        }
-      } else {
-        // Finalizar entrevista
-        setFinalizando(true);
-        gerarAvaliacaoFinal();
-      }
-    } catch (error) {
-      console.error('Erro ao avançar para próxima pergunta:', error);
-      Alert.alert('Erro', 'Não foi possível carregar a próxima pergunta. Tente novamente.');
-    }
-  };
-  
-  // Função para gerar avaliação final da entrevista
-  const gerarAvaliacaoFinal = async () => {
-    try {
-      setCarregando(true);
-      
-      // Obter API key da IA
-      const apiKey = await getIAAPIKey('GEMINI');
-      
-      if (!apiKey) {
-        throw new Error("API key do Gemini não configurada");
-      }
-      
-      // Recuperar todos os feedbacks armazenados
-      const entrevistaJson = await AsyncStorage.getItem(`entrevista_perguntas_${user.id}`);
-      if (!entrevistaJson) {
-        throw new Error("Dados da entrevista não encontrados");
-      }
-      
-      const entrevistaData = JSON.parse(entrevistaJson);
-      const perguntas = entrevistaData.perguntas;
-      
-      // Construir lista de perguntas e respostas
-      let perguntasRespostas = [];
-      
-      for (let i = 1; i <= perguntas.length; i++) {
-        const feedbackJson = await AsyncStorage.getItem(`entrevista_feedback_${user.id}_${i}`);
-        if (feedbackJson) {
-          const feedbackData = JSON.parse(feedbackJson);
-          perguntasRespostas.push({
-            pergunta: feedbackData.pergunta,
-            resposta: feedbackData.resposta,
-            feedback: feedbackData.feedback
-          });
-        }
-      }
-      
-      // Construir prompt para avaliação final
-      const promptText = `
-Você é um recrutador experiente especializado em entrevistas para a área de ${entrevistaData.area || area}.
-
-CONTEXTO:
-Foi conduzida uma entrevista simulada com um candidato para uma posição na área de ${entrevistaData.area || area}${entrevistaData.tipoCargo ? `, com foco em ${entrevistaData.tipoCargo}` : ''}.
-
-RESUMO DA ENTREVISTA:
-${perguntasRespostas.map((item, index) => `
-Pergunta ${index + 1}: "${item.pergunta}"
-Resposta: "${item.resposta}"
-Pontuação: ${item.feedback.pontuacao}/10
-`).join('\n')}
-
-TAREFA:
-Baseado nas respostas do candidato, faça uma avaliação completa de seu desempenho na entrevista:
-
-1. Calcule a pontuação global (média das pontuações individuais)
-2. Identifique os 3-5 principais pontos fortes demonstrados
-3. Identifique as 3-5 principais áreas de melhoria
-4. Forneça 3-5 recomendações específicas para melhorar em futuras entrevistas
-5. Avalie as habilidades de comunicação, estruturação de respostas e confiança do candidato
-6. Dê uma avaliação geral sobre as chances do candidato neste processo seletivo (baixa/média/alta)
-
-FORMATO DE RESPOSTA:
-{
-  "pontuacao_global": 7.5,
-  "pontos_fortes": [
-    {"ponto": "Descrição do ponto forte 1", "exemplo": "Exemplo específico da entrevista"},
-    {"ponto": "Descrição do ponto forte 2", "exemplo": "Exemplo específico da entrevista"}
-  ],
-  "areas_melhoria": [
-    {"area": "Descrição da área 1", "sugestao": "Sugestão específica"},
-    {"area": "Descrição da área 2", "sugestao": "Sugestão específica"}
-  ],
-  "recomendacoes": ["Recomendação 1", "Recomendação 2", "Recomendação 3"],
-  "avaliacao_comunicacao": "Análise da comunicação",
-  "avaliacao_estrutura": "Análise da estrutura das respostas",
-  "avaliacao_confianca": "Análise da confiança demonstrada",
-  "chance_sucesso": "média",
-  "conclusao": "Conclusão geral sobre o desempenho em um parágrafo"
-}
-
-Retorne apenas o JSON puro, sem texto adicional.
-`;
-      
-      // Chamar a API do Gemini para gerar avaliação final
-      const endpoint = `${IA_APIS.GEMINI.endpoint}?key=${apiKey}`;
-      const requestBody = {
-        contents: [{ parts: [{ text: promptText }] }],
-        generationConfig: {
-          temperature: 0.2,
-          maxOutputTokens: 4000,
-          topP: 0.8,
-          topK: 40
-        }
-      };
-      
-      const response = await axios.post(endpoint, requestBody, {
-        headers: { 'Content-Type': 'application/json' },
-        timeout: 30000
-      });
-      
-      if (response.data?.candidates?.[0]?.content?.parts?.[0]?.text) {
-        const resultText = response.data.candidates[0].content.parts[0].text;
-        
-        // Extrair o JSON da resposta
-        const jsonMatch = resultText.match(/\{[\s\S]*\}/);
-        if (jsonMatch) {
-          try {
-            const avaliacaoData = JSON.parse(jsonMatch[0]);
-            setAvaliacaoFinal(avaliacaoData);
-            setConcluido(true);
-            
-            // Salvar avaliação final
-            await AsyncStorage.setItem(`entrevista_avaliacao_${user.id}`, 
-              JSON.stringify({
-                avaliacao: avaliacaoData,
-                timestamp: new Date().toISOString(),
-                area: entrevistaData.area || area,
-                tipoCargo: entrevistaData.tipoCargo || tipoCargo
-              })
-            );
-            
-          } catch (jsonError) {
-            console.error('Erro ao parsear JSON da avaliação final:', jsonError);
-            throw new Error('Formato de resposta inválido');
-          }
-        } else {
-          throw new Error('Não foi possível extrair avaliação final da resposta');
-        }
-      } else {
-        throw new Error('Formato de resposta inesperado do Gemini');
-      }
-    } catch (error) {
-      console.error('Erro ao gerar avaliação final:', error);
-      Alert.alert('Erro', 'Não foi possível gerar a avaliação final da entrevista. Tente novamente mais tarde.');
-    } finally {
-      setCarregando(false);
-    }
-  };
-  
-  // Hook para iniciar a entrevista quando o componente for montado
-  useEffect(() => {
-    if (!entrevistaIniciada && !carregando) {
-      iniciarEntrevista();
-    }
-  }, []);
-  
-  // Função para mapear o nível de chance de sucesso para uma cor
-  const getChanceColor = (chance) => {
-    switch(chance.toLowerCase()) {
-      case 'alta':
-        return Colors.success;
-      case 'média':
-        return Colors.warning;
-      case 'baixa':
-        return Colors.danger;
-      default:
-        return Colors.primary;
-    }
-  };
-  
-  // Renderizar mensagem de entrevista
-  const renderMensagem = ({ item }) => (
-    <View style={[
-      styles.mensagemEntrevista,
-      item.isUser ? styles.mensagemUsuario : styles.mensagemRecrutador
-    ]}>
-      <Text style={[
-        styles.textoMensagem,
-        item.isUser ? styles.textoMensagemUsuario : styles.textoMensagemRecrutador
-      ]}>
-        {item.texto}
-      </Text>
-      {!item.isUser && item.tipo && (
-        <View style={styles.tipoPerguntaBadge}>
-          <Text style={styles.tipoPerguntaTexto}>
-            {item.tipo}
-          </Text>
-        </View>
-      )}
-    </View>
-  );
-  
-  // Renderizar avaliação final
-  const renderAvaliacaoFinal = () => {
-    if (!avaliacaoFinal) return null;
-    
-    return (
-      <ScrollView style={styles.avaliacaoFinalContainer}>
-        <View style={styles.avaliacaoHeader}>
-          <Text style={styles.avaliacaoTitulo}>Avaliação Final da Entrevista</Text>
-          
-          <View style={styles.pontuacaoContainer}>
-            <Text style={styles.pontuacaoLabel}>Pontuação Global</Text>
-            <View style={styles.pontuacaoCircle}>
-              <Text style={styles.pontuacaoValor}>
-                {avaliacaoFinal.pontuacao_global.toFixed(1)}
-              </Text>
-              <Text style={styles.pontuacaoMax}>/10</Text>
-            </View>
-          </View>
-          
-          <View style={[
-            styles.chanceSucessoContainer,
-            { backgroundColor: getChanceColor(avaliacaoFinal.chance_sucesso) }
-          ]}>
-            <Text style={styles.chanceSucessoTexto}>
-              Chance de sucesso: {avaliacaoFinal.chance_sucesso.toUpperCase()}
-            </Text>
-          </View>
-        </View>
-        
-        <View style={styles.secaoAvaliacao}>
-          <Text style={styles.secaoTitulo}>Pontos Fortes</Text>
-          {avaliacaoFinal.pontos_fortes.map((ponto, index) => (
-            <View key={`forte-${index}`} style={styles.pontoItem}>
-              <Text style={styles.pontoTitulo}>{ponto.ponto}</Text>
-              <Text style={styles.pontoExemplo}>{ponto.exemplo}</Text>
-            </View>
-          ))}
-        </View>
-        
-        <View style={styles.secaoAvaliacao}>
-          <Text style={styles.secaoTitulo}>Áreas de Melhoria</Text>
-          {avaliacaoFinal.areas_melhoria.map((area, index) => (
-            <View key={`melhoria-${index}`} style={styles.pontoItem}>
-              <Text style={styles.pontoTitulo}>{area.area}</Text>
-              <Text style={styles.pontoExemplo}>{area.sugestao}</Text>
-            </View>
-          ))}
-        </View>
-        
-        <View style={styles.secaoAvaliacao}>
-          <Text style={styles.secaoTitulo}>Recomendações</Text>
-          {avaliacaoFinal.recomendacoes.map((recomendacao, index) => (
-            <View key={`rec-${index}`} style={styles.recomendacaoItem}>
-              <Text style={styles.recomendacaoNumero}>{index + 1}</Text>
-              <Text style={styles.recomendacaoTexto}>{recomendacao}</Text>
-            </View>
-          ))}
-        </View>
-        
-        <View style={styles.secaoAvaliacao}>
-          <Text style={styles.secaoTitulo}>Avaliação Detalhada</Text>
-          
-          <View style={styles.avaliacaoDetalheItem}>
-            <Text style={styles.avaliacaoDetalheTitulo}>Comunicação:</Text>
-            <Text style={styles.avaliacaoDetalheTexto}>{avaliacaoFinal.avaliacao_comunicacao}</Text>
-          </View>
-          
-          <View style={styles.avaliacaoDetalheItem}>
-            <Text style={styles.avaliacaoDetalheTitulo}>Estrutura das Respostas:</Text>
-            <Text style={styles.avaliacaoDetalheTexto}>{avaliacaoFinal.avaliacao_estrutura}</Text>
-          </View>
-          
-          <View style={styles.avaliacaoDetalheItem}>
-            <Text style={styles.avaliacaoDetalheTitulo}>Confiança:</Text>
-            <Text style={styles.avaliacaoDetalheTexto}>{avaliacaoFinal.avaliacao_confianca}</Text>
-          </View>
-        </View>
-        
-        <View style={styles.conclusaoContainer}>
-          <Text style={styles.conclusaoTitulo}>Conclusão</Text>
-          <Text style={styles.conclusaoTexto}>{avaliacaoFinal.conclusao}</Text>
-        </View>
-        
-        <TouchableOpacity
-          style={styles.botaoEncerrar}
-          onPress={() => navigation.goBack()}
-        >
-          <Text style={styles.textoEncerrar}>Encerrar Entrevista</Text>
-        </TouchableOpacity>
-      </ScrollView>
-    );
-  };
-  
-  return (
-    <SafeAreaView style={styles.container}>
-      <StatusBar barStyle="dark-content" backgroundColor={Colors.dark} />
-      
-      <View style={styles.header}>
-        <TouchableOpacity
-          style={styles.backButton}
-          onPress={() => {
-            if (entrevistaIniciada && !concluido) {
-              Alert.alert(
-                "Sair da entrevista",
-                "Tem certeza que deseja sair? Seu progresso será perdido.",
-                [
-                  { text: "Cancelar", style: "cancel" },
-                  { text: "Sair", onPress: () => navigation.goBack() }
-                ]
-              );
-            } else {
-              navigation.goBack();
-            }
-          }}
-        >
-          <Text style={styles.backButtonText}>‹</Text>
-        </TouchableOpacity>
-        <Text style={styles.headerTitle}>
-          {concluido ? 'Resultado da Entrevista' : 'Entrevista Simulada'}
-        </Text>
-      </View>
-      
-      {carregando && !entrevistaIniciada ? (
-        <View style={styles.loadingContainer}>
-          <ActivityIndicator size="large" color={Colors.primary} />
-          <Text style={styles.loadingText}>
-            Preparando sua entrevista{curriculoData ? ' personalizada' : ' genérica'}...
-          </Text>
-        </View>
-      ) : concluido ? (
-        renderAvaliacaoFinal()
-      ) : (
-        <View style={styles.entrevistaContainer}>
-          <View style={styles.progressoContainer}>
-            <View style={styles.progressoTrack}>
-              <View
-                style={[
-                  styles.progressoFill,
-                  { width: `${(numeroPergunta / totalPerguntas) * 100}%` }
-                ]}
-              />
-            </View>
-            <Text style={styles.progressoTexto}>
-              Pergunta {numeroPergunta} de {totalPerguntas}
-            </Text>
-          </View>
-          
-          <FlatList
-            ref={flatListRef}
-            data={historico}
-            keyExtractor={(item) => item.id}
-            renderItem={renderMensagem}
-            contentContainerStyle={styles.mensagensLista}
-            onLayout={() => {
-              if (flatListRef.current) {
-                flatListRef.current.scrollToEnd({ animated: true });
-              }
-            }}
-          />
-          
-          {feedbackVisible ? (
-            <View style={styles.feedbackContainer}>
-              <Text style={styles.feedbackTitulo}>Feedback do Recrutador</Text>
-              
-              <ScrollView style={styles.feedbackScrollView}>
-                <Markdown
-                  style={{
-                    body: { fontSize: 14, lineHeight: 20, color: Colors.dark },
-                    heading2: {
-                      fontSize: 16,
-                      fontWeight: 'bold',
-                      marginBottom: 10,
-                      color: Colors.dark
-                    },
-                    bullet_list: { marginVertical: 5 },
-                    paragraph: { marginBottom: 10 },
-                    strong: { fontWeight: 'bold' },
-                  }}
-                >
-                  {feedback}
-                </Markdown>
-              </ScrollView>
-              
-              <TouchableOpacity
-                style={styles.continuarButton}
-                onPress={proximaPergunta}
-              >
-                <Text style={styles.continuarButtonText}>
-                  {numeroPergunta === totalPerguntas ? 'Finalizar Entrevista' : 'Próxima Pergunta'}
-                </Text>
-              </TouchableOpacity>
-            </View>
-          ) : (
-            <View style={styles.inputContainer}>
-              <TextInput
-                ref={respostaInputRef}
-                style={styles.input}
-                placeholder="Digite sua resposta aqui..."
-                value={resposta}
-                onChangeText={setResposta}
-                multiline
-                textAlignVertical="top"
-                editable={!carregando}
-              />
-              
-              <TouchableOpacity
-                style={[
-                  styles.enviarButton,
-                  (resposta.trim() === '' || carregando) && styles.enviarButtonDisabled
-                ]}
-                onPress={enviarResposta}
-                disabled={resposta.trim() === '' || carregando}
-              >
-                {carregando ? (
-                  <ActivityIndicator color={Colors.white} size="small" />
-                ) : (
-                  <Text style={styles.enviarButtonText}>Enviar</Text>
-                )}
-              </TouchableOpacity>
-            </View>
-          )}
-        </View>
-      )}
-    </SafeAreaView>
-  );
-};
-const ChatbotScreen = ({ navigation, route }) => {
-  // Estados do componente original
-  const [messages, setMessages] = useState([]);
-  const [currentMessage, setCurrentMessage] = useState('');
-  const [options, setOptions] = useState(['Começar']);
-  const [isTyping, setIsTyping] = useState(false);
-  const [currentStep, setCurrentStep] = useState('boas_vindas');
-  const [cvData, setCvData] = useState(null);
-  const [showPreview, setShowPreview] = useState(false);
-  const [initializing, setInitializing] = useState(true);
-  
-  // Novos estados para controle de confirmação
-  const [showConfirmation, setShowConfirmation] = useState(false);
-  const [lastResponse, setLastResponse] = useState(null);
-  const [waitingConfirmation, setWaitingConfirmation] = useState(false);
-  const [lastProcessedResult, setLastProcessedResult] = useState(null);
-
-  const { user } = useAuth();
-  const flatListRef = useRef();
-
-  // Função para inicializar o chat com mensagem de boas-vindas
-  const inicializarChat = () => {
-    console.log('Inicializando chat com mensagem de boas-vindas');
-    const welcomeMessage = {
-      id: getUniqueId(),
-      text: "Olá! Sou o CurriculoBot, seu assistente para criar um currículo profissional. Digite 'começar' quando estiver pronto!",
-      isUser: false,
-      time: getCurrentTime()
-    };
-
-    setMessages([welcomeMessage]);
-    setCurrentStep('boas_vindas');
-    setCvData(null);
-    setOptions(['Começar']);
-  };
-
-  // Verificar se estamos retomando um currículo em progresso
-  useEffect(() => {
-    const carregarDados = async () => {
-      try {
-        console.log('Carregando dados iniciais do chat');
-
-        // Flag para verificar se devemos restaurar ou inicializar
-        let restaurado = false;
-
-        // Verificar se estamos restaurando de um progresso salvo
-        if (route.params?.continuarProgresso) {
-          console.log('Tentando restaurar progresso...');
-          const progresso = await recuperarProgressoCurriculo(user.id);
-
-          if (progresso && progresso.data) {
-            // Verificar se o progresso é válido (menos de 24h)
-            const dataProgresso = new Date(progresso.timestamp);
-            const agora = new Date();
-            const diferencaHoras = (agora - dataProgresso) / (1000 * 60 * 60);
-
-            if (diferencaHoras < 24 && progresso.data.messages && progresso.data.messages.length > 0) {
-              console.log('Restaurando progresso de', dataProgresso);
-
-              // Restaurar o estado do chat
-              setCvData(progresso.data.cvData || null);
-              setCurrentStep(progresso.data.currentStep || 'boas_vindas');
-              setOptions(progresso.data.options || ['Começar']);
-              setMessages(progresso.data.messages || []);
-
-              restaurado = true;
-
-              // Notificar o usuário que o progresso foi restaurado
-              setTimeout(() => {
-                Alert.alert(
-                  "Progresso Restaurado",
-                  "Seu currículo em andamento foi restaurado com sucesso!"
-                );
-              }, 500);
-            } else {
-              console.log('Progresso muito antigo ou inválido:', diferencaHoras, 'horas');
-            }
-          } else {
-            console.log('Nenhum progresso encontrado para restaurar');
-          }
-        }
-
-        // Se não conseguimos restaurar, inicializar normalmente
-        if (!restaurado) {
-          console.log('Inicializando chat normalmente');
-          inicializarChat();
-        }
-      } catch (error) {
-        console.error('Erro ao carregar dados iniciais:', error);
-        // Em caso de erro, garantir que o chat seja inicializado
-        inicializarChat();
-      } finally {
-        // Sempre marcar a inicialização como concluída
-        setInitializing(false);
-      }
-    };
-
-    carregarDados();
-  }, []);
-
-  // Efeito para rolar para o final da lista quando mensagens mudarem
-  useEffect(() => {
-    if (messages.length > 0 && flatListRef.current && !initializing) {
-      setTimeout(() => {
-        flatListRef.current.scrollToEnd({ animated: true });
-      }, 100);
-    }
-  }, [messages, initializing]);
-
-  // Salvar progresso quando sair da tela
-  useEffect(() => {
-    return () => {
-      // Só salvar se houver progresso significativo (além da mensagem inicial) e não estiver concluído
-      if (messages.length > 1 && currentStep !== 'boas_vindas' && currentStep !== 'concluido' && cvData) {
-        console.log('Salvando progresso ao sair da tela');
-        salvarProgressoCurriculo(user.id, {
-          cvData,
-          currentStep,
-          options,
-          messages,
-        });
-      }
-    };
-  }, [messages, currentStep, cvData, options, user.id]);
-
-  // Limpar o progresso salvo quando finalizar o currículo
-  useEffect(() => {
-    if (currentStep === 'concluido' && cvData) {
-      console.log('Currículo concluído, limpando progresso salvo');
-      limparProgressoCurriculo(user.id);
-    }
-  }, [currentStep, cvData, user.id]);
-
-  // Adicionar mensagem do bot
-  const addBotMessage = (text) => {
-    setIsTyping(true);
-
-    // Simular tempo de digitação do bot (mais curto para melhor responsividade)
-    setTimeout(() => {
-      const newMessage = {
-        id: getUniqueId(),
-        text,
-        isUser: false,
-        time: getCurrentTime()
-      };
-
-      setMessages(prevMessages => [...prevMessages, newMessage]);
-      setIsTyping(false);
-
-      // Rolar para o final da lista
-      if (flatListRef.current) {
-        setTimeout(() => flatListRef.current.scrollToEnd({ animated: true }), 100);
-      }
-    }, 700);
-  };
-
-  // Função para aplicar o resultado processado
-  const applyProcessedResult = (result) => {
-    // Atualizar estados
-    setCvData(result.cvData);
-    setCurrentStep(result.nextStep);
-    setOptions(result.options || []);
-
-    // Adicionar resposta do bot
-    addBotMessage(result.response);
-    
-    // Resetar confirmação
-    setShowConfirmation(false);
-    setWaitingConfirmation(false);
-
-    // Salvar currículo se finalizado
-    if (result.isFinished) {
-      salvarCurriculo(result.cvData, user.id)
-        .then(id => {
-          console.log('Currículo salvo com ID:', id);
-          // Limpar o progresso salvo ao finalizar
-          limparProgressoCurriculo(user.id);
-        })
-        .catch(error => {
-          console.error('Erro ao salvar currículo:', error);
-          Alert.alert('Erro', 'Não foi possível salvar o currículo.');
-        });
-    }
-  };
-
-  // Lidar com envio de mensagem (versão modificada com confirmação)
-  const handleSendMessage = () => {
-    if (currentMessage.trim() === '') return;
-    
-    // Se estamos esperando confirmação, ignorar novas mensagens
-    if (waitingConfirmation) return;
-
-    // Adicionar mensagem do usuário
-    const userMessage = {
-      id: getUniqueId(),
-      text: currentMessage,
-      isUser: true,
-      time: getCurrentTime()
-    };
-
-    // Atualizar mensagens
-    setMessages(prevMessages => [...prevMessages, userMessage]);
-
-    // Processar a mensagem para obter a resposta
-    const result = processMessage(currentMessage, currentStep, cvData);
-    
-    // Salvar resultado para usar após confirmação
-    setLastProcessedResult(result);
-    setLastResponse(currentMessage);
-    
-    // Limpar campo de entrada
-    setCurrentMessage('');
-    
-    // Mostrar confirmação, exceto para algumas etapas como 'boas_vindas'
-    if (currentStep !== 'boas_vindas' && currentStep !== 'concluido' && !currentStep.includes('escolher')) {
-      setShowConfirmation(true);
-      setWaitingConfirmation(true);
-    } else {
-      // Para etapas que não precisam de confirmação, proceder normalmente
-      applyProcessedResult(result);
-    }
-
-    // Rolar para o final da lista
-    if (flatListRef.current) {
-      setTimeout(() => flatListRef.current.scrollToEnd({ animated: true }), 100);
-    }
-  };
-  
-  // Função para confirmar a resposta
-  const handleConfirmResponse = () => {
-    if (lastProcessedResult) {
-      applyProcessedResult(lastProcessedResult);
-    }
-  };
-  
-  // Função para corrigir a resposta
-  const handleCorrectResponse = () => {
-    // Voltar para a entrada anterior
-    setCurrentMessage(lastResponse || '');
-    setShowConfirmation(false);
-    setWaitingConfirmation(false);
-  };
-
-  // Selecionar uma opção pré-definida
-  const handleOptionSelect = (option) => {
-    setCurrentMessage(option);
-    handleSendMessage();
-  };
-
-  // Exibir indicador de carregamento enquanto inicializa
-  if (initializing) {
-    return (
-      <SafeAreaView style={styles.chatContainer}>
-        <StatusBar barStyle="dark-content" backgroundColor={Colors.dark} />
-        <View style={styles.chatHeader}>
-          <TouchableOpacity
-            style={styles.chatBackButton}
-            onPress={() => navigation.goBack()}
-          >
-            <Text style={styles.chatBackButtonText}>‹</Text>
-          </TouchableOpacity>
-          <Text style={styles.chatHeaderTitle}>CurriculoBot</Text>
-          <View style={{ width: 80 }} />
-        </View>
-        <View style={{
-          flex: 1,
-          justifyContent: 'center',
-          alignItems: 'center',
-          backgroundColor: '#f5f7fa'
-        }}>
-          <ActivityIndicator size="large" color={Colors.primary} />
-          <Text style={{ marginTop: 20, color: Colors.dark }}>
-            Preparando o assistente...
-          </Text>
-        </View>
-      </SafeAreaView>
-    );
-  }
-
-  // Renderizar chatbot
-  return (
-    <SafeAreaView style={styles.chatContainer}>
-      <StatusBar barStyle="dark-content" backgroundColor={Colors.dark} />
-
-      <View style={styles.chatHeader}>
-        <TouchableOpacity
-          style={styles.chatBackButton}
-          onPress={() => {
-            // Se há progresso significativo, confirmar antes de voltar
-            if (messages.length > 1 && currentStep !== 'boas_vindas' && currentStep !== 'concluido') {
-              Alert.alert(
-                "Sair da criação?",
-                "Seu progresso será salvo e você poderá continuar depois. Deseja sair?",
-                [
-                  { text: "Cancelar", style: "cancel" },
-                  {
-                    text: "Sair",
-                    onPress: () => navigation.goBack()
-                  }
-                ]
-              );
-            } else {
-              navigation.goBack();
-            }
-          }}
-        >
-          <Text style={styles.chatBackButtonText}>‹</Text>
-        </TouchableOpacity>
-        <Text style={styles.chatHeaderTitle}>CurriculoBot</Text>
-        <TouchableOpacity
-          style={styles.previewToggle}
-          onPress={() => setShowPreview(!showPreview)}
-        >
-          <Text style={styles.previewToggleText}>
-            {showPreview ? 'Esconder Prévia' : 'Ver Prévia'}
-          </Text>
-        </TouchableOpacity>
-      </View>
-
-      <View style={styles.chatContent}>
-        {showPreview ? (
-          <ScrollView style={styles.previewScroll}>
-            <CurriculumPreview data={cvData} />
-          </ScrollView>
-        ) : (
-          <>
-            <FlatList
-              ref={flatListRef}
-              data={messages}
-              keyExtractor={(item) => item.id}
-              renderItem={({ item }) => (
-                <ChatMessage
-                  message={item.text}
-                  isUser={item.isUser}
-                  time={item.time}
-                />
-              )}
-              contentContainerStyle={styles.messagesContainer}
-              onContentSizeChange={() => {
-                if (flatListRef.current) {
-                  flatListRef.current.scrollToEnd({ animated: true });
-                }
-              }}
-              onLayout={() => {
-                if (flatListRef.current) {
-                  flatListRef.current.scrollToEnd({ animated: false });
-                }
-              }}
-              ListFooterComponent={
-                isTyping ? (
-                  <View style={styles.typingContainer}>
-                    <View style={{ flexDirection: 'row', alignItems: 'center' }}>
-                      <View style={[styles.typingDot, { opacity: 0.7 }]} />
-                      <View style={[styles.typingDot, { opacity: 0.8, marginHorizontal: 4 }]} />
-                      <View style={[styles.typingDot, { opacity: 0.9 }]} />
-                    </View>
-                    <Text style={styles.typingText}>Bot está digitando...</Text>
-                  </View>
-                ) : null
-              }
-            />
-
-            {showConfirmation && (
-              <ConfirmationButtons 
-                onConfirm={handleConfirmResponse} 
-                onCorrect={handleCorrectResponse} 
-              />
-            )}
-
-            {options && options.length > 0 && !waitingConfirmation && (
-              <ChatOptions options={options} onSelect={handleOptionSelect} />
-            )}
-          </>
-        )}
-      </View>
-
-      <KeyboardAvoidingView
-        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-        keyboardVerticalOffset={Platform.OS === 'ios' ? 10 : 0}
-        style={{ width: '100%' }}
-      >
-        <View style={styles.chatInputContainer}>
-          <TextInput
-            style={styles.improvedChatInput}
-            placeholder="Digite sua mensagem..."
-            value={currentMessage}
-            onChangeText={setCurrentMessage}
-            onSubmitEditing={handleSendMessage}
-            returnKeyType="send"
-            multiline={true}
-            numberOfLines={3}
-          />
-          <TouchableOpacity
-            style={[
-              styles.improvedSendButton,
-              {
-                opacity: currentMessage.trim() === '' ? 0.5 : 1,
-              }
-            ]}
-            onPress={handleSendMessage}
-            disabled={currentMessage.trim() === ''}
-          >
-            <Text style={styles.improvedSendButtonText}>Enviar</Text>
-          </TouchableOpacity>
-        </View>
-      </KeyboardAvoidingView>
-    </SafeAreaView>
-  );
-};
-const PreviewCVScreen = ({ route, navigation }) => {
-  const { curriculoData } = route.params;
-  const [templateStyle, setTemplateStyle] = useState('modern');
-  const [showTemplateSelector, setShowTemplateSelector] = useState(false);
-  const [generatingPDF, setGeneratingPDF] = useState(false);
-  const [currentData, setCurrentData] = useState(curriculoData); // Para armazenar versão atual (original ou melhorada)
-  const [showComparison, setShowComparison] = useState(false); // Para mostrar comparação antes/depois
-  const { user } = useAuth();
-  
-  const handleShare = async () => {
-    try {
-      await Share.share({
-        message: `Currículo de ${curriculoData.nome || 'Usuário'}`,
-        title: `Currículo - ${curriculoData.nome || 'Usuário'}`
-      });
-    } catch (error) {
-      console.error('Erro ao compartilhar:', error);
-      Alert.alert('Erro', 'Não foi possível compartilhar o currículo.');
-    }
-  };
-
-  // Emular criação de PDF (já que não temos a biblioteca)
-  const handleExportPDF = async () => {
-    setGeneratingPDF(true);
-
-    try {
-      // Simular processo de geração de PDF
-      await new Promise(resolve => setTimeout(resolve, 2000));
-
-      // Exibir alerta com opções de ação
-      Alert.alert(
-        'PDF Gerado com Sucesso!',
-        'O que você gostaria de fazer com o PDF?',
-        [
-          {
-            text: 'Compartilhar',
-            onPress: () => handleShare(),
-          },
-          {
-            text: 'Salvar na Galeria',
-            onPress: () => {
-              Alert.alert(
-                'Salvando na Galeria...',
-                'Funcionalidade simulada. Em um app real, o PDF seria salvo na galeria.',
-                [{ text: 'OK' }]
-              );
-            },
-          },
-          {
-            text: 'Cancelar',
-            style: 'cancel',
-          },
-        ]
-      );
-    } catch (error) {
-      console.error('Erro ao gerar PDF:', error);
-      Alert.alert('Erro', 'Não foi possível gerar o PDF.');
-    } finally {
-      setGeneratingPDF(false);
-    }
-  };
-  
-  // Função para salvar o currículo melhorado
-  const handleSalvarMelhorado = async (dadosMelhorados) => {
-    try {
-      // Buscar currículos existentes
-      const cvs = await AsyncStorage.getItem(`curriculos_${user.id}`);
-      const curriculos = cvs ? JSON.parse(cvs) : [];
-      
-      // Criar uma nova entrada para o currículo melhorado
-      const novoCurriculo = {
-        id: getUniqueId(),
-        nome: `${curriculoData.nome || 'Currículo'} (Melhorado)`,
-        data: dadosMelhorados,
-        dataCriacao: new Date().toISOString()
-      };
-      
-      // Adicionar ao array e salvar
-      curriculos.push(novoCurriculo);
-      await AsyncStorage.setItem(`curriculos_${user.id}`, JSON.stringify(curriculos));
-      
-      Alert.alert(
-        "Sucesso",
-        "Currículo melhorado salvo com sucesso!",
-        [{ text: "OK" }]
-      );
-      
-      // Atualizar dados na tela
-      setCurrentData({
-        ...novoCurriculo
-      });
-      
-    } catch (error) {
-      console.error('Erro ao salvar currículo melhorado:', error);
-      Alert.alert("Erro", "Não foi possível salvar o currículo melhorado.");
-    }
-  };
-  
-  // Lidar com melhoria de currículo
-  const handleCurriculoMelhorado = (dadosMelhorados) => {
-    // Mostrar alerta com opções
-    Alert.alert(
-      "Currículo Melhorado",
-      "Seu currículo foi melhorado com sucesso! O que deseja fazer?",
-      [
-        { 
-          text: "Visualizar Melhorias", 
-          onPress: () => {
-            // Mostrar comparação
-            setShowComparison(true);
-            setCurrentData({
-              ...curriculoData,
-              data: dadosMelhorados
-            });
-          }
-        },
-        { 
-          text: "Salvar como Novo", 
-          onPress: () => handleSalvarMelhorado(dadosMelhorados)
-        },
-        { 
-          text: "Cancelar", 
-          style: "cancel" 
-        }
-      ]
-    );
-  };
-
-  const templateOptions = [
-    { id: 'modern', name: 'Moderno', category: 'Moderno', color: Colors.primary },
-    // Clássicos
-    { id: 'classic', name: 'Clássico', category: 'Clássico', color: Colors.dark },
-    { id: 'traditional', name: 'Tradicional', category: 'Clássico', color: '#333333' },
-    // Criativos
-    { id: 'consulting', name: 'Consultoria', category: 'Profissional', color: '#1a237e' },
-  ];
-
-  return (
-    <SafeAreaView style={styles.container}>
-      <StatusBar barStyle="dark-content" backgroundColor={Colors.dark} />
-
-      <View style={styles.header}>
-        <TouchableOpacity
-          style={styles.backButton}
-          onPress={() => navigation.goBack()}
-        >
-          <Text style={styles.backButtonText}>‹</Text>
-        </TouchableOpacity>
-        <Text style={styles.headerTitle}>Visualizar Currículo</Text>
-      </View>
-
-      {/* Barra de ferramentas */}
-      <View style={{
-        flexDirection: 'row',
-        backgroundColor: '#f0f0f0',
-        padding: 10,
-        borderBottomWidth: 1,
-        borderBottomColor: Colors.mediumGray,
-      }}>
-        <TouchableOpacity
-          style={{
-            flex: 1,
-            flexDirection: 'row',
-            alignItems: 'center',
-            justifyContent: 'center',
-            paddingVertical: 8,
-            borderRightWidth: 1,
-            borderRightColor: Colors.mediumGray,
-          }}
-          onPress={() => setShowTemplateSelector(!showTemplateSelector)}
-        >
-          <Text style={{ marginRight: 5 }}>Template: {templateOptions.find(t => t.id === templateStyle)?.name}</Text>
-          <Text>▼</Text>
-        </TouchableOpacity>
-
-        <TouchableOpacity
-          style={{
-            flex: 1,
-            flexDirection: 'row',
-            alignItems: 'center',
-            justifyContent: 'center',
-            paddingVertical: 8,
-          }}
-          onPress={handleExportPDF}
-          disabled={generatingPDF}
-        >
-          {generatingPDF ? (
-            <ActivityIndicator size="small" color={Colors.primary} />
-          ) : (
-            <>
-              <Text style={{ marginRight: 5 }}>Exportar PDF</Text>
-              <Text>📄</Text>
-            </>
-          )}
-        </TouchableOpacity>
-      </View>
-
-      {/* Template selector overlay (em vez de Modal) */}
-      {showTemplateSelector && (
-        <View style={{
-          position: 'absolute',
-          top: 0,
-          left: 0,
-          right: 0,
-          bottom: 0,
-          backgroundColor: 'rgba(0, 0, 0, 0.5)',
-          zIndex: 100,
-        }}>
-          <TouchableOpacity
-            style={{ flex: 1 }}
-            onPress={() => setShowTemplateSelector(false)}
-          />
-
-          <View style={{
-            backgroundColor: Colors.white,
-            borderTopLeftRadius: 20,
-            borderTopRightRadius: 20,
-            padding: 20,
-          }}>
-            <View style={{
-              flexDirection: 'row',
-              justifyContent: 'space-between',
-              alignItems: 'center',
-              marginBottom: 15,
-            }}>
-              <Text style={{
-                fontSize: 18,
-                fontWeight: 'bold',
-                color: Colors.dark,
-              }}>
-                Escolher Template
-              </Text>
-
-              <TouchableOpacity
-                onPress={() => setShowTemplateSelector(false)}
-              >
-                <Text style={{
-                  fontSize: 22,
-                  color: Colors.lightText,
-                  paddingHorizontal: 5,
-                }}>
-                  ×
-                </Text>
-              </TouchableOpacity>
-            </View>
-
-            {templateOptions.map(template => (
-              <TouchableOpacity
-                key={template.id}
-                style={{
-                  flexDirection: 'row',
-                  alignItems: 'center',
-                  padding: 15,
-                  borderBottomWidth: 1,
-                  borderBottomColor: Colors.mediumGray,
-                  backgroundColor: templateStyle === template.id ? '#e3f2fd' : 'transparent',
-                }}
-                onPress={() => {
-                  setTemplateStyle(template.id);
-                  setShowTemplateSelector(false);
-                }}
-              >
-                <View style={{
-                  width: 24,
-                  height: 24,
-                  borderRadius: 12,
-                  backgroundColor: template.color,
-                  marginRight: 15,
-                }} />
-
-                <View style={{ flex: 1 }}>
-                  <Text style={{
-                    fontSize: 16,
-                    fontWeight: templateStyle === template.id ? 'bold' : 'normal',
-                    color: Colors.dark,
-                  }}>
-                    {template.name}
-                  </Text>
-                </View>
-
-                {templateStyle === template.id && (
-                  <Text style={{ fontSize: 18, color: Colors.primary }}>✓</Text>
-                )}
-              </TouchableOpacity>
-            ))}
-          </View>
-        </View>
-      )}
-
-      <ScrollView style={styles.previewScreenScroll}>
-        <View style={styles.previewScreenCard}>
-          <CurriculumPreview data={currentData.data} templateStyle={templateStyle} />
-        </View>
-        
-        {/* Adicionar o botão de melhoria com IA */}
-        <View style={{ padding: 15 }}>
-          <MelhorarComIAButton 
-            curriculoData={curriculoData}
-            onMelhoria={handleCurriculoMelhorado}
-          />
-        </View>
-      </ScrollView>
-
-      <View style={styles.previewActions}>
-        <TouchableOpacity
-          style={styles.previewActionButton}
-          onPress={handleShare}
-        >
-          <Text style={styles.previewActionButtonText}>Compartilhar</Text>
-        </TouchableOpacity>
-
-        <TouchableOpacity
-          style={[styles.previewActionButton, { backgroundColor: Colors.secondary }]}
-          onPress={() => navigation.navigate('AnaliseCV', { curriculoData })}
-        >
-          <Text style={styles.previewActionButtonText}>Analisar com IA</Text>
-        </TouchableOpacity>
-        
-        {/* Adicionar botão de edição */}
-        <TouchableOpacity
-          style={[styles.previewActionButton, { backgroundColor: Colors.info }]}
-          onPress={() => navigation.navigate('EditarCurriculo', { curriculoData: currentData })}
-        >
-          <Text style={styles.previewActionButtonText}>Editar Currículo</Text>
-        </TouchableOpacity>
-      </View>
-      
-      {/* Modal de comparação antes/depois */}
-      {showComparison && (
-        <View style={styles.comparisonModal}>
-          <View style={styles.comparisonContainer}>
-            <View style={styles.comparisonHeader}>
-              <Text style={styles.comparisonTitle}>Antes e Depois</Text>
-              <TouchableOpacity
-                style={styles.comparisonCloseButton}
-                onPress={() => setShowComparison(false)}
-              >
-                <Text style={styles.comparisonCloseText}>✕</Text>
-              </TouchableOpacity>
-            </View>
-            
-            <ScrollView style={styles.comparisonScroll}>
-              {/* Exemplo de comparação - resumo profissional */}
-              <View style={styles.comparisonSection}>
-                <Text style={styles.comparisonSectionTitle}>Resumo Profissional</Text>
-                
-                <View style={styles.comparisonItem}>
-                  <Text style={styles.comparisonLabel}>Antes:</Text>
-                  <Text style={styles.comparisonOriginalText}>
-                    {curriculoData.data.resumo_profissional || 'Sem resumo profissional'}
-                  </Text>
-                </View>
-                
-                <View style={styles.comparisonItem}>
-                  <Text style={styles.comparisonLabel}>Depois:</Text>
-                  <Text style={styles.comparisonImprovedText}>
-                    {currentData.data.resumo_profissional || 'Sem resumo profissional'}
-                  </Text>
-                </View>
-              </View>
-              
-              {/* Outras comparações podem ser adicionadas para experiências, etc. */}
-            </ScrollView>
-            
-            <View style={styles.comparisonActions}>
-              <TouchableOpacity
-                style={styles.comparisonButton}
-                onPress={() => setShowComparison(false)}
-              >
-                <Text style={styles.comparisonButtonText}>Fechar</Text>
-              </TouchableOpacity>
-              
-              <TouchableOpacity
-                style={[styles.comparisonButton, { backgroundColor: Colors.success }]}
-                onPress={() => {
-                  handleSalvarMelhorado(currentData.data);
-                  setShowComparison(false);
-                }}
-              >
-                <Text style={styles.comparisonButtonText}>Salvar Melhorias</Text>
-              </TouchableOpacity>
-            </View>
-          </View>
-        </View>
-      )}
-    </SafeAreaView>
-  );
-};
-
-
-const AuthProvider = ({ children }) => {
-  const [user, setUser] = useState(null);
-  const [loading, setLoading] = useState(true);
-
-  useEffect(() => {
-    // Verificar se há usuário logado
-    const checkUser = async () => {
-      try {
-        const userData = await AsyncStorage.getItem('currentUser');
-        if (userData) {
-          setUser(JSON.parse(userData));
-        }
-      } catch (error) {
-        console.error('Erro ao verificar usuário:', error);
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    checkUser();
-  }, []);
-
-  const login = async (email, password) => {
-    try {
-      // Buscar usuários
-      const usuarios = await AsyncStorage.getItem('usuarios');
-      const usuariosArray = usuarios ? JSON.parse(usuarios) : [];
-
-      // Verificar credenciais
-      const usuarioEncontrado = usuariosArray.find(
-        u => u.email === email && u.password === password
-      );
-
-      if (usuarioEncontrado) {
-        setUser(usuarioEncontrado);
-        await AsyncStorage.setItem('currentUser', JSON.stringify(usuarioEncontrado));
-        return { success: true };
-      } else {
-        return { success: false, message: 'Email ou senha incorretos' };
-      }
-    } catch (error) {
-      console.error('Erro ao fazer login:', error);
-      return { success: false, message: 'Erro ao fazer login' };
-    }
-  };
-
-  const register = async (nome, email, password) => {
-    try {
-      // Verificar se o email já está em uso
-      const usuarios = await AsyncStorage.getItem('usuarios');
-      const usuariosArray = usuarios ? JSON.parse(usuarios) : [];
-
-      if (usuariosArray.some(u => u.email === email)) {
-        return { success: false, message: 'Email já cadastrado' };
-      }
-
-      // Criar novo usuário
-      const novoUsuario = {
-        id: Date.now().toString(),
-        nome,
-        email,
-        password,
-        dataCadastro: new Date().toISOString()
-      };
-
-      // Salvar usuário
-      const novosUsuarios = [...usuariosArray, novoUsuario];
-      await AsyncStorage.setItem('usuarios', JSON.stringify(novosUsuarios));
-
-      // Fazer login automático
-      setUser(novoUsuario);
-      await AsyncStorage.setItem('currentUser', JSON.stringify(novoUsuario));
-
-      return { success: true };
-    } catch (error) {
-      console.error('Erro ao cadastrar:', error);
-      return { success: false, message: 'Erro ao cadastrar' };
-    }
-  };
-
-  // Função de logout corrigida
-  const logout = async () => {
-    try {
-      // Primeiro, definimos o estado para null para evitar acesso a dados antigos
-      setUser(null);
-
-      // Depois removemos os dados de usuário do AsyncStorage
-      await AsyncStorage.removeItem('currentUser');
-
-      // Talvez seja necessário limpar outras informações também
-      // Por exemplo, limpar cache de análises, etc.
-
-      console.log('Logout realizado com sucesso');
-      return true;
-    } catch (error) {
-      console.error('Erro ao fazer logout:', error);
-      // Mesmo com erro, definir o usuário como null para evitar problemas
-      setUser(null);
-      return false;
-    }
-  };
-
-  // Função para atualizar o user (opcional, se você tiver)
-  const updateUser = (userData) => {
-    try {
-      setUser(userData);
-    } catch (error) {
-      console.error('Erro ao atualizar dados do usuário:', error);
-    }
-  };
-
-  return (
-    <AuthContext.Provider value={{ user, loading, login, register, logout, updateUser }}>
-      {children}
-    </AuthContext.Provider>
-  );
-};
-const ChatMessage = ({ message, isUser, time }) => (
-  <View style={[
-    styles.messageContainer,
-    isUser ? styles.userMessageContainer : styles.botMessageContainer
-  ]}>
-    <Text style={[
-      styles.messageText,
-      isUser ? styles.userMessageText : styles.botMessageText
-    ]}>
-      {message}
-    </Text>
-    <Text style={styles.messageTime}>{time}</Text>
-  </View>
-);
-
 const TabNavigator = () => (
   <Tab.Navigator
     screenOptions={({ route }) => ({
@@ -4921,6 +4144,30 @@ const AuthNavigator = () => (
     <AuthStack.Screen name="Login" component={LoginScreen} />
     <AuthStack.Screen name="Register" component={RegisterScreen} />
   </AuthStack.Navigator>
+);
+const HomeStackScreen = () => (
+  <HomeStack.Navigator screenOptions={{ headerShown: false }}>
+    {/* Rotas existentes */}
+    <HomeStack.Screen name="HomeMain" component={HomeScreen} />
+    <HomeStack.Screen name="Chatbot" component={ChatbotScreen} />
+    <HomeStack.Screen name="MeusCurriculos" component={MeusCurriculosScreen} />
+    <HomeStack.Screen name="PreviewCV" component={PreviewCVScreen} />
+    <HomeStack.Screen name="CurriculosAnalise" component={CurriculosAnaliseScreen} />
+    <HomeStack.Screen name="AnaliseCV" component={AnaliseCVScreen} />
+    <HomeStack.Screen name="SelecionarCurriculo" component={SelecionarCurriculoScreen} />
+    <HomeStack.Screen name="BuscaVagas" component={BuscaVagasScreen} />
+    <HomeStack.Screen name="SobreApp" component={SobreAppScreen} />
+    <HomeStack.Screen name="ConfiguracoesIA" component={ConfiguracoesIAScreen} />
+    <HomeStack.Screen name="EditarCurriculo" component={EditarCurriculoScreen} />
+    
+    {/* Novas rotas para simulação de entrevista */}
+    <HomeStack.Screen name="SimularEntrevista" component={SimularEntrevistaScreen} />
+    <HomeStack.Screen name="EntrevistaSimulada" component={EntrevistaSimuladaScreen} />
+    
+    {/* Outras rotas */}
+    <HomeStack.Screen name="DadosMercado" component={DadosMercadoScreen} />
+    <HomeStack.Screen name="GraficosRegionais" component={GraficosRegionaisScreen} />
+  </HomeStack.Navigator>
 );
 const HomeScreen = ({ navigation }) => {
   const { user, logout } = useAuth();
