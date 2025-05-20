@@ -42,38 +42,164 @@ import salvarIAAPIKey from '../src/api/salvarIAAPIKey';
 import getIAAPIKey from '../src/api/getIAAPIKey';
 import ConfigAvStackScreen from '../screens/ConfigAvStackScreen';
 
+// Contexto de autenticação com tratamento seguro
+const AuthContext = createContext(null);
+
+const useAuth = () => {
+  const context = useContext(AuthContext);
+  // Verificação de segurança
+  if (context === undefined) {
+    console.warn('useAuth deve ser usado dentro de um AuthProvider');
+    return { user: null, isLoading: true };
+  }
+  return context;
+};
+
 const DadosMercadoScreen = ({ navigation, route }) => {
-  const { user } = useAuth();
+  const authContext = useAuth();
+  const [user, setUser] = useState(null);
+  const [authLoading, setAuthLoading] = useState(true);
+  
   const [loading, setLoading] = useState(true);
   const [data, setData] = useState(null);
   const [areaAtuacao, setAreaAtuacao] = useState('');
   const [error, setError] = useState(null);
+  const [refreshing, setRefreshing] = useState(false);
+  
+  // Animações para os gráficos
+  const fadeAnim = useRef(new Animated.Value(0)).current;
+  const barAnimation = useRef(new Animated.Value(0)).current;
+  const competenciaAnimation = useRef({}).current;
+
+  // Verificar contexto de autenticação
+  useEffect(() => {
+    const checkAuthContext = async () => {
+      try {
+        setAuthLoading(true);
+        
+        // Tentar obter o usuário do contexto ou do AsyncStorage
+        if (authContext && authContext.user) {
+          setUser(authContext.user);
+        } else {
+          // Fallback: tentar obter dados do usuário do AsyncStorage
+          const storedUser = await AsyncStorage.getItem('currentUser');
+          if (storedUser) {
+            const userData = JSON.parse(storedUser);
+            setUser(userData);
+          } else {
+            // Se não há usuário logado, navegar para login
+            console.log('Nenhum usuário encontrado, redirecionando para login...');
+            Alert.alert(
+              "Sessão Expirada",
+              "Sua sessão expirou ou você não está logado. Por favor, faça login novamente.",
+              [
+                { text: "OK", onPress: () => navigation.navigate('Login') }
+              ]
+            );
+          }
+        }
+      } catch (error) {
+        console.error('Erro ao verificar autenticação:', error);
+      } finally {
+        setAuthLoading(false);
+      }
+    };
+
+    checkAuthContext();
+  }, [authContext]);
 
   useEffect(() => {
+    if (user && !authLoading) {
+      carregarDadosMercado();
+    }
+  }, [user, authLoading]);
+
+  // Animações para entrada de elementos
+  useEffect(() => {
+    if (data && !loading) {
+      // Fade in para toda a tela
+      Animated.timing(fadeAnim, {
+        toValue: 1,
+        duration: 800,
+        useNativeDriver: true
+      }).start();
+
+      // Animação para as barras de gráficos
+      Animated.timing(barAnimation, {
+        toValue: 1,
+        duration: 1200,
+        delay: 300,
+        useNativeDriver: false
+      }).start();
+      
+      // Criar animações individuais para cada competência
+      const dados = extrairDadosParaGraficos(data);
+      dados.demandaCompetencias.forEach((_, i) => {
+        if (!competenciaAnimation[i]) {
+          competenciaAnimation[i] = new Animated.Value(0);
+        }
+        
+        Animated.timing(competenciaAnimation[i], {
+          toValue: 1,
+          duration: 600,
+          delay: 300 + (i * 100),
+          useNativeDriver: false
+        }).start();
+      });
+    }
+  }, [data, loading]);
+
+  const onRefresh = () => {
+    setRefreshing(true);
     carregarDadosMercado();
-  }, []);
+  };
 
   const carregarDadosMercado = async () => {
     try {
+      if (!user || !user.id) {
+        console.warn('Tentativa de carregar dados do mercado sem usuário válido');
+        return;
+      }
+      
       setLoading(true);
+      setError(null);
 
       // Buscar currículos do usuário para obter sua área de atuação
       const cvs = await AsyncStorage.getItem(`curriculos_${user.id}`);
       const curriculos = cvs ? JSON.parse(cvs) : [];
 
       if (curriculos.length === 0) {
-        throw new Error("Nenhum currículo encontrado para análise");
+        throw new Error("Nenhum currículo encontrado para análise. Por favor, crie um currículo primeiro.");
       }
 
       // Usar o currículo mais recente
       const curriculoRecente = curriculos[curriculos.length - 1];
       const area = curriculoRecente.data.informacoes_pessoais?.area || '';
-      setAreaAtuacao(area);
+      setAreaAtuacao(area || 'Tecnologia');
+
+      // Verificar se há dados em cache
+      const cacheKey = `dadosMercado_${area.toLowerCase().replace(/\s+/g, '_')}`;
+      const cachedData = await AsyncStorage.getItem(cacheKey);
+      
+      if (cachedData && !refreshing) {
+        const parsedCache = JSON.parse(cachedData);
+        const cacheTime = new Date(parsedCache.timestamp);
+        const now = new Date();
+        const hoursSinceCache = (now - cacheTime) / (1000 * 60 * 60);
+        
+        // Se o cache tem menos de 24 horas, usar os dados do cache
+        if (hoursSinceCache < 24) {
+          setData(parsedCache.data);
+          setLoading(false);
+          setRefreshing(false);
+          return;
+        }
+      }
 
       // Obter API key para consulta
       const apiKey = await getIAAPIKey('GEMINI');
       if (!apiKey) {
-        throw new Error("API key não configurada");
+        throw new Error("API key não configurada. Por favor, configure a API key nas configurações avançadas.");
       }
 
       // Construir o prompt da consulta
@@ -127,15 +253,23 @@ Forneça uma resposta estruturada e objetiva, apenas com informações verificá
 
       if (response.data?.candidates?.[0]?.content?.parts?.[0]?.text) {
         const resultText = response.data.candidates[0].content.parts[0].text;
+        
+        // Salvar em cache
+        await AsyncStorage.setItem(cacheKey, JSON.stringify({
+          timestamp: new Date().toISOString(),
+          data: resultText
+        }));
+        
         setData(resultText);
       } else {
-        throw new Error("Formato de resposta inesperado");
+        throw new Error("Formato de resposta inesperado. Por favor, tente novamente.");
       }
     } catch (error) {
       console.error('Erro ao carregar dados do mercado:', error);
       setError(error.message || "Erro ao buscar dados do mercado");
     } finally {
       setLoading(false);
+      setRefreshing(false);
     }
   };
 
@@ -164,6 +298,7 @@ Forneça uma resposta estruturada e objetiva, apenas com informações verificá
       ]
     };
 
+    // Ajustar dados com base na área de atuação
     if (areaAtuacao.toLowerCase().includes('marketing')) {
       dadosSimulados.faixasSalariais = [
         { cargo: 'Júnior', valor: 3000 },
@@ -199,29 +334,72 @@ Forneça uma resposta estruturada e objetiva, apenas com informações verificá
 
   const renderizarGraficoSalarios = () => {
     const dados = extrairDadosParaGraficos(data);
+    const maxSalario = Math.max(...dados.faixasSalariais.map(item => item.valor));
 
     return (
       <View style={{ marginVertical: 20 }}>
-        <Text style={{ fontSize: 16, fontWeight: 'bold', marginBottom: 10 }}>
-          Faixa Salarial por Nível
-        </Text>
+        <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 10 }}>
+          <Ionicons name="cash-outline" size={20} color="#333" style={{ marginRight: 8 }} />
+          <Text style={{ fontSize: 18, fontWeight: 'bold', color: '#333' }}>
+            Faixa Salarial por Nível
+          </Text>
+        </View>
+        
         <View style={{ height: 200 }}>
-          {dados.faixasSalariais.map((item, index) => (
-            <View key={index} style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 15 }}>
-              <Text style={{ width: 90, fontSize: 14 }}>{item.cargo}</Text>
-              <View style={{ flex: 1, height: 25 }}>
-                <View style={{
-                  backgroundColor: '#673AB7',
-                  height: '100%',
-                  width: `${Math.min(100, (item.valor / 20000) * 100)}%`,
-                  borderRadius: 5
-                }} />
+          {dados.faixasSalariais.map((item, index) => {
+            const barWidth = barAnimation.interpolate({
+              inputRange: [0, 1],
+              outputRange: ['0%', `${Math.min(100, (item.valor / maxSalario) * 100)}%`]
+            });
+            
+            return (
+              <View key={index} style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 15 }}>
+                <Text style={{ 
+                  width: 100, 
+                  fontSize: 14, 
+                  fontWeight: '500',
+                  color: '#555'
+                }}>
+                  {item.cargo}
+                </Text>
+                <View style={{ 
+                  flex: 1, 
+                  height: 28,
+                  backgroundColor: '#f0f0f0',
+                  borderRadius: 6,
+                  overflow: 'hidden'
+                }}>
+                  <Animated.View style={{
+                    backgroundColor: '#673AB7',
+                    height: '100%',
+                    width: barWidth,
+                    borderRadius: 6,
+                    ...Platform.select({
+                      ios: {
+                        shadowColor: '#673AB7',
+                        shadowOffset: { width: 0, height: 1 },
+                        shadowOpacity: 0.3,
+                        shadowRadius: 2,
+                      },
+                      android: {
+                        elevation: 2,
+                      },
+                    }),
+                  }} />
+                </View>
+                <Text style={{ 
+                  marginLeft: 12, 
+                  width: 100, 
+                  fontSize: 14,
+                  fontWeight: '600',
+                  color: '#333',
+                  textAlign: 'right' 
+                }}>
+                  R$ {item.valor.toLocaleString()}
+                </Text>
               </View>
-              <Text style={{ marginLeft: 10, width: 70, textAlign: 'right' }}>
-                R$ {item.valor.toLocaleString()}
-              </Text>
-            </View>
-          ))}
+            );
+          })}
         </View>
       </View>
     );
@@ -231,24 +409,91 @@ Forneça uma resposta estruturada e objetiva, apenas com informações verificá
     const dados = extrairDadosParaGraficos(data);
 
     return (
-      <View style={{ marginVertical: 20 }}>
-        <Text style={{ fontSize: 16, fontWeight: 'bold', marginBottom: 10 }}>
-          Crescimento do Setor (%)
-        </Text>
-        <View style={{ flexDirection: 'row', height: 150, alignItems: 'flex-end', justifyContent: 'space-around' }}>
-          {dados.crescimentoSetor.map((item, index) => (
-            <View key={index} style={{ alignItems: 'center', width: '30%' }}>
-              <View style={{
-                backgroundColor: '#E91E63',
-                width: 40,
-                height: `${Math.min(100, item.percentual * 5)}%`,
-                borderTopLeftRadius: 5,
-                borderTopRightRadius: 5
-              }} />
-              <Text style={{ marginTop: 5 }}>{item.ano}</Text>
-              <Text style={{ fontWeight: 'bold' }}>{item.percentual}%</Text>
-            </View>
-          ))}
+      <View style={{ marginVertical: 25 }}>
+        <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 15 }}>
+          <Ionicons name="trending-up-outline" size={20} color="#333" style={{ marginRight: 8 }} />
+          <Text style={{ fontSize: 18, fontWeight: 'bold', color: '#333' }}>
+            Crescimento do Setor (%)
+          </Text>
+        </View>
+        
+        <View style={{ 
+          flexDirection: 'row', 
+          height: 170, 
+          alignItems: 'flex-end', 
+          justifyContent: 'space-around',
+          paddingBottom: 10,
+          paddingHorizontal: 10,
+          backgroundColor: '#f9f9f9',
+          borderRadius: 8,
+          ...Platform.select({
+            ios: {
+              shadowColor: '#000',
+              shadowOffset: { width: 0, height: 1 },
+              shadowOpacity: 0.1,
+              shadowRadius: 1,
+            },
+            android: {
+              elevation: 1,
+            },
+          }),
+        }}>
+          {dados.crescimentoSetor.map((item, index) => {
+            const barHeight = barAnimation.interpolate({
+              inputRange: [0, 1],
+              outputRange: [0, Math.min(120, item.percentual * 5)]
+            });
+            
+            return (
+              <View key={index} style={{ alignItems: 'center', width: '30%' }}>
+                <Animated.View style={{
+                  backgroundColor: '#E91E63',
+                  width: 50,
+                  height: barHeight,
+                  borderTopLeftRadius: 6,
+                  borderTopRightRadius: 6,
+                  ...Platform.select({
+                    ios: {
+                      shadowColor: '#E91E63',
+                      shadowOffset: { width: 0, height: 2 },
+                      shadowOpacity: 0.3,
+                      shadowRadius: 2,
+                    },
+                    android: {
+                      elevation: 3,
+                    },
+                  }),
+                }} />
+                <View style={{
+                  paddingVertical: 6,
+                  paddingHorizontal: 12,
+                  backgroundColor: '#fff',
+                  borderRadius: 15,
+                  marginTop: 8,
+                  ...Platform.select({
+                    ios: {
+                      shadowColor: '#000',
+                      shadowOffset: { width: 0, height: 1 },
+                      shadowOpacity: 0.1,
+                      shadowRadius: 1,
+                    },
+                    android: {
+                      elevation: 1,
+                    },
+                  }),
+                }}>
+                  <Text style={{ fontSize: 13, fontWeight: '500' }}>{item.ano}</Text>
+                </View>
+                <Text style={{ 
+                  fontWeight: 'bold', 
+                  marginTop: 5,
+                  color: '#E91E63'
+                }}>
+                  {item.percentual}%
+                </Text>
+              </View>
+            );
+          })}
         </View>
       </View>
     );
@@ -259,83 +504,264 @@ Forneça uma resposta estruturada e objetiva, apenas com informações verificá
 
     return (
       <View style={{ marginVertical: 20 }}>
-        <Text style={{ fontSize: 16, fontWeight: 'bold', marginBottom: 10 }}>
-          Demanda por Competências
-        </Text>
-        {dados.demandaCompetencias.map((item, index) => (
-          <View key={index} style={{ marginBottom: 12 }}>
-            <View style={{ flexDirection: 'row', justifyContent: 'space-between', marginBottom: 3 }}>
-              <Text>{item.nome}</Text>
-              <Text>{item.demanda}%</Text>
+        <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 15 }}>
+          <Ionicons name="ribbon-outline" size={20} color="#333" style={{ marginRight: 8 }} />
+          <Text style={{ fontSize: 18, fontWeight: 'bold', color: '#333' }}>
+            Demanda por Competências
+          </Text>
+        </View>
+        
+        {dados.demandaCompetencias.map((item, index) => {
+          const barWidth = competenciaAnimation[index] ? competenciaAnimation[index].interpolate({
+            inputRange: [0, 1],
+            outputRange: ['0%', `${item.demanda}%`]
+          }) : '0%';
+          
+          return (
+            <View key={index} style={{ marginBottom: 14 }}>
+              <View style={{ flexDirection: 'row', justifyContent: 'space-between', marginBottom: 5 }}>
+                <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+                  <Text style={{ 
+                    fontSize: 14, 
+                    fontWeight: '500',
+                    color: '#444'
+                  }}>
+                    {item.nome}
+                  </Text>
+                </View>
+                <Text style={{ 
+                  fontWeight: '600',
+                  color: '#2196F3'
+                }}>
+                  {item.demanda}%
+                </Text>
+              </View>
+              <View style={{ 
+                height: 12, 
+                backgroundColor: '#e0e0e0', 
+                borderRadius: 6,
+                overflow: 'hidden'
+              }}>
+                <Animated.View style={{
+                  backgroundColor: '#2196F3',
+                  height: '100%',
+                  width: barWidth,
+                  borderRadius: 6,
+                  ...Platform.select({
+                    ios: {
+                      shadowColor: '#2196F3',
+                      shadowOffset: { width: 0, height: 1 },
+                      shadowOpacity: 0.2,
+                      shadowRadius: 1,
+                    },
+                    android: {
+                      elevation: 1,
+                    },
+                  }),
+                }} />
+              </View>
             </View>
-            <View style={{ height: 10, backgroundColor: '#e0e0e0', borderRadius: 5 }}>
-              <View style={{
-                backgroundColor: '#2196F3',
-                height: '100%',
-                width: `${item.demanda}%`,
-                borderRadius: 5
-              }} />
-            </View>
-          </View>
-        ))}
+          );
+        })}
       </View>
     );
   };
 
+  // Loading state se o contexto de autenticação ainda está carregando
+  if (authLoading) {
+    return (
+      <SafeAreaView style={styles.container}>
+        <View style={styles.header}>
+          <TouchableOpacity
+            style={styles.backButton}
+            onPress={() => navigation.goBack()}
+          >
+            <Ionicons name="chevron-back" size={24} color={Colors.dark} />
+          </TouchableOpacity>
+          <Text style={styles.headerTitle}>Dados do Mercado</Text>
+        </View>
+        <View style={styles.loadingContainer}>
+          <ActivityIndicator size="large" color={Colors.primary} />
+          <Text style={{ marginTop: 16, color: Colors.lightText, fontSize: 16 }}>
+            Verificando autenticação...
+          </Text>
+        </View>
+      </SafeAreaView>
+    );
+  }
+
+  // Verificar se o usuário está autenticado
+  if (!user) {
+    return (
+      <SafeAreaView style={styles.container}>
+        <View style={styles.header}>
+          <TouchableOpacity
+            style={styles.backButton}
+            onPress={() => navigation.goBack()}
+          >
+            <Ionicons name="chevron-back" size={24} color={Colors.dark} />
+          </TouchableOpacity>
+          <Text style={styles.headerTitle}>Dados do Mercado</Text>
+        </View>
+        <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center', padding: 20 }}>
+          <Text style={{ fontSize: 18, fontWeight: 'bold', marginBottom: 20, textAlign: 'center' }}>
+            Você precisa estar logado para acessar os dados do mercado
+          </Text>
+          <TouchableOpacity
+            style={{
+              backgroundColor: Colors.primary,
+              paddingVertical: 12,
+              paddingHorizontal: 30,
+              borderRadius: 8,
+            }}
+            onPress={() => navigation.navigate('Login')}
+          >
+            <Text style={{ color: 'white', fontWeight: 'bold', fontSize: 16 }}>Fazer Login</Text>
+          </TouchableOpacity>
+        </View>
+      </SafeAreaView>
+    );
+  }
+
   return (
     <SafeAreaView style={styles.container}>
-      <StatusBar barStyle="dark-content" backgroundColor={Colors.dark} />
+      <StatusBar barStyle="dark-content" backgroundColor={HeaderColors.background} />
 
       <View style={styles.header}>
         <TouchableOpacity
           style={styles.backButton}
           onPress={() => navigation.goBack()}
         >
-          <Text style={styles.backButtonText}>‹</Text>
+          <Ionicons name="chevron-back" size={24} color={Colors.dark} />
         </TouchableOpacity>
         <Text style={styles.headerTitle}>Dados do Mercado</Text>
       </View>
 
-      {loading ? (
+      {loading && !refreshing ? (
         <View style={styles.loadingContainer}>
           <ActivityIndicator size="large" color={Colors.primary} />
-          <Text style={{ marginTop: 20, textAlign: 'center' }}>
-            Buscando dados atualizados do mercado de trabalho em sua área...
-          </Text>
+          <View style={{ marginTop: 20, alignItems: 'center', paddingHorizontal: 30 }}>
+            <Text style={{ 
+              fontSize: 18, 
+              fontWeight: 'bold', 
+              marginBottom: 10,
+              textAlign: 'center',
+              color: Colors.dark
+            }}>
+              Analisando o mercado de trabalho
+            </Text>
+            <Text style={{ 
+              textAlign: 'center',
+              color: Colors.lightText,
+              lineHeight: 22
+            }}>
+              Buscando dados atualizados do mercado de trabalho em {areaAtuacao || 'sua área'}...
+            </Text>
+          </View>
         </View>
       ) : error ? (
-        <View style={styles.errorContainer}>
-          <Text style={styles.errorText}>{error}</Text>
+        <View style={{
+          flex: 1,
+          justifyContent: 'center',
+          alignItems: 'center',
+          padding: 30
+        }}>
+          <Ionicons name="alert-circle-outline" size={70} color={Colors.danger} style={{ marginBottom: 20 }} />
+          <Text style={{ 
+            fontSize: 18, 
+            fontWeight: 'bold',
+            marginBottom: 15,
+            textAlign: 'center',
+            color: Colors.dark
+          }}>
+            Não foi possível obter os dados
+          </Text>
+          <Text style={{ 
+            textAlign: 'center',
+            marginBottom: 25,
+            color: Colors.lightText,
+            lineHeight: 22
+          }}>
+            {error}
+          </Text>
           <TouchableOpacity
-            style={styles.retryButton}
+            style={{
+              backgroundColor: Colors.primary,
+              paddingVertical: 12,
+              paddingHorizontal: 25,
+              borderRadius: 8,
+              flexDirection: 'row',
+              alignItems: 'center',
+              ...Platform.select({
+                ios: {
+                  shadowColor: '#000',
+                  shadowOffset: { width: 0, height: 2 },
+                  shadowOpacity: 0.1,
+                  shadowRadius: 3,
+                },
+                android: {
+                  elevation: 2,
+                },
+              }),
+            }}
             onPress={carregarDadosMercado}
           >
-            <Text style={styles.retryButtonText}>Tentar Novamente</Text>
+            <Ionicons name="refresh" size={18} color="white" style={{ marginRight: 8 }} />
+            <Text style={{ color: 'white', fontWeight: 'bold', fontSize: 16 }}>
+              Tentar Novamente
+            </Text>
           </TouchableOpacity>
         </View>
       ) : (
-        <ScrollView style={{ padding: 15 }}>
+        <Animated.ScrollView 
+          style={{ padding: 15, opacity: fadeAnim }}
+          refreshControl={
+            <RefreshControl
+              refreshing={refreshing}
+              onRefresh={onRefresh}
+              colors={[Colors.primary]}
+              tintColor={Colors.primary}
+            />
+          }
+        >
           {/* Cabeçalho com Área */}
           <View style={{
             backgroundColor: '#673AB7',
-            borderRadius: 10,
-            padding: 15,
-            marginBottom: 15,
+            borderRadius: 12,
+            padding: 18,
+            marginBottom: 18,
+            ...Platform.select({
+              ios: {
+                shadowColor: '#673AB7',
+                shadowOffset: { width: 0, height: 4 },
+                shadowOpacity: 0.2,
+                shadowRadius: 5,
+              },
+              android: {
+                elevation: 4,
+              },
+            }),
           }}>
-            <Text style={{ color: '#fff', fontSize: 22, fontWeight: 'bold', marginBottom: 5 }}>
-              Mercado de {areaAtuacao || 'Trabalho'}
-            </Text>
-            <Text style={{ color: 'rgba(255, 255, 255, 0.9)', fontSize: 14 }}>
-              Dados e análises atualizados para Florianópolis e região
-            </Text>
+            <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 8 }}>
+              <Ionicons name="briefcase" size={28} color="white" style={{ marginRight: 10 }} />
+              <Text style={{ color: '#fff', fontSize: 24, fontWeight: 'bold' }}>
+                Mercado de {areaAtuacao || 'Trabalho'}
+              </Text>
+            </View>
+            <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+              <Ionicons name="location" size={16} color="rgba(255, 255, 255, 0.9)" style={{ marginRight: 5 }} />
+              <Text style={{ color: 'rgba(255, 255, 255, 0.9)', fontSize: 15 }}>
+                Dados e análises atualizados para Florianópolis e região
+              </Text>
+            </View>
           </View>
 
           {/* Gráficos de Mercado */}
           <View style={{
             backgroundColor: '#fff',
-            borderRadius: 10,
-            padding: 15,
-            marginBottom: 15,
+            borderRadius: 12,
+            padding: 18,
+            marginBottom: 18,
             ...Platform.select({
               ios: {
                 shadowColor: '#000',
@@ -348,9 +774,12 @@ Forneça uma resposta estruturada e objetiva, apenas com informações verificá
               },
             }),
           }}>
-            <Text style={{ fontSize: 18, fontWeight: 'bold', marginBottom: 15, color: '#333' }}>
-              Análise Quantitativa do Mercado
-            </Text>
+            <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 15 }}>
+              <Ionicons name="stats-chart" size={22} color="#333" style={{ marginRight: 10 }} />
+              <Text style={{ fontSize: 20, fontWeight: 'bold', color: '#333' }}>
+                Análise Quantitativa do Mercado
+              </Text>
+            </View>
 
             {renderizarGraficoSalarios()}
             {renderizarGraficoCrescimento()}
@@ -360,8 +789,8 @@ Forneça uma resposta estruturada e objetiva, apenas com informações verificá
           {/* Dados da ACATE e Análise Qualitativa */}
           <View style={{
             backgroundColor: '#fff',
-            borderRadius: 10,
-            padding: 15,
+            borderRadius: 12,
+            padding: 18,
             marginBottom: 20,
             ...Platform.select({
               ios: {
@@ -375,44 +804,49 @@ Forneça uma resposta estruturada e objetiva, apenas com informações verificá
               },
             }),
           }}>
-            <Text style={{ fontSize: 18, fontWeight: 'bold', marginBottom: 15, color: '#333' }}>
-              Insights do Setor
-            </Text>
+            <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 15 }}>
+              <Ionicons name="analytics" size={22} color="#333" style={{ marginRight: 10 }} />
+              <Text style={{ fontSize: 20, fontWeight: 'bold', color: '#333' }}>
+                Insights do Setor
+              </Text>
+            </View>
 
             <Markdown
               style={{
                 body: { fontSize: 16, lineHeight: 24, color: Colors.dark },
                 heading1: {
-                  fontSize: 20,
+                  fontSize: 22,
                   fontWeight: 'bold',
-                  marginBottom: 10,
+                  marginBottom: 12,
+                  marginTop: 22,
                   color: Colors.dark,
                 },
                 heading2: {
-                  fontSize: 18,
+                  fontSize: 20,
                   fontWeight: 'bold',
                   marginBottom: 10,
-                  marginTop: 15,
+                  marginTop: 18,
                   color: Colors.dark
                 },
                 heading3: {
-                  fontSize: 16,
+                  fontSize: 18,
                   fontWeight: 'bold',
-                  marginTop: 10,
-                  marginBottom: 5,
+                  marginTop: 12,
+                  marginBottom: 8,
                   color: Colors.dark
                 },
                 paragraph: {
-                  fontSize: 15,
-                  lineHeight: 22,
-                  marginBottom: 10,
+                  fontSize: 16,
+                  lineHeight: 24,
+                  marginBottom: 12,
                   color: Colors.dark
                 },
                 list_item: {
-                  marginBottom: 5,
+                  marginBottom: 8,
+                  lineHeight: 24,
                 },
                 bullet_list: {
-                  marginVertical: 10,
+                  marginVertical: 12,
                 },
               }}
             >
@@ -422,16 +856,24 @@ Forneça uma resposta estruturada e objetiva, apenas com informações verificá
 
           {/* Nota sobre Fontes */}
           <View style={{
-            backgroundColor: '#f5f5f5',
+            backgroundColor: '#f6f6f6',
             padding: 15,
-            borderRadius: 8,
+            borderRadius: 10,
             marginBottom: 30,
+            borderLeftWidth: 3,
+            borderLeftColor: '#757575',
           }}>
-            <Text style={{ fontSize: 12, color: '#757575', fontStyle: 'italic' }}>
+            <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 5 }}>
+              <Ionicons name="information-circle-outline" size={18} color="#757575" style={{ marginRight: 6 }} />
+              <Text style={{ fontSize: 14, fontWeight: '500', color: '#757575' }}>
+                Fonte dos Dados
+              </Text>
+            </View>
+            <Text style={{ fontSize: 13, color: '#757575', lineHeight: 18 }}>
               Dados compilados de fontes oficiais da ACATE, IBGE, FIPE e relatórios setoriais de 2023-2025. As faixas salariais representam médias de mercado e podem variar conforme experiência, qualificação e empresa.
             </Text>
           </View>
-        </ScrollView>
+        </Animated.ScrollView>
       )}
     </SafeAreaView>
   );

@@ -59,6 +59,7 @@ import recuperarProgressoCurriculo from './curriculo/recuperarProgressoCurriculo
 import limparProgressoCurriculo from './curriculo/limparProgressoCurriculo';
 import melhorarCurriculoComIA from './curriculo/melhorarCurriculoComIA';
 import EditarCurriculoScreen from './curriculo/EditarCurriculoScreen';
+import renderTabBarIcon from './src/renderTabBarIcon'
 
 const Tab = createBottomTabNavigator();
 const HomeStack = createStackNavigator();
@@ -70,12 +71,6 @@ const useAuth = () => useContext(AuthContext);
 const AuthStack = createStackNavigator();
 const AppStack = createStackNavigator();
 const RootStack = createStackNavigator();
-
-const ConfigAvStackScreen = () => (
-  <ConfigAvStack.Navigator screenOptions={{ headerShown: false }}>
-    <ConfigAvStack.Screen name="ConfigAvMain" component={ConfiguracoesAvancadasScreen} />
-  </ConfigAvStack.Navigator>
-);
 
 axios.interceptors.request.use(request => {
   console.log('Starting Request', JSON.stringify(request, null, 2));
@@ -1759,19 +1754,6 @@ const ConfiguracoesScreen = ({ navigation }) => {
       </ScrollView>
     </SafeAreaView>
   );
-};
-const renderTabBarIcon = (route, focused, color, size) => {
-  // Usar emojis ou caracteres unicode em vez de ícones
-  if (route.name === 'Home') {
-    return <Text style={{ fontSize: 24, color }}>🏠</Text>;
-  } else if (route.name === 'Dashboard') {
-    return <Text style={{ fontSize: 24, color }}>📊</Text>;
-  } else if (route.name === 'ConfigAv') {
-    return <Text style={{ fontSize: 24, color }}>🔧</Text>;
-  } else if (route.name === 'Config') {
-    return <Text style={{ fontSize: 24, color }}>⚙️</Text>;
-  }
-  return null;
 };
 const HomeStackScreen = () => (
   <HomeStack.Navigator screenOptions={{ headerShown: false }}>
@@ -4740,6 +4722,9 @@ const PreviewCVScreen = ({ route, navigation }) => {
 };
 
 
+
+
+
 const TabNavigator = () => (
   <Tab.Navigator
     screenOptions={({ route }) => ({
@@ -5970,6 +5955,16 @@ const MelhorarComIAButton = ({ curriculoData, onMelhoria }) => {
     </TouchableOpacity>
   );
 };
+
+
+
+
+
+const ConfigAvStackScreen = () => (
+  <ConfigAvStack.Navigator screenOptions={{ headerShown: false }}>
+    <ConfigAvStack.Screen name="ConfigAvMain" component={ConfiguracoesAvancadasScreen} />
+  </ConfigAvStack.Navigator>
+);
 const AuthNavigator = () => (
   <AuthStack.Navigator
     screenOptions={{
@@ -5980,7 +5975,6 @@ const AuthNavigator = () => (
     <AuthStack.Screen name="Register" component={RegisterScreen} />
   </AuthStack.Navigator>
 );
-
 const HomeScreen = ({ navigation }) => {
   const { user, logout } = useAuth();
   const insets = useSafeAreaInsets();
@@ -10582,7 +10576,6 @@ ${content.substring(0, 1500)}...
     </>
   );
 };
-
 const RootNavigator = () => {
   const { user, loading } = useAuth();
 
@@ -10604,7 +10597,6 @@ const RootNavigator = () => {
     </RootStack.Navigator>
   );
 };
-
 const App = () => {
   return (
     <AuthProvider>
