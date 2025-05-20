@@ -42,6 +42,7 @@ import salvarIAAPIKey from '../src/api/salvarIAAPIKey';
 import getIAAPIKey from '../src/api/getIAAPIKey';
 import ConfigAvStackScreen from '../screens/ConfigAvStackScreen';
 import chamarIAAPI from '../src/api/chamarIAAPI';
+import gerarAnaliseLocal from '../src/analise/gerarAnaliseLocal';
 
 const analisarCurriculoComIA = async (curriculoData, tipoAnalise, tipoIA = 'GEMINI', forceOffline = false) => {
   // Validação de entrada
