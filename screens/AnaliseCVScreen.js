@@ -41,6 +41,7 @@ import IA_APIS from '../src/api/IA_APIS';
 import salvarIAAPIKey from '../src/api/salvarIAAPIKey';
 import getIAAPIKey from '../src/api/getIAAPIKey';
 import ConfigAvStackScreen from '../screens/ConfigAvStackScreen';
+import analisarCurriculoComIA from '../curriculo/analisarCurriculoComIA';
 
 const AnaliseCVScreen = ({ route, navigation }) => {
   const { curriculoData } = route.params;

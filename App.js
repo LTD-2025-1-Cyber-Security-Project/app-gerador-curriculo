@@ -24,6 +24,7 @@ import {
 import ColorsModule from './styles/colors';
 import sharedStyles from './styles/sharedStyles';
 import styles from './styles/styles';
+import initialCVData from './styles/initialCVData';
 import meusCurriculosStyles from './styles/meusCurriculosStyles';
 import ProfessionalColors from './styles/ProfessionalColors';
 import curriculoAnaliseStyles from './styles/curriculoAnaliseStyles';
@@ -45,6 +46,9 @@ import DashboardScreen from './screens/DashboardScreen';
 import SobreAppScreen from './screens/SobreAppScreen';
 import SelecionarCurriculoScreen from './screens/SelecionarCurriculoScreen';
 import AnaliseCVScreen from './screens/AnaliseCVScreen';
+import PerfilFotoScreen from './screens/PerfilFotoScreen';
+import analisarCurriculoComIA from './curriculo/analisarCurriculoComIA';
+import chamarIAAPI from './src/api/chamarIAAPI';
 
 const Tab = createBottomTabNavigator();
 const HomeStack = createStackNavigator();
@@ -77,6 +81,8 @@ axios.interceptors.response.use(response => {
   console.log('Error Data:', error.response?.data);
   return Promise.reject(error);
 });
+
+
 
 const DadosMercadoScreen = ({ navigation, route }) => {
   const { user } = useAuth();
@@ -472,7 +478,6 @@ Forneça uma resposta estruturada e objetiva, apenas com informações verificá
     </SafeAreaView>
   );
 };
-
 const GraficosRegionaisScreen = ({ navigation, route }) => {
   const { user } = useAuth();
   const [loading, setLoading] = useState(true);
@@ -1041,7 +1046,6 @@ Forneça apenas informações factuais e verificáveis, focando especificamente 
     </SafeAreaView>
   );
 };
-
 const ConfiguracoesScreen = ({ navigation }) => {
   const { user, logout, updateUser } = useAuth();
   const [loading, setLoading] = useState(false);
@@ -2141,7 +2145,6 @@ const ConfiguracoesScreen = ({ navigation }) => {
     </SafeAreaView>
   );
 };
-
 const renderTabBarIcon = (route, focused, color, size) => {
   // Usar emojis ou caracteres unicode em vez de ícones
   if (route.name === 'Home') {
@@ -2155,7 +2158,6 @@ const renderTabBarIcon = (route, focused, color, size) => {
   }
   return null;
 };
-
 const HomeStackScreen = () => (
   <HomeStack.Navigator screenOptions={{ headerShown: false }}>
     {/* Rotas existentes */}
@@ -2180,7 +2182,6 @@ const HomeStackScreen = () => (
     <HomeStack.Screen name="GraficosRegionais" component={GraficosRegionaisScreen} />
   </HomeStack.Navigator>
 );
-
 const DashboardStackScreen = () => (
   <DashboardStack.Navigator screenOptions={{ headerShown: false }}>
     <DashboardStack.Screen name="DashboardMain" component={DashboardScreen} />
@@ -2194,7 +2195,6 @@ const DashboardStackScreen = () => (
     <DashboardStack.Screen name="GraficosRegionais" component={GraficosRegionaisScreen} />
   </DashboardStack.Navigator>
 );
-
 const ConfigStackScreen = () => (
   <ConfigStack.Navigator screenOptions={{ headerShown: false }}>
     <ConfigStack.Screen name="ConfigMain" component={ConfiguracoesScreen} />
@@ -2204,305 +2204,6 @@ const ConfigStackScreen = () => (
     <ConfigStack.Screen name="SobreApp" component={SobreAppScreen} />
   </ConfigStack.Navigator>
 );
-
-const TabNavigator = () => (
-  <Tab.Navigator
-    screenOptions={({ route }) => ({
-      headerShown: false,
-      tabBarIcon: ({ focused, color, size }) => renderTabBarIcon(route, focused, color, size),
-      tabBarActiveTintColor: Colors.primary,
-      tabBarInactiveTintColor: Colors.lightText,
-      tabBarStyle: {
-        height: 60,
-        paddingBottom: 10,
-        paddingTop: 5,
-      },
-      tabBarLabelStyle: {
-        fontSize: 12,
-      },
-    })}
-  >
-    <Tab.Screen
-      name="Home"
-      component={HomeStackScreen}
-      options={{ tabBarLabel: 'Início' }}
-    />
-    <Tab.Screen
-      name="Dashboard"
-      component={DashboardStackScreen}
-      options={{ tabBarLabel: 'Dashboard' }}
-    />
-    <Tab.Screen
-      name="ConfigAv"
-      component={ConfigAvStackScreen}
-      options={{ tabBarLabel: 'API Avançada' }}
-    />
-    <Tab.Screen
-      name="Config"
-      component={ConfigStackScreen}
-      options={{ tabBarLabel: 'Configurações' }}
-    />
-  </Tab.Navigator>
-);
-
-const AppNavigator = () => (
-  <AppStack.Navigator screenOptions={{ headerShown: false }}>
-    <AppStack.Screen name="MainTabs" component={TabNavigator} />
-  </AppStack.Navigator>
-);
-
-const buscarVagasComGemini = async (curriculoData, forceRefresh = false) => {
-  try {
-    // Verificar cache apenas se não estiver forçando atualização
-    if (!forceRefresh) {
-      const cacheKey = `vagas_${JSON.stringify(curriculoData).slice(0, 50)}`;
-      const cachedResult = await AsyncStorage.getItem(cacheKey);
-
-      if (cachedResult) {
-        const parsed = JSON.parse(cachedResult);
-        const cacheAge = new Date() - new Date(parsed.timestamp);
-        const cacheValidHours = 24;
-
-        if (cacheAge < cacheValidHours * 60 * 60 * 1000) {
-          console.log(`Usando resultado em cache para busca de vagas`);
-          return {
-            success: true,
-            vagas: parsed.resultado,
-            timestamp: parsed.timestamp,
-            fromCache: true
-          };
-        }
-      }
-    }
-
-    // Se estamos forçando refresh ou não tem cache válido, proceder com busca
-    console.log('Iniciando busca de vagas com IA', forceRefresh ? '(forçando atualização)' : '');
-
-    // Obter API key do Gemini
-    const apiKey = await getIAAPIKey('GEMINI');
-
-    if (!apiKey) {
-      throw new Error("API key do Google Gemini não configurada");
-    }
-
-    // Formatar dados relevantes do currículo para o prompt
-    const cv = curriculoData.data;
-
-    // Extrair informações chave do currículo
-    const area = cv.informacoes_pessoais?.area || '';
-    const nome = `${cv.informacoes_pessoais?.nome || ''} ${cv.informacoes_pessoais?.sobrenome || ''}`.trim();
-
-    // Extrair competências e palavras-chave do currículo
-    const habilidades = new Set();
-
-    // De projetos
-    if (cv.projetos && cv.projetos.length > 0) {
-      cv.projetos.forEach(projeto => {
-        if (projeto.habilidades) {
-          projeto.habilidades.split(',').forEach(hab => {
-            habilidades.add(hab.trim());
-          });
-        }
-      });
-    }
-
-    // De experiências
-    const experiencias = [];
-    if (cv.experiencias && cv.experiencias.length > 0) {
-      cv.experiencias.forEach(exp => {
-        experiencias.push({
-          cargo: exp.cargo,
-          empresa: exp.empresa,
-          descricao: exp.descricao
-        });
-
-        // Extrair palavras-chave das descrições de experiência
-        if (exp.descricao) {
-          const palavrasChave = exp.descricao
-            .split(/[\s,;.]+/)
-            .filter(palavra =>
-              palavra.length > 4 &&
-              !['sobre', 'como', 'para', 'onde', 'quando', 'quem', 'porque', 'então'].includes(palavra.toLowerCase())
-            );
-
-          palavrasChave.forEach(palavra => habilidades.add(palavra));
-        }
-      });
-    }
-
-    // De formação
-    const formacoes = [];
-    if (cv.formacoes_academicas && cv.formacoes_academicas.length > 0) {
-      cv.formacoes_academicas.forEach(formacao => {
-        formacoes.push({
-          diploma: formacao.diploma,
-          area: formacao.area_estudo,
-          instituicao: formacao.instituicao
-        });
-
-        // Adicionar área de estudo às habilidades
-        if (formacao.area_estudo) {
-          habilidades.add(formacao.area_estudo);
-        }
-      });
-    }
-
-    // De idiomas
-    const idiomas = [];
-    if (cv.idiomas && cv.idiomas.length > 0) {
-      cv.idiomas.forEach(idioma => {
-        idiomas.push({
-          idioma: idioma.nome,
-          nivel: idioma.nivel
-        });
-      });
-    }
-
-    // Adicionar timestamp para diversificar as respostas quando forçar atualização
-    const timestamp = new Date().toISOString();
-
-    // Prompt melhorado para garantir informações completas e links funcionais
-    const promptText = `
-Você é um recrutador e especialista em RH com 15 anos de experiência no mercado brasileiro.
-
-TAREFA: Analisar o perfil profissional abaixo e recomendar 5 vagas reais que estão abertas atualmente no mercado de trabalho brasileiro. Essas vagas devem ser adequadas para o perfil do candidato com base em suas habilidades, experiência e formação.
-
-PERFIL DO CANDIDATO:
-Nome: ${nome}
-Área de atuação: ${area}
-${experiencias.length > 0 ? `
-Experiências profissionais:
-${experiencias.map(exp => `- ${exp.cargo} na empresa ${exp.empresa}`).join('\n')}
-` : ''}
-
-${formacoes.length > 0 ? `
-Formação acadêmica:
-${formacoes.map(form => `- ${form.diploma} em ${form.area} - ${form.instituicao}`).join('\n')}
-` : ''}
-
-${idiomas.length > 0 ? `
-Idiomas:
-${idiomas.map(idioma => `- ${idioma.idioma}: ${idioma.nivel}`).join('\n')}
-` : ''}
-
-Principais competências e palavras-chave:
-${Array.from(habilidades).slice(0, 15).join(', ')}
-
-INSTRUÇÕES ESPECÍFICAS:
-1. Encontre 5 vagas reais que existem atualmente no mercado brasileiro (2025)
-2. As vagas devem ser compatíveis com o perfil, experiência e senioridade do candidato
-3. Cada vez que esta consulta for executada, encontre vagas DIFERENTES das anteriores (atual: ${timestamp})
-
-4. Para cada vaga, forneça OBRIGATORIAMENTE todas estas informações:
-   - Título da vaga (cargo específico)
-   - Nome da empresa
-   - Localização (cidade/estado ou remoto)
-   - Faixa salarial estimada (baseada em sua expertise de mercado)
-   - 5 principais requisitos/qualificações exigidos
-   - 3 diferenciais da vaga
-   - Link completo e clicável para a vaga (URL completa para LinkedIn, Glassdoor, Indeed, etc.)
-   - Breve descrição das responsabilidades (2-3 frases)
-   - Avaliação de compatibilidade com o perfil (porcentagem de 0-100% e justificativa)
-
-5. IMPORTANTE SOBRE OS LINKS: Forneça URLs completos e funcionais no formato [texto](url) 
-   - Use o formato markdown para links, garantindo que sejam clicáveis
-   - Os links devem apontar para plataformas reais como LinkedIn, Glassdoor, Indeed, Catho, etc.
-   - Cada vaga DEVE ter pelo menos um link funcional
-
-6. As vagas devem variar em termos de empresas e possibilidades, mostrando diferentes opções no mercado
-7. Priorize vagas publicadas nos últimos 30 dias
-8. Formate a resposta de forma estruturada usando markdown para facilitar a leitura
-9. Inclua uma análise final com recomendações sobre como o candidato pode se destacar ao aplicar para estas vagas
-
-FORMATO DE RESPOSTA:
-# Vagas Recomendadas para ${nome}
-
-## Vaga 1: [Título da Vaga] - [Empresa]
-**Localização:** [Cidade/Estado ou Remoto]  
-**Faixa Salarial:** R$ [valor] - R$ [valor]  
-
-### Descrição:
-[2-3 frases sobre as responsabilidades]
-
-### Requisitos:
-- [Requisito 1]
-- [Requisito 2]
-- [Requisito 3]
-- [Requisito 4]
-- [Requisito 5]
-
-### Diferenciais:
-- [Diferencial 1]
-- [Diferencial 2]
-- [Diferencial 3]
-
-### Link da Vaga:
-[Nome da Plataforma](URL completa da vaga)
-
-### Compatibilidade:
-**[XX]%** - [Justificativa breve]
-
-[Repetir o formato acima para as 5 vagas]
-
-## Recomendações para se destacar
-[3-5 dicas personalizadas]
-
-IMPORTANTE: Todas as vagas informadas devem ser REAIS e ATUAIS (2025), baseando-se em sua base de conhecimento sobre o mercado de trabalho brasileiro atual. Não crie vagas fictícias e SEMPRE forneça TODAS as informações solicitadas, sem omitir nenhum campo.
-`;
-
-    console.log('Enviando prompt para busca de vagas:', promptText);
-
-    // Preparar a requisição para o Gemini
-    const endpoint = `${IA_APIS.GEMINI.endpoint}?key=${apiKey}`;
-    const requestBody = {
-      contents: [{ parts: [{ text: promptText }] }],
-      generationConfig: {
-        temperature: forceRefresh ? 0.4 : 0.2,  // Temperatura ligeiramente mais alta para refresh
-        maxOutputTokens: 4000,  // Garantir conteúdo completo
-        topP: 0.8,
-        topK: 40
-      }
-    };
-
-    // Fazer a chamada para o Gemini
-    const response = await axios.post(endpoint, requestBody, {
-      headers: { 'Content-Type': 'application/json' },
-      timeout: 30000  // 30 segundos
-    });
-
-    // Processar a resposta
-    if (response.data?.candidates?.[0]?.content?.parts?.[0]?.text) {
-      const resultado = response.data.candidates[0].content.parts[0].text;
-
-      // Armazenar no cache
-      try {
-        const cacheKey = `vagas_${JSON.stringify(curriculoData).slice(0, 50)}`;
-        await AsyncStorage.setItem(cacheKey, JSON.stringify({
-          resultado: resultado,
-          timestamp: new Date().toISOString()
-        }));
-      } catch (cacheError) {
-        console.log('Erro ao salvar busca de vagas no cache:', cacheError.message);
-      }
-
-      return {
-        success: true,
-        vagas: resultado,
-        timestamp: new Date().toISOString(),
-        fromCache: false
-      };
-    } else {
-      throw new Error('Formato de resposta inesperado do Gemini');
-    }
-  } catch (error) {
-    console.error('Erro ao buscar vagas:', error);
-    return {
-      success: false,
-      error: error.message || 'Erro ao buscar vagas com IA'
-    };
-  }
-};
-
 const BuscaVagasScreen = ({ route, navigation }) => {
   const { curriculoData } = route.params;
   const [loading, setLoading] = useState(true);
@@ -3032,2288 +2733,6 @@ const BuscaVagasScreen = ({ route, navigation }) => {
     </SafeAreaView>
   );
 };
-
-const AuthProvider = ({ children }) => {
-  const [user, setUser] = useState(null);
-  const [loading, setLoading] = useState(true);
-
-  useEffect(() => {
-    // Verificar se há usuário logado
-    const checkUser = async () => {
-      try {
-        const userData = await AsyncStorage.getItem('currentUser');
-        if (userData) {
-          setUser(JSON.parse(userData));
-        }
-      } catch (error) {
-        console.error('Erro ao verificar usuário:', error);
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    checkUser();
-  }, []);
-
-  const login = async (email, password) => {
-    try {
-      // Buscar usuários
-      const usuarios = await AsyncStorage.getItem('usuarios');
-      const usuariosArray = usuarios ? JSON.parse(usuarios) : [];
-
-      // Verificar credenciais
-      const usuarioEncontrado = usuariosArray.find(
-        u => u.email === email && u.password === password
-      );
-
-      if (usuarioEncontrado) {
-        setUser(usuarioEncontrado);
-        await AsyncStorage.setItem('currentUser', JSON.stringify(usuarioEncontrado));
-        return { success: true };
-      } else {
-        return { success: false, message: 'Email ou senha incorretos' };
-      }
-    } catch (error) {
-      console.error('Erro ao fazer login:', error);
-      return { success: false, message: 'Erro ao fazer login' };
-    }
-  };
-
-  const register = async (nome, email, password) => {
-    try {
-      // Verificar se o email já está em uso
-      const usuarios = await AsyncStorage.getItem('usuarios');
-      const usuariosArray = usuarios ? JSON.parse(usuarios) : [];
-
-      if (usuariosArray.some(u => u.email === email)) {
-        return { success: false, message: 'Email já cadastrado' };
-      }
-
-      // Criar novo usuário
-      const novoUsuario = {
-        id: Date.now().toString(),
-        nome,
-        email,
-        password,
-        dataCadastro: new Date().toISOString()
-      };
-
-      // Salvar usuário
-      const novosUsuarios = [...usuariosArray, novoUsuario];
-      await AsyncStorage.setItem('usuarios', JSON.stringify(novosUsuarios));
-
-      // Fazer login automático
-      setUser(novoUsuario);
-      await AsyncStorage.setItem('currentUser', JSON.stringify(novoUsuario));
-
-      return { success: true };
-    } catch (error) {
-      console.error('Erro ao cadastrar:', error);
-      return { success: false, message: 'Erro ao cadastrar' };
-    }
-  };
-
-  // Função de logout corrigida
-  const logout = async () => {
-    try {
-      // Primeiro, definimos o estado para null para evitar acesso a dados antigos
-      setUser(null);
-
-      // Depois removemos os dados de usuário do AsyncStorage
-      await AsyncStorage.removeItem('currentUser');
-
-      // Talvez seja necessário limpar outras informações também
-      // Por exemplo, limpar cache de análises, etc.
-
-      console.log('Logout realizado com sucesso');
-      return true;
-    } catch (error) {
-      console.error('Erro ao fazer logout:', error);
-      // Mesmo com erro, definir o usuário como null para evitar problemas
-      setUser(null);
-      return false;
-    }
-  };
-
-  // Função para atualizar o user (opcional, se você tiver)
-  const updateUser = (userData) => {
-    try {
-      setUser(userData);
-    } catch (error) {
-      console.error('Erro ao atualizar dados do usuário:', error);
-    }
-  };
-
-  return (
-    <AuthContext.Provider value={{ user, loading, login, register, logout, updateUser }}>
-      {children}
-    </AuthContext.Provider>
-  );
-};
-
-const chamarIAAPI = async (tipoIA, apiKey, promptText) => {
-  const MAX_RETRIES = 2;
-
-  // Implementação de backoff exponencial para retries
-  const tentarComRetry = async (funcaoRequest) => {
-    for (let tentativa = 0; tentativa <= MAX_RETRIES; tentativa++) {
-      try {
-        if (tentativa > 0) {
-          const tempoEspera = Math.pow(2, tentativa) * 1000;
-          console.log(`chamarIAAPI: Aguardando ${tempoEspera}ms antes da tentativa ${tentativa + 1}`);
-          await new Promise(resolve => setTimeout(resolve, tempoEspera));
-        }
-
-        return await funcaoRequest();
-      } catch (error) {
-        console.log(`chamarIAAPI: Erro na tentativa ${tentativa + 1}:`, error.message);
-
-        // Se é a última tentativa, propagar o erro
-        if (tentativa === MAX_RETRIES) throw error;
-
-        // Se não é erro de rate limit (429), não tente novamente
-        if (error.response?.status !== 429) throw error;
-      }
-    }
-  };
-
-  // Handlers específicos para cada IA
-  switch (tipoIA) {
-    case 'GEMINI':
-      return await tentarComRetry(async () => {
-        const endpoint = `${IA_APIS.GEMINI.endpoint}?key=${apiKey}`;
-        const requestBody = {
-          contents: [{ parts: [{ text: promptText }] }],
-          generationConfig: {
-            temperature: 0.7,
-            maxOutputTokens: 800,
-          }
-        };
-
-        const response = await axios.post(endpoint, requestBody, {
-          headers: { 'Content-Type': 'application/json' },
-          timeout: 15000
-        });
-
-        if (response.data?.candidates?.[0]?.content?.parts?.[0]?.text) {
-          return response.data.candidates[0].content.parts[0].text;
-        } else {
-          throw new Error('Formato de resposta inesperado do Gemini');
-        }
-      });
-
-    case 'OPENAI':
-      return await tentarComRetry(async () => {
-        const endpoint = IA_APIS.OPENAI.endpoint;
-        const requestBody = {
-          model: "gpt-3.5-turbo",
-          messages: [
-            { role: "system", content: "Você é um consultor especializado em análise de currículos." },
-            { role: "user", content: promptText }
-          ],
-          temperature: 0.7,
-          max_tokens: 800
-        };
-
-        const response = await axios.post(endpoint, requestBody, {
-          headers: {
-            'Content-Type': 'application/json',
-            'Authorization': `Bearer ${apiKey}`
-          },
-          timeout: 15000
-        });
-
-        if (response.data?.choices?.[0]?.message?.content) {
-          return response.data.choices[0].message.content;
-        } else {
-          throw new Error('Formato de resposta inesperado do ChatGPT');
-        }
-      });
-
-    case 'CLAUDE':
-      return await tentarComRetry(async () => {
-        const endpoint = IA_APIS.CLAUDE.endpoint;
-        const requestBody = {
-          model: "claude-3-sonnet-20240229",
-          max_tokens: 800,
-          messages: [
-            { role: "user", content: promptText }
-          ]
-        };
-
-        const response = await axios.post(endpoint, requestBody, {
-          headers: {
-            'Content-Type': 'application/json',
-            'x-api-key': apiKey,
-            'anthropic-version': '2023-06-01'
-          },
-          timeout: 20000
-        });
-
-        if (response.data?.content?.[0]?.text) {
-          return response.data.content[0].text;
-        } else {
-          throw new Error('Formato de resposta inesperado do Claude');
-        }
-      });
-
-    case 'PERPLEXITY':
-      return await tentarComRetry(async () => {
-        const endpoint = IA_APIS.PERPLEXITY.endpoint;
-        const requestBody = {
-          model: "llama-3-8b-instruct",
-          messages: [
-            { role: "user", content: promptText }
-          ],
-          temperature: 0.7,
-          max_tokens: 800
-        };
-
-        const response = await axios.post(endpoint, requestBody, {
-          headers: {
-            'Content-Type': 'application/json',
-            'Authorization': `Bearer ${apiKey}`
-          },
-          timeout: 20000
-        });
-
-        if (response.data?.choices?.[0]?.message?.content) {
-          return response.data.choices[0].message.content;
-        } else {
-          throw new Error('Formato de resposta inesperado do Perplexity');
-        }
-      });
-
-    case 'DEEPSEEK':
-      return await tentarComRetry(async () => {
-        const endpoint = IA_APIS.DEEPSEEK.endpoint;
-        const requestBody = {
-          model: "deepseek-chat",
-          messages: [
-            { role: "user", content: promptText }
-          ],
-          temperature: 0.7,
-          max_tokens: 800
-        };
-
-        const response = await axios.post(endpoint, requestBody, {
-          headers: {
-            'Content-Type': 'application/json',
-            'Authorization': `Bearer ${apiKey}`
-          },
-          timeout: 20000
-        });
-
-        if (response.data?.choices?.[0]?.message?.content) {
-          return response.data.choices[0].message.content;
-        } else {
-          throw new Error('Formato de resposta inesperado do DeepSeek');
-        }
-      });
-
-    case 'BLACKBOX':
-      return await tentarComRetry(async () => {
-        const endpoint = IA_APIS.BLACKBOX.endpoint;
-        const requestBody = {
-          messages: [
-            { role: "user", content: promptText }
-          ],
-          temperature: 0.7,
-          max_tokens: 800
-        };
-
-        const response = await axios.post(endpoint, requestBody, {
-          headers: {
-            'Content-Type': 'application/json',
-            'Authorization': `Bearer ${apiKey}`
-          },
-          timeout: 20000
-        });
-
-        if (response.data?.message?.content) {
-          return response.data.message.content;
-        } else {
-          throw new Error('Formato de resposta inesperado do Blackbox');
-        }
-      });
-
-    case 'BING':
-      return await tentarComRetry(async () => {
-        const endpoint = IA_APIS.BING.endpoint;
-        const params = {
-          q: promptText,
-          count: 5,
-          responseFilter: 'Computation,Entities,Places,Webpages'
-        };
-
-        const response = await axios.get(endpoint, {
-          headers: {
-            'Ocp-Apim-Subscription-Key': apiKey
-          },
-          params: params,
-          timeout: 15000
-        });
-
-        if (response.data?.webPages?.value) {
-          // Construa um texto resumindo os resultados
-          let resultado = "Análise baseada em resultados da busca Bing:\n\n";
-          response.data.webPages.value.forEach((item, index) => {
-            resultado += `${index + 1}. ${item.name}\n${item.snippet}\n\n`;
-          });
-
-          return resultado;
-        } else {
-          throw new Error('Formato de resposta inesperado do Bing');
-        }
-      });
-
-    case 'GROK':
-      return await tentarComRetry(async () => {
-        const endpoint = IA_APIS.GROK.endpoint;
-        const requestBody = {
-          messages: [
-            { role: "user", content: promptText }
-          ],
-          temperature: 0.7,
-          max_tokens: 800
-        };
-
-        const response = await axios.post(endpoint, requestBody, {
-          headers: {
-            'Content-Type': 'application/json',
-            'Authorization': `Bearer ${apiKey}`
-          },
-          timeout: 20000
-        });
-
-        if (response.data?.choices?.[0]?.message?.content) {
-          return response.data.choices[0].message.content;
-        } else {
-          throw new Error('Formato de resposta inesperado do Grok');
-        }
-      });
-
-    default:
-      throw new Error(`IA não implementada: ${tipoIA}`);
-  }
-};
-
-const gerarAnaliseLocal = (curriculoData, tipoAnalise) => {
-  try {
-    // Extrair dados relevantes para personalizar a análise
-    const nome = curriculoData.informacoes_pessoais?.nome || '';
-    const sobrenome = curriculoData.informacoes_pessoais?.sobrenome || '';
-    const nomeCompleto = `${nome} ${sobrenome}`.trim();
-    const area = curriculoData.informacoes_pessoais?.area || 'profissional';
-
-    // Verificar completude das seções para pontuação
-    const temFormacao = curriculoData.formacoes_academicas?.length > 0;
-    const temExperiencia = curriculoData.experiencias?.length > 0;
-    const temCursos = curriculoData.cursos?.length > 0;
-    const temProjetos = curriculoData.projetos?.length > 0;
-    const temIdiomas = curriculoData.idiomas?.length > 0;
-
-    // Calcular pontuação básica
-    let pontuacaoBase = 5; // Base média
-
-    // Adicionar pontos para cada seção preenchida
-    if (temFormacao) pontuacaoBase += 1;
-    if (temExperiencia) pontuacaoBase += 1.5;
-    if (temCursos) pontuacaoBase += 0.5;
-    if (temProjetos) pontuacaoBase += 1;
-    if (temIdiomas) pontuacaoBase += 0.5;
-
-    // Limitar a 10
-    const pontuacaoFinal = Math.min(10, pontuacaoBase);
-
-    // Gerar análise baseada no tipo
-    let analiseTexto = '';
-
-    switch (tipoAnalise) {
-      case 'pontuacao':
-        analiseTexto = `# Análise de Pontuação do Currículo
-
-## Pontuação Geral: ${pontuacaoFinal.toFixed(1)}/10
-
-### Detalhamento:
-
-1. **Conteúdo (30%)**: ${Math.min(10, pontuacaoBase + 0.5).toFixed(1)}/10
-   - ${temExperiencia ? 'Apresenta experiência profissional relevante' : 'Falta detalhar experiência profissional'}
-   - ${temFormacao ? 'Formação acadêmica bem estruturada' : 'Precisa incluir formação acadêmica'}
-
-2. **Estrutura (20%)**: ${Math.min(10, pontuacaoBase).toFixed(1)}/10
-   - Organização ${temFormacao && temExperiencia ? 'lógica e clara' : 'pode ser melhorada'}
-   - ${temProjetos || temCursos ? 'Boa separação das seções' : 'Pode adicionar mais seções para melhorar a estrutura'}
-
-3. **Apresentação (20%)**: ${Math.min(10, pontuacaoBase - 0.5).toFixed(1)}/10
-   - Formatação ${temFormacao && temExperiencia && temCursos ? 'consistente' : 'inconsistente em algumas seções'}
-   - ${temIdiomas ? 'Habilidades linguísticas bem apresentadas' : 'Considere adicionar seção de idiomas'}
-
-4. **Impacto (30%)**: ${Math.min(10, pontuacaoBase - 0.3).toFixed(1)}/10
-   - O currículo ${pontuacaoBase > 7 ? 'causa uma boa primeira impressão' : 'precisa de mais impacto visual e de conteúdo'}
-   - ${temProjetos ? 'Os projetos adicionam valor diferencial' : 'Adicionar projetos pode aumentar o impacto'}
-
-*Esta análise foi gerada automaticamente com base nos dados fornecidos.*`;
-        break;
-
-      case 'melhorias':
-        analiseTexto = `# 5 Melhorias para o Currículo
-
-1. **${!temExperiencia ? 'Adicionar experiências profissionais detalhadas' : 'Detalhar mais os resultados nas experiências profissionais'}**
-   - ${!temExperiencia ? 'Inclua experiências prévias com datas, funções e responsabilidades' : 'Quantifique realizações com números e resultados tangíveis'}
-   - Exemplo: "Aumentou vendas em 27%" ou "Liderou equipe de 5 pessoas no desenvolvimento de novo produto"
-
-2. **${!temFormacao ? 'Incluir formação acadêmica' : 'Destacar competências específicas adquiridas na formação'}**
-   - ${!temFormacao ? 'Adicione sua formação com período, instituição e área' : 'Relacione disciplinas chave ou projetos acadêmicos relevantes'}
-   - Importante para validar conhecimentos técnicos e teóricos
-
-3. **${!temIdiomas ? 'Adicionar seção de idiomas' : 'Especificar níveis de proficiência em idiomas'}**
-   - ${!temIdiomas ? 'Inclua todos os idiomas que conhece com nível de proficiência' : 'Use padrões internacionais como A1-C2 ou descritores claros (fluente, intermediário)'}
-   - Competências linguísticas são diferenciais importantes
-
-4. **${!temProjetos ? 'Criar seção de projetos relevantes' : 'Aprimorar descrição dos projetos'}**
-   - ${!temProjetos ? 'Adicione projetos pessoais ou profissionais relacionados à sua área' : 'Descreva tecnologias e metodologias utilizadas em cada projeto'}
-   - Demonstre aplicação prática de suas habilidades
-
-5. **Personalizar o currículo para cada vaga**
-   - Adapte palavras-chave de acordo com a descrição da vaga
-   - Priorize experiências e habilidades mais relevantes para cada posição
-
-*Implementar estas melhorias pode aumentar significativamente suas chances de ser chamado para entrevistas.*`;
-        break;
-
-      case 'dicas':
-        analiseTexto = `# Dicas Estratégicas de Carreira
-
-## Com base no seu perfil na área de ${area}, recomendamos:
-
-1. **Especialização Técnica**
-   - Invista em conhecimentos específicos de ${area}
-   - Considere certificações reconhecidas pelo mercado
-   - Motivo: Profissionais especializados têm 42% mais chances de serem contratados
-
-2. **Presença Digital Profissional**
-   - Crie ou atualize seu perfil no LinkedIn destacando palavras-chave da área
-   - Compartilhe conteúdo relevante sobre ${area}
-   - Conecte-se com profissionais e empresas de referência no setor
-
-3. **Networking Estratégico**
-   - Participe de eventos, webinars e comunidades de ${area}
-   - Associe-se a grupos profissionais do seu segmento
-   - Busque mentoria de profissionais mais experientes
-
-4. **Desenvolvimento de Soft Skills**
-   - Além de habilidades técnicas, desenvolva comunicação e trabalho em equipe
-   - Pratique liderança e resolução de problemas em projetos paralelos
-   - Estas competências são cada vez mais valorizadas por recrutadores
-
-5. **Aprendizado Contínuo**
-   - Estabeleça uma rotina de atualização sobre tendências em ${area}
-   - Reserve tempo semanal para cursos, leituras e experimentação
-   - Mantenha-se relevante em um mercado que evolui rapidamente
-
-*Estas recomendações foram personalizadas com base nas informações do seu currículo.*`;
-        break;
-
-      case 'cursos':
-        analiseTexto = `# Cursos Recomendados para Seu Perfil
-
-Com base no seu currículo na área de ${area}, recomendamos os seguintes cursos:
-
-1. **${area === 'Tecnologia da Informação' ? 'AWS Certified Solutions Architect' :
-            area === 'Marketing' ? 'Google Analytics Certification' :
-              area === 'Administração' ? 'Gestão Ágil de Projetos (PMI-ACP)' :
-                'Especialização em ' + area}**
-   - Plataforma: ${area === 'Tecnologia da Informação' ? 'AWS Training' :
-            area === 'Marketing' ? 'Google Skillshop' :
-              area === 'Administração' ? 'PMI ou Coursera' :
-                'EdX ou Coursera'}
-   - Por que fazer: Certificação reconhecida globalmente que comprova competências avançadas
-   - Como agregaria: Abre portas para posições sênior com remuneração até 30% maior
-
-2. **${area === 'Tecnologia da Informação' ? 'Data Science Specialization' :
-            area === 'Marketing' ? 'Digital Marketing Specialization' :
-              area === 'Administração' ? 'Liderança e Gestão de Equipes' :
-                'Fundamentos de ' + area}**
-   - Plataforma: Coursera (em parceria com universidades)
-   - Por que fazer: Complementa sua formação com habilidades analíticas fundamentais
-   - Como agregaria: Amplia o perfil para funções que exigem tomada de decisão baseada em dados
-
-3. **${temIdiomas ? 'Business English Communication' : 'Inglês para Profissionais'}**
-   - Plataforma: Duolingo, EF English Live ou Cambly
-   - Por que fazer: Comunicação em inglês é requisito para empresas multinacionais
-   - Como agregaria: Aumenta empregabilidade em 65% e possibilidade de aumento salarial
-
-4. **${area === 'Tecnologia da Informação' ? 'DevOps for Professionals' :
-            area === 'Marketing' ? 'Growth Hacking Masterclass' :
-              area === 'Administração' ? 'Financial Management' :
-                'Inovação em ' + area}**
-   - Plataforma: Udemy ou LinkedIn Learning
-   - Por que fazer: Conhecimentos emergentes com alta demanda no mercado atual
-   - Como agregaria: Posiciona você como profissional atualizado com tendências recentes
-
-5. **${area === 'Tecnologia da Informação' ? 'UI/UX Design Fundamentals' :
-            area === 'Marketing' ? 'Content Marketing Strategy' :
-              area === 'Administração' ? 'Business Analytics' :
-                'Gestão de Projetos para ' + area}**
-   - Plataforma: Alura, Udacity ou Domestika
-   - Por que fazer: Complementa habilidades técnicas com visão de experiência do usuário
-   - Como agregaria: Diferencial competitivo para posições que exigem múltiplas competências
-
-*Esta lista foi personalizada com base no seu perfil atual e tendências de mercado para 2024. Atualizar estas competências pode aumentar significativamente sua empregabilidade.*`;
-        break;
-
-      case 'vagas':
-        analiseTexto = `# Vagas Recomendadas para Seu Perfil
-
-Com base no seu currículo na área de ${area}, você teria boas chances nas seguintes vagas:
-
-1. **${area === 'Tecnologia da Informação' ? 'Desenvolvedor Full-Stack' :
-            area === 'Marketing' ? 'Especialista em Marketing Digital' :
-              area === 'Administração' ? 'Analista de Projetos' :
-                'Especialista em ' + area}**
-   - Por que combina: ${temExperiencia ? 'Sua experiência anterior demonstra as competências necessárias' : 'Seu perfil de formação se alinha com os requisitos típicos'}
-   - Competências valorizadas: ${temProjetos ? 'Experiência prática em projetos' : 'Conhecimentos teóricos'}, ${temIdiomas ? 'domínio de idiomas' : 'habilidades analíticas'}
-   - Empresas/setores: ${area === 'Tecnologia da Informação' ? 'Fintechs, agências digitais' :
-            area === 'Marketing' ? 'E-commerces, agências' :
-              area === 'Administração' ? 'Multinacionais, consultorias' :
-                'Empresas de médio e grande porte'}
-   - Palavras-chave: ${area.toLowerCase()}, especialista, ${temFormacao ? 'graduação' : 'experiência'}, análise
-
-2. **${area === 'Tecnologia da Informação' ? 'Analista de Dados' :
-            area === 'Marketing' ? 'Coordenador de Mídia Social' :
-              area === 'Administração' ? 'Gerente de Operações' :
-                'Consultor em ' + area}**
-   - Por que combina: Aproveita suas competências em ${temProjetos ? 'projetos' : 'análise'} e ${temCursos ? 'conhecimentos específicos' : 'formação'}
-   - Competências valorizadas: Análise crítica, conhecimentos técnicos, ${temIdiomas ? 'comunicação multilíngue' : 'comunicação eficaz'}
-   - Empresas/setores: Consultorias, startups em crescimento, empresas de tecnologia
-   - Palavras-chave: análise, ${area.toLowerCase()}, consultoria, projetos, ${temExperiencia ? 'experiência comprovada' : 'potencial'}
-
-3. **${area === 'Tecnologia da Informação' ? 'Gerente de Produto Técnico' :
-            area === 'Marketing' ? 'Brand Manager' :
-              area === 'Administração' ? 'Analista de Negócios' :
-                'Analista de ' + area}**
-   - Por que combina: Mescla ${temFormacao ? 'formação acadêmica' : 'visão prática'} com ${temProjetos ? 'experiência em projetos' : 'capacidade analítica'}
-   - Competências valorizadas: Visão estratégica, conhecimento de mercado, ${temIdiomas ? 'habilidades de comunicação internacional' : 'comunicação clara'}
-   - Empresas/setores: Empresas de médio e grande porte, multinacionais, consultorias especializadas
-   - Palavras-chave: gerenciamento, estratégia, ${area.toLowerCase()}, análise, ${temFormacao ? 'qualificação acadêmica' : 'experiência prática'}
-
-4. **${area === 'Tecnologia da Informação' ? 'Arquiteto de Soluções' :
-            area === 'Marketing' ? 'Gerente de Growth Marketing' :
-              area === 'Administração' ? 'Coordenador de Projetos' :
-                'Gerente de ' + area}**
-   - Por que combina: Utiliza ${temFormacao ? 'conhecimento teórico' : 'visão prática'} combinado com ${temExperiencia ? 'experiência no mercado' : 'potencial de liderança'}
-   - Competências valorizadas: Visão holística, capacidade de coordenação, ${temCursos ? 'especialização técnica' : 'adaptabilidade'}
-   - Empresas/setores: Empresas inovadoras, líderes de mercado, organizações em transformação
-   - Palavras-chave: coordenação, ${area.toLowerCase()}, gerenciamento, ${temIdiomas ? 'internacional' : 'nacional'}, estratégia
-
-5. **${area === 'Tecnologia da Informação' ? 'Especialista em Segurança da Informação' :
-            area === 'Marketing' ? 'Customer Success Manager' :
-              area === 'Administração' ? 'Analista de Processos' :
-                'Especialista em ' + area} ${temIdiomas ? 'Internacional' : 'Sênior'}**
-   - Por que combina: Aproveita ${temFormacao && temExperiencia ? 'combinação de teoria e prática' : temFormacao ? 'sólida formação acadêmica' : 'experiência prática'}
-   - Competências valorizadas: Especialização técnica, ${temIdiomas ? 'comunicação multilíngue' : 'comunicação eficaz'}, resolução de problemas
-   - Empresas/setores: Empresas de tecnologia, multinacionais, consultorias especializadas
-   - Palavras-chave: especialista, ${area.toLowerCase()}, ${temFormacao ? 'graduação' : 'experiência'}, ${temIdiomas ? 'internacional' : 'nacional'}, técnico
-
-*Esta lista foi personalizada com base no seu perfil atual. Adapte seu currículo para destacar as competências relevantes para cada tipo de vaga.*`;
-        break;
-
-      default:
-        analiseTexto = `# Análise Geral do Currículo
-
-## Pontos Fortes
-- ${temFormacao ? 'Formação acadêmica na área de atuação' : 'Perfil com potencial de desenvolvimento'}
-- ${temExperiencia ? 'Experiência profissional demonstrada' : 'Oportunidade para destacar projetos e outras atividades'}
-- ${temIdiomas ? 'Conhecimento de idiomas' : 'Foco em competências técnicas'}
-
-## Áreas de Melhoria
-- ${!temProjetos ? 'Adicionar seção de projetos para demonstrar habilidades práticas' : 'Detalhar melhor os projetos apresentados'}
-- ${!temCursos ? 'Incluir cursos e certificações para complementar formação' : 'Relacionar cursos com objetivos profissionais'}
-- Personalizar o currículo para cada oportunidade específica
-
-## Impressão Geral
-O currículo apresenta um profissional ${pontuacaoFinal > 7 ? 'bem qualificado' : 'com potencial'} na área de ${area}. ${pontuacaoFinal > 7 ? 'Possui boa estrutura' : 'Precisa de ajustes na estrutura'} e ${temExperiencia && temFormacao ? 'apresenta informações relevantes' : 'pode ser enriquecido com mais informações relevantes'}.
-
-## Nota Geral: ${pontuacaoFinal.toFixed(1)}/10
-
-*Esta análise foi gerada pelo sistema de análise local e representa uma avaliação baseada nos dados fornecidos.*`;
-    }
-
-    // Informar que estamos usando análise local
-    return {
-      success: true,
-      analise: analiseTexto,
-      offline: true,
-      provider: 'Sistema Local'
-    };
-  } catch (error) {
-    console.error('Erro na análise local:', error);
-
-    // Em caso de erro, retornar uma análise genérica
-    return {
-      success: true,
-      analise: `# Análise de Currículo\n\nSeu currículo apresenta um bom equilíbrio entre formação e experiência. Continue aprimorando com cursos e projetos relevantes para sua área.\n\n*Nota: Esta é uma análise básica gerada pelo sistema.*`,
-      offline: true,
-      provider: 'Sistema Local'
-    };
-  }
-};
-
-const analisarCurriculoComIA = async (curriculoData, tipoAnalise, tipoIA = 'GEMINI', forceOffline = false) => {
-  // Validação de entrada
-  if (!curriculoData) {
-    console.error('analisarCurriculoComIA: Dados do currículo não fornecidos');
-    return {
-      success: false,
-      analise: 'Não foi possível analisar o currículo: dados ausentes.',
-      offline: true
-    };
-  }
-
-  if (!tipoAnalise) {
-    tipoAnalise = 'geral'; // Valor padrão
-  }
-
-  // Verificar se a IA selecionada existe
-  if (!IA_APIS[tipoIA]) {
-    console.error(`analisarCurriculoComIA: Tipo de IA inválido: ${tipoIA}`);
-    tipoIA = 'GEMINI'; // Fallback para Gemini
-  }
-
-  // Se a IA selecionada é offline ou forceOffline, usar análise local
-  if (forceOffline || IA_APIS[tipoIA].offline) {
-    console.log('analisarCurriculoComIA: Usando modo offline');
-    return gerarAnaliseLocal(curriculoData, tipoAnalise);
-  }
-
-  // Verificar cache usando a combinação de tipoAnalise e tipoIA como chave
-  const cacheKey = `analise_${tipoIA}_${tipoAnalise}_${JSON.stringify(curriculoData).slice(0, 50)}`;
-  try {
-    const cachedResult = await AsyncStorage.getItem(cacheKey);
-    if (cachedResult) {
-      const parsed = JSON.parse(cachedResult);
-      const cacheAge = new Date() - new Date(parsed.timestamp);
-      const cacheValidHours = 24;
-
-      if (cacheAge < cacheValidHours * 60 * 60 * 1000) {
-        console.log(`analisarCurriculoComIA: Usando resultado em cache para ${IA_APIS[tipoIA].nome}`);
-        return {
-          success: true,
-          analise: parsed.resultado,
-          offline: false,
-          fromCache: true,
-          provider: IA_APIS[tipoIA].nome
-        };
-      }
-    }
-  } catch (cacheError) {
-    console.log('Erro ao verificar cache:', cacheError.message);
-  }
-
-  // Função para formatar currículo - definida explicitamente dentro do escopo
-  const formatarCurriculo = (data) => {
-    let texto = '';
-
-    // Helper para adicionar seção apenas se existir dados
-    const adicionarSecao = (titulo, items, formatoItem) => {
-      if (!items || items.length === 0) return;
-
-      texto += `${titulo.toUpperCase()}:\n`;
-      items.forEach(item => {
-        texto += formatoItem(item);
-        texto += '\n';
-      });
-      texto += '\n';
-    };
-
-    // Informações Pessoais
-    const pessoal = data.informacoes_pessoais || {};
-    const nomeCompleto = `${pessoal.nome || ''} ${pessoal.sobrenome || ''}`.trim();
-    if (nomeCompleto) texto += `Nome: ${nomeCompleto}\n`;
-    if (pessoal.email) texto += `Email: ${pessoal.email}\n`;
-    if (pessoal.endereco) texto += `Endereço: ${pessoal.endereco}\n`;
-    if (pessoal.area) texto += `Área: ${pessoal.area}\n`;
-    if (pessoal.linkedin) texto += `LinkedIn: ${pessoal.linkedin}\n`;
-    if (pessoal.github) texto += `GitHub: ${pessoal.github}\n`;
-    if (pessoal.site) texto += `Site: ${pessoal.site}\n`;
-    texto += '\n';
-
-    // Resumo Profissional
-    if (data.resumo_profissional) {
-      texto += `RESUMO PROFISSIONAL:\n${data.resumo_profissional}\n\n`;
-    }
-
-    // Formação Acadêmica
-    adicionarSecao('Formação Acadêmica', data.formacoes_academicas, (f) => {
-      let item = `- ${f.diploma || ''} em ${f.area_estudo || ''}\n`;
-      item += `  ${f.instituicao || ''}\n`;
-      item += `  ${f.data_inicio || ''} - ${f.data_fim || ''}\n`;
-      if (f.descricao) item += `  Descrição: ${f.descricao}\n`;
-      if (f.competencias) item += `  Competências: ${f.competencias}\n`;
-      return item;
-    });
-
-    // Experiência Profissional
-    adicionarSecao('Experiência Profissional', data.experiencias, (e) => {
-      let item = `- ${e.cargo || ''}\n`;
-      item += `  ${e.empresa || ''}\n`;
-      item += `  ${e.data_inicio || ''} - ${e.data_fim || ''}\n`;
-      if (e.descricao) item += `  Descrição: ${e.descricao}\n`;
-      return item;
-    });
-
-    // Cursos
-    adicionarSecao('Cursos e Certificados', data.cursos, (c) => {
-      let item = `- ${c.nome || ''}\n`;
-      item += `  ${c.instituicao || ''}\n`;
-      if (c.data_inicio || c.data_fim) {
-        item += `  ${c.data_inicio || ''} - ${c.data_fim || ''}\n`;
-      }
-      if (c.descricao) item += `  Descrição: ${c.descricao}\n`;
-      return item;
-    });
-
-    // Projetos
-    adicionarSecao('Projetos', data.projetos, (p) => {
-      let item = `- ${p.nome || ''}\n`;
-      if (p.habilidades) item += `  Habilidades: ${p.habilidades}\n`;
-      if (p.descricao) item += `  Descrição: ${p.descricao}\n`;
-      return item;
-    });
-
-    // Idiomas
-    adicionarSecao('Idiomas', data.idiomas, (i) => {
-      return `- ${i.nome || ''}: ${i.nivel || ''}\n`;
-    });
-
-    return texto;
-  };
-
-  // Estruturar o currículo em texto para análise
-  const curriculoTexto = formatarCurriculo(curriculoData);
-
-  // Função para gerar o prompt adequado
-  const gerarPrompt = (tipo, textoCurriculo) => {
-    const prompts = {
-      pontuacao: `Você é um consultor de RH. Avalie este currículo (0-10) em: Conteúdo (30%), Estrutura (20%), Apresentação (20%), Impacto (30%). Considere especialmente o resumo profissional, experiências e formação. Forneça nota geral ponderada e justifique brevemente.`,
-
-      melhorias: `Você é um consultor de RH. Identifique 3 melhorias específicas para este currículo aumentar chances de entrevistas. Analise especialmente o resumo profissional e as competências demonstradas. Para cada melhoria, explique por quê e como implementar.`,
-
-      dicas: `Você é um coach de carreira. Com base no resumo profissional e perfil completo deste candidato, forneça 3 dicas de carreira personalizadas. Seja específico e prático, considerando os objetivos mencionados no resumo.`,
-
-      cursos: `Com base no resumo profissional e perfil geral deste candidato, sugira 3 cursos ou certificações específicas para complementar suas habilidades e aumentar empregabilidade. Explique onde encontrar e como agregaria valor.`,
-
-      vagas: `Após analisar o resumo profissional e experiências deste candidato, sugira 3 tipos de vagas onde teria boas chances. Explique por que, competências valorizadas e palavras-chave para busca.`,
-
-      geral: `Analise este currículo, incluindo o resumo profissional: 1) Pontos fortes (2), 2) Áreas de melhoria (2), 3) Impressão geral do perfil profissional, 4) Nota de 0-10.`
-    };
-
-    // Usar prompt específico ou default
-    const promptBase = prompts[tipo] || prompts.geral;
-
-    return `${promptBase}
-    
-    CURRÍCULO:
-    ${textoCurriculo}
-    
-    Responda em português, com formatação clara e concisa.`;
-  };
-
-  const promptText = gerarPrompt(tipoAnalise, curriculoTexto);
-
-  // Obter a API key para o tipo de IA selecionado
-  const apiKey = await getIAAPIKey(tipoIA);
-
-  // Verificar se precisa de API key e se ela está disponível
-  if (IA_APIS[tipoIA].chaveNecessaria && !apiKey) {
-    console.error(`analisarCurriculoComIA: API key não encontrada para ${IA_APIS[tipoIA].nome}`);
-    return {
-      success: false,
-      analise: `Não foi possível analisar o currículo: API key não configurada para ${IA_APIS[tipoIA].nome}.`,
-      offline: true,
-      provider: IA_APIS[tipoIA].nome
-    };
-  }
-
-  // Chamar a função específica para o tipo de IA
-  try {
-    const resultado = await chamarIAAPI(tipoIA, apiKey, promptText);
-
-    // Salvar no cache
-    try {
-      await AsyncStorage.setItem(cacheKey, JSON.stringify({
-        resultado: resultado,
-        timestamp: new Date().toISOString()
-      }));
-    } catch (cacheError) {
-      console.log('Erro ao salvar no cache:', cacheError.message);
-    }
-
-    return {
-      success: true,
-      analise: resultado,
-      offline: false,
-      provider: IA_APIS[tipoIA].nome
-    };
-  } catch (error) {
-    console.error(`analisarCurriculoComIA: Erro ao chamar API de ${IA_APIS[tipoIA].nome}:`, error.message);
-
-    // Tentar com Gemini como fallback se não for Gemini que já falhou
-    if (tipoIA !== 'GEMINI') {
-      console.log('analisarCurriculoComIA: Tentando fallback para Gemini');
-      try {
-        return await analisarCurriculoComIA(curriculoData, tipoAnalise, 'GEMINI', false);
-      } catch (fallbackError) {
-        console.error('analisarCurriculoComIA: Fallback para Gemini também falhou:', fallbackError.message);
-      }
-    }
-
-    // Último recurso: usar análise local
-    console.log('analisarCurriculoComIA: Usando análise local como último recurso');
-    return gerarAnaliseLocal(curriculoData, tipoAnalise);
-  }
-};
-
-const ChatMessage = ({ message, isUser, time }) => (
-  <View style={[
-    styles.messageContainer,
-    isUser ? styles.userMessageContainer : styles.botMessageContainer
-  ]}>
-    <Text style={[
-      styles.messageText,
-      isUser ? styles.userMessageText : styles.botMessageText
-    ]}>
-      {message}
-    </Text>
-    <Text style={styles.messageTime}>{time}</Text>
-  </View>
-);
-
-const ChatOptions = ({ options, onSelect }) => {
-  if (!options || options.length === 0) return null;
-
-  // Identificar se são opções longas
-  const hasLongOptions = options.some(option => option.length > 10);
-
-  // Verificar se são opções de áreas específicas
-  const isAreaStep = options.includes('Tecnologia da Informação') ||
-    options.includes('Administração');
-
-  return (
-    <ScrollView
-      horizontal
-      showsHorizontalScrollIndicator={false}
-      contentContainerStyle={styles.optionsContainer}
-    >
-      {options.map((option, index) => (
-        <TouchableOpacity
-          key={index}
-          style={[
-            styles.optionButton,
-            hasLongOptions && styles.longOptionButton,
-            isAreaStep && styles.areaOptionButton
-          ]}
-          onPress={() => onSelect(option)}
-        >
-          <Text
-            style={[
-              styles.optionText,
-              hasLongOptions && styles.longOptionText
-            ]}
-            adjustsFontSizeToFit={true}
-            numberOfLines={2}
-          >
-            {option}
-          </Text>
-        </TouchableOpacity>
-      ))}
-    </ScrollView>
-  );
-};
-
-const CurriculumPreview = ({ data, templateStyle = 'modern' }) => {
-  if (!data || !data.informacoes_pessoais) {
-    return (
-      <View style={styles.emptyPreview}>
-        <Text style={styles.emptyPreviewText}>
-          As informações do seu currículo aparecerão aqui conforme você as fornecer.
-        </Text>
-      </View>
-    );
-  }
-
-  // Definição de estilos baseados no template selecionado
-  const getTemplateStyles = () => {
-    switch (templateStyle) {
-      case 'classic':
-        return {
-          container: {
-            backgroundColor: Colors.white,
-            padding: 15,
-          },
-          header: {
-            borderBottomWidth: 2,
-            borderBottomColor: Colors.dark,
-            paddingBottom: 10,
-            marginBottom: 15,
-          },
-          name: {
-            fontSize: 24,
-            fontWeight: 'bold',
-            color: Colors.dark,
-            textAlign: 'center',
-          },
-          contact: {
-            color: Colors.dark,
-            textAlign: 'center',
-            marginBottom: 5,
-          },
-          sectionTitle: {
-            fontSize: 18,
-            fontWeight: 'bold',
-            color: Colors.dark,
-            marginBottom: 10,
-            borderBottomWidth: 1,
-            borderBottomColor: Colors.mediumGray,
-            paddingBottom: 5,
-          },
-          itemTitle: {
-            fontSize: 16,
-            fontWeight: 'bold',
-            color: Colors.dark,
-          },
-          accent: Colors.dark,
-          itemBorder: {
-            borderLeftWidth: 0,
-            paddingLeft: 0,
-          }
-        };
-
-      case 'elegant':
-        return {
-          container: {
-            backgroundColor: '#fff',
-            padding: 20,
-            borderWidth: 1,
-            borderColor: '#d4d4d4',
-          },
-          header: {
-            marginBottom: 25,
-            alignItems: 'center',
-            borderBottomWidth: 0.5,
-            borderBottomColor: '#aaa',
-            paddingBottom: 20,
-          },
-          name: {
-            fontSize: 28,
-            fontWeight: '300', // Mais leve
-            color: '#333',
-            marginBottom: 5,
-            letterSpacing: 2,
-            textTransform: 'uppercase',
-            textAlign: 'center',
-          },
-          contact: {
-            color: '#666',
-            marginBottom: 3,
-            textAlign: 'center',
-            fontSize: 14,
-          },
-          sectionTitle: {
-            fontSize: 16,
-            fontWeight: '400',
-            color: '#333',
-            marginBottom: 15,
-            textTransform: 'uppercase',
-            letterSpacing: 2,
-            paddingBottom: 5,
-            borderBottomWidth: 0.5,
-            borderBottomColor: '#aaa',
-            textAlign: 'center',
-          },
-          itemTitle: {
-            fontSize: 16,
-            fontWeight: '500',
-            color: '#333',
-          },
-          accent: '#333',
-          itemBorder: {
-            paddingLeft: 0,
-            marginBottom: 18,
-          }
-        };
-
-      // Template padrão (Modern)
-      default:
-        return {
-          container: {
-            backgroundColor: Colors.white,
-            padding: 15,
-          },
-          header: {
-            marginBottom: 15,
-          },
-          name: {
-            fontSize: 24,
-            fontWeight: 'bold',
-            color: Colors.primary,
-            marginBottom: 5,
-          },
-          contact: {
-            color: Colors.dark,
-            marginBottom: 5,
-          },
-          sectionTitle: {
-            fontSize: 18,
-            fontWeight: 'bold',
-            color: Colors.primary,
-            marginBottom: 10,
-            borderBottomWidth: 1,
-            borderBottomColor: Colors.primary,
-            paddingBottom: 5,
-          },
-          itemTitle: {
-            fontSize: 16,
-            fontWeight: 'bold',
-            color: Colors.dark,
-          },
-          accent: Colors.primary,
-          itemBorder: {
-            borderLeftWidth: 3,
-            borderLeftColor: Colors.primary,
-            paddingLeft: 10,
-          }
-        };
-    }
-  };
-
-  const ts = getTemplateStyles();
-  const personalInfo = data.informacoes_pessoais;
-  const fullName = `${personalInfo.nome || ''} ${personalInfo.sobrenome || ''}`.trim();
-
-  // Renderização do currículo em duas colunas ou formato padrão
-  if (templateStyle === 'two-column') {
-    return (
-      <View style={[styles.previewContainer, ts.container]}>
-        {/* Coluna lateral */}
-        <View style={ts.header}>
-          {fullName ? (
-            <Text style={ts.name}>{fullName}</Text>
-          ) : null}
-
-          {personalInfo.email || personalInfo.endereco ? (
-            <Text style={ts.contact}>
-              {personalInfo.email}
-              {personalInfo.email && personalInfo.endereco ? '\n' : ''}
-              {personalInfo.endereco}
-            </Text>
-          ) : null}
-
-          {/* Links na barra lateral */}
-          {(personalInfo.site || personalInfo.linkedin || personalInfo.github) && (
-            <View style={ts.sidebarSection}>
-              <Text style={ts.sidebarTitle}>Links</Text>
-              {personalInfo.site && (
-                <Text style={[styles.previewLink, { color: '#fff', textAlign: 'center' }]}>{personalInfo.site}</Text>
-              )}
-              {personalInfo.linkedin && (
-                <Text style={[styles.previewLink, { color: '#fff', textAlign: 'center' }]}>LinkedIn</Text>
-              )}
-              {personalInfo.github && (
-                <Text style={[styles.previewLink, { color: '#fff', textAlign: 'center' }]}>GitHub</Text>
-              )}
-            </View>
-          )}
-
-          {/* Idiomas na barra lateral */}
-          {data.idiomas && data.idiomas.length > 0 && (
-            <View style={ts.sidebarSection}>
-              <Text style={ts.sidebarTitle}>Idiomas</Text>
-              {data.idiomas.map((idioma, index) => (
-                <Text key={index} style={{ color: '#fff', textAlign: 'center', marginBottom: 4 }}>
-                  {idioma.nome}: {idioma.nivel}
-                </Text>
-              ))}
-            </View>
-          )}
-        </View>
-
-        {/* Coluna principal de conteúdo */}
-        <View style={ts.contentColumn}>
-          {/* Resumo Profissional */}
-          {data.resumo_profissional ? (
-            <View style={styles.previewSection}>
-              <Text style={[styles.previewSectionTitle, ts.sectionTitle]}>Resumo Profissional</Text>
-              <Text style={styles.previewResumeText}>{data.resumo_profissional}</Text>
-            </View>
-          ) : null}
-
-          {/* Formação Acadêmica */}
-          {data.formacoes_academicas && data.formacoes_academicas.length > 0 && (
-            <View style={styles.previewSection}>
-              <Text style={[styles.previewSectionTitle, ts.sectionTitle]}>Formação Acadêmica</Text>
-              {data.formacoes_academicas.map((formacao, index) => (
-                <View key={index} style={[styles.previewItem, ts.itemBorder]}>
-                  <Text style={[styles.previewItemTitle, ts.itemTitle]}>
-                    {formacao.diploma} em {formacao.area_estudo}
-                  </Text>
-                  <Text style={styles.previewItemSubtitle}>{formacao.instituicao}</Text>
-                  {formacao.data_inicio ? (
-                    <Text style={styles.previewItemDate}>
-                      {formacao.data_inicio}
-                      {formacao.data_fim ?
-                        formacao.data_fim.toLowerCase() === 'atual' ?
-                          ' - Presente' :
-                          ` - ${formacao.data_fim}` :
-                        ''}
-                    </Text>
-                  ) : null}
-                </View>
-              ))}
-            </View>
-          )}
-
-          {/* Experiência Profissional */}
-          {data.experiencias && data.experiencias.length > 0 && (
-            <View style={styles.previewSection}>
-              <Text style={[styles.previewSectionTitle, ts.sectionTitle]}>Experiência Profissional</Text>
-              {data.experiencias.map((exp, index) => (
-                <View key={index} style={[styles.previewItem, ts.itemBorder]}>
-                  <Text style={[styles.previewItemTitle, ts.itemTitle]}>{exp.cargo}</Text>
-                  <Text style={styles.previewItemSubtitle}>{exp.empresa}</Text>
-                  {exp.data_inicio ? (
-                    <Text style={styles.previewItemDate}>
-                      {exp.data_inicio}
-                      {exp.data_fim ?
-                        exp.data_fim.toLowerCase() === 'atual' ?
-                          ' - Presente' :
-                          ` - ${exp.data_fim}` :
-                        ''}
-                    </Text>
-                  ) : null}
-                  {exp.descricao ? (
-                    <Text style={styles.previewItemDescription}>{exp.descricao}</Text>
-                  ) : null}
-                </View>
-              ))}
-            </View>
-          )}
-
-          {/* Cursos */}
-          {data.cursos && data.cursos.length > 0 && (
-            <View style={styles.previewSection}>
-              <Text style={[styles.previewSectionTitle, ts.sectionTitle]}>Cursos e Certificados</Text>
-              {data.cursos.map((curso, index) => (
-                <View key={index} style={[styles.previewItem, ts.itemBorder]}>
-                  <Text style={[styles.previewItemTitle, ts.itemTitle]}>{curso.nome}</Text>
-                  <Text style={styles.previewItemSubtitle}>{curso.instituicao}</Text>
-                  {curso.data_inicio || curso.data_fim ? (
-                    <Text style={styles.previewItemDate}>
-                      {curso.data_inicio || ''}
-                      {curso.data_inicio && curso.data_fim ? ' - ' : ''}
-                      {curso.data_fim || ''}
-                    </Text>
-                  ) : null}
-                  {curso.descricao ? (
-                    <Text style={styles.previewItemDescription}>{curso.descricao}</Text>
-                  ) : null}
-                </View>
-              ))}
-            </View>
-          )}
-
-          {/* Projetos */}
-          {data.projetos && data.projetos.length > 0 && (
-            <View style={styles.previewSection}>
-              <Text style={[styles.previewSectionTitle, ts.sectionTitle]}>Projetos</Text>
-              {data.projetos.map((projeto, index) => (
-                <View key={index} style={[styles.previewItem, ts.itemBorder]}>
-                  <Text style={[styles.previewItemTitle, ts.itemTitle]}>{projeto.nome}</Text>
-                  {projeto.habilidades ? (
-                    <Text style={styles.previewItemSubtitle}>
-                      <Text style={{ fontWeight: 'bold' }}>Habilidades:</Text> {projeto.habilidades}
-                    </Text>
-                  ) : null}
-                  {projeto.descricao ? (
-                    <Text style={styles.previewItemDescription}>{projeto.descricao}</Text>
-                  ) : null}
-                </View>
-              ))}
-            </View>
-          )}
-        </View>
-      </View>
-    );
-  }
-
-  // Renderização especial para template de timeline
-  else if (templateStyle === 'timeline') {
-    return (
-      <View style={[styles.previewContainer, ts.container]}>
-        <View style={ts.header}>
-          {fullName ? (
-            <Text style={ts.name}>{fullName}</Text>
-          ) : null}
-
-          {personalInfo.email || personalInfo.endereco ? (
-            <Text style={ts.contact}>
-              {personalInfo.email}
-              {personalInfo.email && personalInfo.endereco ? ' | ' : ''}
-              {personalInfo.endereco}
-            </Text>
-          ) : null}
-
-          {/* Links */}
-          {(personalInfo.site || personalInfo.linkedin || personalInfo.github) && (
-            <View style={styles.previewLinks}>
-              {personalInfo.site && (
-                <Text style={[styles.previewLink, { color: '#b2dfdb' }]}>{personalInfo.site}</Text>
-              )}
-              {personalInfo.linkedin && (
-                <Text style={[styles.previewLink, { color: '#b2dfdb' }]}>LinkedIn</Text>
-              )}
-              {personalInfo.github && (
-                <Text style={[styles.previewLink, { color: '#b2dfdb' }]}>GitHub</Text>
-              )}
-            </View>
-          )}
-        </View>
-
-        {/* Resumo Profissional */}
-        {data.resumo_profissional ? (
-          <View style={styles.previewSection}>
-            <Text style={[styles.previewSectionTitle, ts.sectionTitle]}>Resumo Profissional</Text>
-            <Text style={styles.previewResumeText}>{data.resumo_profissional}</Text>
-          </View>
-        ) : null}
-
-        {/* Experiência Profissional com Timeline */}
-        {data.experiencias && data.experiencias.length > 0 && (
-          <View style={styles.previewSection}>
-            <Text style={[styles.previewSectionTitle, ts.sectionTitle]}>Experiência Profissional</Text>
-            {data.experiencias.map((exp, index) => (
-              <View key={index} style={[styles.previewItem, ts.itemBorder]}>
-                {/* Dot da Timeline */}
-                <View style={ts.timelineDot}>
-                  <Text style={{ color: '#fff', fontSize: 10, fontWeight: 'bold' }}>
-                    {index + 1}
-                  </Text>
-                </View>
-
-                <Text style={[styles.previewItemTitle, ts.itemTitle]}>{exp.cargo}</Text>
-                <Text style={styles.previewItemSubtitle}>{exp.empresa}</Text>
-                {exp.data_inicio ? (
-                  <Text style={[styles.previewItemDate, { fontWeight: 'bold', color: '#00796b' }]}>
-                    {exp.data_inicio}
-                    {exp.data_fim ?
-                      exp.data_fim.toLowerCase() === 'atual' ?
-                        ' - Presente' :
-                        ` - ${exp.data_fim}` :
-                      ''}
-                  </Text>
-                ) : null}
-                {exp.descricao ? (
-                  <Text style={styles.previewItemDescription}>{exp.descricao}</Text>
-                ) : null}
-              </View>
-            ))}
-          </View>
-        )}
-
-        {/* Outras seções como padrão */}
-        {data.formacoes_academicas && data.formacoes_academicas.length > 0 && (
-          <View style={styles.previewSection}>
-            <Text style={[styles.previewSectionTitle, ts.sectionTitle]}>Formação Acadêmica</Text>
-            {data.formacoes_academicas.map((formacao, index) => (
-              <View key={index} style={[styles.previewItem, ts.itemBorder]}>
-                <Text style={[styles.previewItemTitle, ts.itemTitle]}>
-                  {formacao.diploma} em {formacao.area_estudo}
-                </Text>
-                <Text style={styles.previewItemSubtitle}>{formacao.instituicao}</Text>
-                {formacao.data_inicio ? (
-                  <Text style={styles.previewItemDate}>
-                    {formacao.data_inicio}
-                    {formacao.data_fim ?
-                      formacao.data_fim.toLowerCase() === 'atual' ?
-                        ' - Presente' :
-                        ` - ${formacao.data_fim}` :
-                      ''}
-                  </Text>
-                ) : null}
-              </View>
-            ))}
-          </View>
-        )}
-
-        {/* Restante das seções como no padrão */}
-        {data.cursos && data.cursos.length > 0 && (
-          <View style={styles.previewSection}>
-            <Text style={[styles.previewSectionTitle, ts.sectionTitle]}>Cursos e Certificados</Text>
-            {data.cursos.map((curso, index) => (
-              <View key={index} style={[styles.previewItem, ts.itemBorder]}>
-                <Text style={[styles.previewItemTitle, ts.itemTitle]}>{curso.nome}</Text>
-                <Text style={styles.previewItemSubtitle}>{curso.instituicao}</Text>
-                {curso.data_inicio || curso.data_fim ? (
-                  <Text style={styles.previewItemDate}>
-                    {curso.data_inicio || ''}
-                    {curso.data_inicio && curso.data_fim ? ' - ' : ''}
-                    {curso.data_fim || ''}
-                  </Text>
-                ) : null}
-                {curso.descricao ? (
-                  <Text style={styles.previewItemDescription}>{curso.descricao}</Text>
-                ) : null}
-              </View>
-            ))}
-          </View>
-        )}
-
-        {data.projetos && data.projetos.length > 0 && (
-          <View style={styles.previewSection}>
-            <Text style={[styles.previewSectionTitle, ts.sectionTitle]}>Projetos</Text>
-            {data.projetos.map((projeto, index) => (
-              <View key={index} style={[styles.previewItem, ts.itemBorder]}>
-                <Text style={[styles.previewItemTitle, ts.itemTitle]}>{projeto.nome}</Text>
-                {projeto.habilidades ? (
-                  <Text style={styles.previewItemSubtitle}>
-                    <Text style={{ fontWeight: 'bold' }}>Habilidades:</Text> {projeto.habilidades}
-                  </Text>
-                ) : null}
-                {projeto.descricao ? (
-                  <Text style={styles.previewItemDescription}>{projeto.descricao}</Text>
-                ) : null}
-              </View>
-            ))}
-          </View>
-        )}
-
-        {data.idiomas && data.idiomas.length > 0 && (
-          <View style={styles.previewSection}>
-            <Text style={[styles.previewSectionTitle, ts.sectionTitle]}>Idiomas</Text>
-            <View style={{ flexDirection: 'row', flexWrap: 'wrap' }}>
-              {data.idiomas.map((idioma, index) => (
-                <View key={index} style={{
-                  backgroundColor: '#e0f2f1',
-                  paddingVertical: 8,
-                  paddingHorizontal: 12,
-                  marginRight: 10,
-                  marginBottom: 10,
-                  borderRadius: 5,
-                  borderLeftWidth: 3,
-                  borderLeftColor: ts.accent,
-                }}>
-                  <Text style={{ fontWeight: 'bold', color: '#00796b' }}>
-                    {idioma.nome}: <Text style={{ fontWeight: 'normal' }}>{idioma.nivel}</Text>
-                  </Text>
-                </View>
-              ))}
-            </View>
-          </View>
-        )}
-      </View>
-    );
-  }
-
-  // Renderização padrão para os outros templates
-  return (
-    <View style={[styles.previewContainer, ts.container]}>
-      <View style={ts.header}>
-        {fullName ? (
-          <Text style={ts.name}>{fullName}</Text>
-        ) : null}
-
-        {personalInfo.email || personalInfo.endereco ? (
-          <Text style={ts.contact}>
-            {personalInfo.email}
-            {personalInfo.email && personalInfo.endereco ? ' | ' : ''}
-            {personalInfo.endereco}
-          </Text>
-        ) : null}
-
-        {/* Links */}
-        {(personalInfo.site || personalInfo.linkedin || personalInfo.github) && (
-          <View style={styles.previewLinks}>
-            {personalInfo.site && (
-              <Text style={[styles.previewLink, { color: ts.accent }]}>{personalInfo.site}</Text>
-            )}
-            {personalInfo.linkedin && (
-              <Text style={[styles.previewLink, { color: ts.accent }]}>LinkedIn</Text>
-            )}
-            {personalInfo.github && (
-              <Text style={[styles.previewLink, { color: ts.accent }]}>GitHub</Text>
-            )}
-          </View>
-        )}
-      </View>
-
-      {/* Resumo Profissional */}
-      {data.resumo_profissional ? (
-        <View style={styles.previewSection}>
-          <Text style={[styles.previewSectionTitle, ts.sectionTitle]}>Resumo Profissional</Text>
-          <Text style={styles.previewResumeText}>{data.resumo_profissional}</Text>
-        </View>
-      ) : null}
-
-      {/* Formação Acadêmica */}
-      {data.formacoes_academicas && data.formacoes_academicas.length > 0 && (
-        <View style={styles.previewSection}>
-          <Text style={[styles.previewSectionTitle, ts.sectionTitle]}>Formação Acadêmica</Text>
-          {data.formacoes_academicas.map((formacao, index) => (
-            <View key={index} style={[styles.previewItem, ts.itemBorder]}>
-              <Text style={[styles.previewItemTitle, ts.itemTitle]}>
-                {formacao.diploma} em {formacao.area_estudo}
-              </Text>
-              <Text style={styles.previewItemSubtitle}>{formacao.instituicao}</Text>
-              {formacao.data_inicio ? (
-                <Text style={styles.previewItemDate}>
-                  {formacao.data_inicio}
-                  {formacao.data_fim ?
-                    formacao.data_fim.toLowerCase() === 'atual' ?
-                      ' - Presente' :
-                      ` - ${formacao.data_fim}` :
-                    ''}
-                </Text>
-              ) : null}
-            </View>
-          ))}
-        </View>
-      )}
-
-      {/* Experiência Profissional */}
-      {data.experiencias && data.experiencias.length > 0 && (
-        <View style={styles.previewSection}>
-          <Text style={[styles.previewSectionTitle, ts.sectionTitle]}>Experiência Profissional</Text>
-          {data.experiencias.map((exp, index) => (
-            <View key={index} style={[styles.previewItem, ts.itemBorder]}>
-              <Text style={[styles.previewItemTitle, ts.itemTitle]}>{exp.cargo}</Text>
-              <Text style={styles.previewItemSubtitle}>{exp.empresa}</Text>
-              {exp.data_inicio ? (
-                <Text style={styles.previewItemDate}>
-                  {exp.data_inicio}
-                  {exp.data_fim ?
-                    exp.data_fim.toLowerCase() === 'atual' ?
-                      ' - Presente' :
-                      ` - ${exp.data_fim}` :
-                    ''}
-                </Text>
-              ) : null}
-              {exp.descricao ? (
-                <Text style={styles.previewItemDescription}>{exp.descricao}</Text>
-              ) : null}
-            </View>
-          ))}
-        </View>
-      )}
-
-      {/* Cursos */}
-      {data.cursos && data.cursos.length > 0 && (
-        <View style={styles.previewSection}>
-          <Text style={[styles.previewSectionTitle, ts.sectionTitle]}>Cursos e Certificados</Text>
-          {data.cursos.map((curso, index) => (
-            <View key={index} style={[styles.previewItem, ts.itemBorder]}>
-              <Text style={[styles.previewItemTitle, ts.itemTitle]}>{curso.nome}</Text>
-              <Text style={styles.previewItemSubtitle}>{curso.instituicao}</Text>
-              {curso.data_inicio || curso.data_fim ? (
-                <Text style={styles.previewItemDate}>
-                  {curso.data_inicio || ''}
-                  {curso.data_inicio && curso.data_fim ? ' - ' : ''}
-                  {curso.data_fim || ''}
-                </Text>
-              ) : null}
-              {curso.descricao ? (
-                <Text style={styles.previewItemDescription}>{curso.descricao}</Text>
-              ) : null}
-            </View>
-          ))}
-        </View>
-      )}
-
-      {/* Projetos */}
-      {data.projetos && data.projetos.length > 0 && (
-        <View style={styles.previewSection}>
-          <Text style={[styles.previewSectionTitle, ts.sectionTitle]}>Projetos</Text>
-          {data.projetos.map((projeto, index) => (
-            <View key={index} style={[styles.previewItem, ts.itemBorder]}>
-              <Text style={[styles.previewItemTitle, ts.itemTitle]}>{projeto.nome}</Text>
-              {projeto.habilidades ? (
-                <Text style={styles.previewItemSubtitle}>
-                  <Text style={{ fontWeight: 'bold' }}>Habilidades:</Text> {projeto.habilidades}
-                </Text>
-              ) : null}
-              {projeto.descricao ? (
-                <Text style={styles.previewItemDescription}>{projeto.descricao}</Text>
-              ) : null}
-            </View>
-          ))}
-        </View>
-      )}
-
-      {/* Idiomas */}
-      {data.idiomas && data.idiomas.length > 0 && (
-        <View style={styles.previewSection}>
-          <Text style={[styles.previewSectionTitle, ts.sectionTitle]}>Idiomas</Text>
-          <View style={{ flexDirection: 'row', flexWrap: 'wrap' }}>
-            {data.idiomas.map((idioma, index) => (
-              <View key={index} style={[
-                styles.previewItem,
-                {
-                  backgroundColor: '#f8f9fa',
-                  paddingVertical: 8,
-                  paddingHorizontal: 12,
-                  marginRight: 10,
-                  marginBottom: 10,
-                  borderRadius: 5,
-                  borderLeftWidth: 3,
-                  borderLeftColor: ts.accent,
-                }
-              ]}>
-                <Text style={{ fontWeight: 'bold' }}>{idioma.nome}: <Text style={{ fontWeight: 'normal' }}>{idioma.nivel}</Text></Text>
-              </View>
-            ))}
-          </View>
-        </View>
-      )}
-    </View>
-  );
-};
-
-const initialCVData = {
-  informacoes_pessoais: {},
-  resumo_profissional: "", // Novo campo para resumo/biografia
-  formacoes_academicas: [],
-  cursos: [],
-  projetos: [],
-  experiencias: [],
-  idiomas: []
-};
-
-const processMessage = (message, currentStep, cvData) => {
-  // Se não temos dados do CV ainda, inicializar
-  const data = cvData || { ...initialCVData };
-
-  // Para permitir pular campos com "não sei"
-  const isSkipping = ['não sei', 'nao sei', 'n sei', 'ns', 'desconheço', 'desconheco'].includes(message.toLowerCase());
-
-  // Processamento baseado na etapa atual
-  switch (currentStep) {
-    case 'boas_vindas':
-      if (['oi', 'olá', 'ola', 'começar', 'iniciar', 'hello', 'hi'].includes(message.toLowerCase())) {
-        return {
-          response: "Olá! Eu sou o CurriculoBot, seu assistente para criar um currículo profissional. Vamos começar com suas informações pessoais. Como posso te chamar?",
-          nextStep: 'nome',
-          options: [],
-          cvData: data
-        };
-      } else {
-        return {
-          response: "Olá! Sou o CurriculoBot, seu assistente para criar um currículo profissional. Digite 'começar' quando estiver pronto para iniciar.",
-          nextStep: 'boas_vindas',
-          options: ['Começar'],
-          cvData: data
-        };
-      }
-
-    case 'nome':
-      if (!message.trim()) {
-        return {
-          response: "Desculpe, não consegui entender seu nome. Poderia repetir por favor?",
-          nextStep: 'nome',
-          options: [],
-          cvData: data
-        };
-      }
-
-      data.informacoes_pessoais.nome = message.trim();
-
-      return {
-        response: `Prazer em conhecê-lo, ${message.trim()}! Agora, qual é o seu sobrenome?`,
-        nextStep: 'sobrenome',
-        options: [],
-        cvData: data
-      };
-
-    case 'sobrenome':
-      if (!message.trim()) {
-        return {
-          response: "Desculpe, não consegui entender seu sobrenome. Poderia repetir por favor?",
-          nextStep: 'sobrenome',
-          options: [],
-          cvData: data
-        };
-      }
-
-      data.informacoes_pessoais.sobrenome = message.trim();
-
-      return {
-        response: "Ótimo! Agora, qual é o seu endereço de e-mail?",
-        nextStep: 'email',
-        options: [],
-        cvData: data
-      };
-
-    case 'email':
-      if (!message.includes('@')) {
-        return {
-          response: "Hmm, isso não parece um endereço de e-mail válido. Por favor, inclua um '@' no seu e-mail.",
-          nextStep: 'email',
-          options: [],
-          cvData: data
-        };
-      }
-
-      data.informacoes_pessoais.email = message.trim();
-
-      return {
-        response: "Excelente! Agora, qual é o seu endereço?",
-        nextStep: 'endereco',
-        options: ['Não sei'],
-        cvData: data
-      };
-
-    case 'endereco':
-      if (!message.trim() && !isSkipping) {
-        return {
-          response: "Desculpe, não consegui entender seu endereço. Poderia repetir por favor?",
-          nextStep: 'endereco',
-          options: ['Não sei'],
-          cvData: data
-        };
-      }
-
-      if (!isSkipping) {
-        data.informacoes_pessoais.endereco = message.trim();
-      }
-
-      return {
-        response: "Qual é o seu CEP? (Digite 'não sei' caso não saiba ou prefira não informar)",
-        nextStep: 'cep',
-        options: ['Não sei'],
-        cvData: data
-      };
-
-    case 'cep':
-      if (!isSkipping) {
-        // Validação básica de CEP (formato XXXXX-XXX ou XXXXXXXX)
-        const cepRegex = /^[0-9]{5}-?[0-9]{3}$/;
-        
-        if (cepRegex.test(message.trim())) {
-          data.informacoes_pessoais.cep = message.trim();
-        } else if (message.trim() !== '') {
-          return {
-            response: "O CEP informado parece estar em formato inválido. Por favor, digite novamente no formato XXXXX-XXX ou XXXXXXXX. Ou digite 'não sei' para pular.",
-            nextStep: 'cep',
-            options: ['Não sei'],
-            cvData: data
-          };
-        }
-      }
-
-      return {
-        response: "Perfeito! Agora, qual é a sua área de atuação profissional?",
-        nextStep: 'area',
-        options: ['Tecnologia da Informação', 'Saúde', 'Educação', 'Engenharia', 'Direito', 'Marketing', 'Administração', 'Outro'],
-        cvData: data
-      };
-
-    case 'area':
-      if (!message.trim() && !isSkipping) {
-        return {
-          response: "Desculpe, não consegui entender sua área profissional. Poderia repetir por favor?",
-          nextStep: 'area',
-          options: ['Tecnologia da Informação', 'Saúde', 'Educação', 'Engenharia', 'Direito', 'Marketing', 'Administração', 'Outro'],
-          cvData: data
-        };
-      }
-
-      if (!isSkipping) {
-        data.informacoes_pessoais.area = message.trim();
-      }
-
-      return {
-        response: "Você tem um site pessoal ou portfólio? Se sim, qual é o endereço? (Digite 'não sei' se não tiver)",
-        nextStep: 'site',
-        options: ['Não sei', 'Não tenho'],
-        cvData: data
-      };
-
-    case 'site':
-      if (!['não', 'nao', 'no', 'n'].includes(message.toLowerCase()) && !isSkipping) {
-        data.informacoes_pessoais.site = message.trim();
-      }
-
-      return {
-        response: "Você tem um perfil no LinkedIn? Se sim, qual é o endereço? (Digite 'não sei' se não tiver)",
-        nextStep: 'linkedin',
-        options: ['Não sei', 'Não tenho'],
-        cvData: data
-      };
-
-    case 'linkedin':
-      if (!['não', 'nao', 'no', 'n'].includes(message.toLowerCase()) && !isSkipping) {
-        data.informacoes_pessoais.linkedin = message.trim();
-      }
-
-      // Verificar se é da área de tecnologia para perguntar sobre GitHub
-      if (data.informacoes_pessoais.area &&
-        ['tecnologia', 'tecnologia da informação', 'ti', 'desenvolvimento', 'programação']
-          .includes(data.informacoes_pessoais.area.toLowerCase())) {
-        return {
-          response: "Você tem uma conta no GitHub? Se sim, qual é o endereço? (Digite 'não sei' se não tiver)",
-          nextStep: 'github',
-          options: ['Não sei', 'Não tenho'],
-          cvData: data
-        };
-      } else {
-        return {
-          response: "Vamos prosseguir. O que você prefere adicionar primeiro? (Você pode finalizar a qualquer momento digitando 'finalizar')",
-          nextStep: 'escolher_proximo',
-          options: ['Formação Acadêmica', 'Experiência Profissional', 'Cursos e Certificados', 'Projetos', 'Idiomas', 'Finalizar'],
-          cvData: data
-        };
-      }
-
-    case 'github':
-      if (!['não', 'nao', 'no', 'n'].includes(message.toLowerCase()) && !isSkipping) {
-        data.informacoes_pessoais.github = message.trim();
-      }
-
-      return {
-        response: "Agora, conte um pouco sobre você. Descreva brevemente sua trajetória profissional, acadêmica ou objetivos pessoais. Esse texto será um resumo que aparecerá no início do seu currículo.",
-        nextStep: 'resumo_profissional',
-        options: [],
-        cvData: data
-      };
-
-    case 'resumo_profissional':
-      // Salvar o resumo profissional
-      data.resumo_profissional = message.trim();
-
-      return {
-        response: "Obrigado por compartilhar sua trajetória! Agora, o que você prefere adicionar primeiro? (Você pode finalizar a qualquer momento digitando 'finalizar')",
-        nextStep: 'escolher_proximo',
-        options: ['Formação Acadêmica', 'Experiência Profissional', 'Cursos e Certificados', 'Projetos', 'Idiomas', 'Finalizar'],
-        cvData: data
-      };
-
-    case 'escolher_proximo':
-      const option = message.toLowerCase();
-
-      if (option.includes('finalizar') || option.includes('concluir') || option.includes('pronto')) {
-        return {
-          response: "Deseja finalizar seu currículo? Todas as informações já foram salvas.",
-          nextStep: 'finalizar',
-          options: ['Sim, finalizar', 'Não, continuar editando'],
-          cvData: data
-        };
-      } else if (option.includes('formação') || option.includes('formacao')) {
-        return {
-          response: "Vamos adicionar uma formação acadêmica. Qual é a instituição de ensino?",
-          nextStep: 'formacao_instituicao',
-          options: ['Não sei'],
-          cvData: data
-        };
-      } else if (option.includes('experiência') || option.includes('experiencia')) {
-        return {
-          response: "Vamos adicionar uma experiência profissional. Qual foi o cargo ou posição?",
-          nextStep: 'experiencia_cargo',
-          options: ['Não sei'],
-          cvData: data
-        };
-      } else if (option.includes('curso') || option.includes('certificado')) {
-        return {
-          response: "Vamos adicionar um curso ou certificado. Qual é o nome do curso?",
-          nextStep: 'curso_nome',
-          options: ['Não sei'],
-          cvData: data
-        };
-      } else if (option.includes('projeto')) {
-        return {
-          response: "Vamos adicionar um projeto. Qual é o nome do projeto?",
-          nextStep: 'projeto_nome',
-          options: ['Não sei'],
-          cvData: data
-        };
-      } else if (option.includes('idioma')) {
-        return {
-          response: "Vamos adicionar um idioma. Qual idioma você conhece?",
-          nextStep: 'idioma_nome',
-          options: ['Inglês', 'Espanhol', 'Francês', 'Alemão', 'Italiano', 'Mandarim', 'Japonês', 'Outro', 'Não sei'],
-          cvData: data
-        };
-      } else {
-        return {
-          response: "Desculpe, não entendi sua escolha. O que você gostaria de adicionar agora?",
-          nextStep: 'escolher_proximo',
-          options: ['Formação Acadêmica', 'Experiência Profissional', 'Cursos e Certificados', 'Projetos', 'Idiomas', 'Finalizar'],
-          cvData: data
-        };
-      }
-
-    case 'formacao_instituicao':
-      if (!message.trim() && !isSkipping) {
-        return {
-          response: "Por favor, informe o nome da instituição de ensino.",
-          nextStep: 'formacao_instituicao',
-          options: ['Não sei'],
-          cvData: data
-        };
-      }
-
-      // Inicializar nova formação acadêmica
-      const novaFormacao = {
-        instituicao: isSkipping ? '' : message.trim()
-      };
-
-      return {
-        response: "Qual diploma ou grau você obteve? (Ex: Bacharel, Tecnólogo, Mestrado)",
-        nextStep: 'formacao_diploma',
-        options: ['Bacharel', 'Licenciatura', 'Tecnólogo', 'Mestrado', 'Doutorado', 'Técnico', 'Não sei'],
-        cvData: {
-          ...data,
-          formacao_atual: novaFormacao
-        }
-      };
-
-    case 'formacao_diploma':
-      if (!message.trim() && !isSkipping) {
-        return {
-          response: "Por favor, informe o tipo de diploma ou grau obtido.",
-          nextStep: 'formacao_diploma',
-          options: ['Bacharel', 'Licenciatura', 'Tecnólogo', 'Mestrado', 'Doutorado', 'Técnico', 'Não sei'],
-          cvData: data
-        };
-      }
-
-      if (!isSkipping) {
-        data.formacao_atual.diploma = message.trim();
-      }
-
-      return {
-        response: "Qual foi a área de estudo ou curso?",
-        nextStep: 'formacao_area',
-        options: ['Não sei'],
-        cvData: data
-      };
-
-    case 'formacao_area':
-      if (!message.trim() && !isSkipping) {
-        return {
-          response: "Por favor, informe a área de estudo ou curso.",
-          nextStep: 'formacao_area',
-          options: ['Não sei'],
-          cvData: data
-        };
-      }
-
-      if (!isSkipping) {
-        data.formacao_atual.area_estudo = message.trim();
-      }
-
-      return {
-        response: "Qual foi a data de início? (formato: MM/AAAA)",
-        nextStep: 'formacao_data_inicio',
-        options: ['Não sei'],
-        cvData: data
-      };
-
-    case 'formacao_data_inicio':
-      if (!message.trim() && !isSkipping) {
-        return {
-          response: "Por favor, informe a data de início no formato MM/AAAA.",
-          nextStep: 'formacao_data_inicio',
-          options: ['Não sei'],
-          cvData: data
-        };
-      }
-
-      if (!isSkipping) {
-        data.formacao_atual.data_inicio = message.trim();
-      }
-
-      return {
-        response: "Qual foi a data de conclusão? (formato: MM/AAAA, ou digite 'cursando' se ainda estiver em andamento)",
-        nextStep: 'formacao_data_fim',
-        options: ['Cursando', 'Não sei'],
-        cvData: data
-      };
-
-    case 'formacao_data_fim':
-      if (!isSkipping) {
-        data.formacao_atual.data_fim = message.toLowerCase() === 'cursando' ? 'Atual' : message.trim();
-      }
-
-      // Adicionar a formação à lista e limpar a formação atual
-      if (!data.formacoes_academicas) {
-        data.formacoes_academicas = [];
-      }
-
-      data.formacoes_academicas.push(data.formacao_atual);
-      delete data.formacao_atual;
-
-      return {
-        response: "Formação acadêmica adicionada com sucesso! O que você gostaria de adicionar agora?",
-        nextStep: 'escolher_proximo',
-        options: ['Formação Acadêmica', 'Experiência Profissional', 'Cursos e Certificados', 'Projetos', 'Idiomas', 'Finalizar'],
-        cvData: data
-      };
-
-    case 'experiencia_cargo':
-      if (!message.trim() && !isSkipping) {
-        return {
-          response: "Por favor, informe o cargo ou posição ocupada, ou escolha uma das opções abaixo.",
-          nextStep: 'experiencia_cargo',
-          options: ['Voltar para menu principal', 'Não tenho experiência', 'Não sei'],
-          cvData: data
-        };
-      }
-
-      // Inicializar nova experiência profissional
-      const novaExperiencia = {
-        cargo: isSkipping ? '' : message.trim()
-      };
-
-      return {
-        response: "Em qual empresa ou organização você trabalhou?",
-        nextStep: 'experiencia_empresa',
-        options: ['Não sei'],
-        cvData: {
-          ...data,
-          experiencia_atual: novaExperiencia
-        }
-      };
-
-    case 'experiencia_empresa':
-      if (!message.trim() && !isSkipping) {
-        return {
-          response: "Por favor, informe o nome da empresa ou organização.",
-          nextStep: 'experiencia_empresa',
-          options: ['Não sei'],
-          cvData: data
-        };
-      }
-
-      if (!isSkipping) {
-        data.experiencia_atual.empresa = message.trim();
-      }
-
-      return {
-        response: "Qual foi a data de início? (formato: MM/AAAA)",
-        nextStep: 'experiencia_data_inicio',
-        options: ['Não sei'],
-        cvData: data
-      };
-
-    case 'experiencia_data_inicio':
-      if (!message.trim() && !isSkipping) {
-        return {
-          response: "Por favor, informe a data de início no formato MM/AAAA.",
-          nextStep: 'experiencia_data_inicio',
-          options: ['Não sei'],
-          cvData: data
-        };
-      }
-
-      if (!isSkipping) {
-        data.experiencia_atual.data_inicio = message.trim();
-      }
-
-      return {
-        response: "Qual foi a data de término? (formato: MM/AAAA, ou digite 'atual' se ainda estiver neste emprego)",
-        nextStep: 'experiencia_data_fim',
-        options: ['Atual', 'Não sei'],
-        cvData: data
-      };
-
-    case 'experiencia_data_fim':
-      if (!isSkipping) {
-        data.experiencia_atual.data_fim = message.toLowerCase() === 'atual' ? 'Atual' : message.trim();
-      }
-
-      // Adicionar a experiência à lista e limpar a experiência atual
-      if (!data.experiencias) {
-        data.experiencias = [];
-      }
-
-      data.experiencias.push(data.experiencia_atual);
-      delete data.experiencia_atual;
-
-      return {
-        response: "Experiência profissional adicionada com sucesso! O que você gostaria de adicionar agora?",
-        nextStep: 'escolher_proximo',
-        options: ['Formação Acadêmica', 'Experiência Profissional', 'Cursos e Certificados', 'Projetos', 'Idiomas', 'Finalizar'],
-        cvData: data
-      };
-
-    // Curso
-    case 'curso_nome':
-      if (!message.trim() && !isSkipping) {
-        return {
-          response: "Por favor, informe o nome do curso ou certificado.",
-          nextStep: 'curso_nome',
-          options: ['Não sei'],
-          cvData: data
-        };
-      }
-
-      // Inicializar novo curso
-      const novoCurso = {
-        nome: isSkipping ? '' : message.trim()
-      };
-
-      return {
-        response: "Qual instituição ofereceu este curso?",
-        nextStep: 'curso_instituicao',
-        options: ['Não sei'],
-        cvData: {
-          ...data,
-          curso_atual: novoCurso
-        }
-      };
-
-    case 'curso_instituicao':
-      if (!message.trim() && !isSkipping) {
-        return {
-          response: "Por favor, informe o nome da instituição.",
-          nextStep: 'curso_instituicao',
-          options: ['Não sei'],
-          cvData: data
-        };
-      }
-
-      if (!isSkipping) {
-        data.curso_atual.instituicao = message.trim();
-      }
-
-      return {
-        response: "Qual foi a data de início? (formato: MM/AAAA, ou digite 'não sei' se não lembrar)",
-        nextStep: 'curso_data_inicio',
-        options: ['Não sei'],
-        cvData: data
-      };
-
-    case 'curso_data_inicio':
-      if (message.toLowerCase() !== 'não sei' && message.toLowerCase() !== 'nao sei' && !isSkipping) {
-        data.curso_atual.data_inicio = message.trim();
-      }
-
-      return {
-        response: "Qual foi a data de conclusão? (formato: MM/AAAA, ou digite 'cursando' se ainda estiver em andamento)",
-        nextStep: 'curso_data_fim',
-        options: ['Cursando', 'Não sei'],
-        cvData: data
-      };
-
-    case 'curso_data_fim':
-      if (!isSkipping) {
-        if (message.toLowerCase() === 'cursando') {
-          data.curso_atual.data_fim = 'Atual';
-        } else if (message.toLowerCase() !== 'não sei' && message.toLowerCase() !== 'nao sei') {
-          data.curso_atual.data_fim = message.trim();
-        }
-      }
-
-      // Adicionar o curso à lista e limpar o curso atual
-      if (!data.cursos) {
-        data.cursos = [];
-      }
-
-      data.cursos.push(data.curso_atual);
-      delete data.curso_atual;
-
-      return {
-        response: "Curso adicionado com sucesso! O que você gostaria de adicionar agora?",
-        nextStep: 'escolher_proximo',
-        options: ['Formação Acadêmica', 'Experiência Profissional', 'Cursos e Certificados', 'Projetos', 'Idiomas', 'Finalizar'],
-        cvData: data
-      };
-
-    // Projeto
-    case 'projeto_nome':
-      if (!message.trim() && !isSkipping) {
-        return {
-          response: "Por favor, informe o nome do projeto.",
-          nextStep: 'projeto_nome',
-          options: ['Não sei'],
-          cvData: data
-        };
-      }
-
-      // Inicializar novo projeto
-      const novoProjeto = {
-        nome: isSkipping ? '' : message.trim()
-      };
-
-      return {
-        response: "Quais habilidades ou tecnologias você utilizou neste projeto? (separadas por vírgula)",
-        nextStep: 'projeto_habilidades',
-        options: ['Não sei'],
-        cvData: {
-          ...data,
-          projeto_atual: novoProjeto
-        }
-      };
-
-    case 'projeto_habilidades':
-      if (!isSkipping) {
-        data.projeto_atual.habilidades = message.trim();
-      }
-
-      return {
-        response: "Descreva brevemente este projeto:",
-        nextStep: 'projeto_descricao',
-        options: ['Não sei'],
-        cvData: data
-      };
-
-    case 'projeto_descricao':
-      if (!isSkipping) {
-        data.projeto_atual.descricao = message.trim();
-      }
-
-      // Adicionar o projeto à lista e limpar o projeto atual
-      if (!data.projetos) {
-        data.projetos = [];
-      }
-
-      data.projetos.push(data.projeto_atual);
-      delete data.projeto_atual;
-
-      return {
-        response: "Projeto adicionado com sucesso! O que você gostaria de adicionar agora?",
-        nextStep: 'escolher_proximo',
-        options: ['Formação Acadêmica', 'Experiência Profissional', 'Cursos e Certificados', 'Projetos', 'Idiomas', 'Finalizar'],
-        cvData: data
-      };
-
-    // Idioma
-    case 'idioma_nome':
-      if (!message.trim() && !isSkipping) {
-        return {
-          response: "Por favor, informe o idioma.",
-          nextStep: 'idioma_nome',
-          options: ['Inglês', 'Espanhol', 'Francês', 'Alemão', 'Italiano', 'Mandarim', 'Japonês', 'Outro', 'Não sei'],
-          cvData: data
-        };
-      }
-
-      // Inicializar novo idioma
-      const novoIdioma = {
-        nome: isSkipping ? '' : message.trim()
-      };
-
-      return {
-        response: "Qual é o seu nível neste idioma?",
-        nextStep: 'idioma_nivel',
-        options: ['Básico', 'Intermediário', 'Avançado', 'Fluente', 'Nativo', 'Não sei'],
-        cvData: {
-          ...data,
-          idioma_atual: novoIdioma
-        }
-      };
-
-    case 'idioma_nivel':
-      if (!isSkipping) {
-        data.idioma_atual.nivel = message.trim();
-      }
-
-      // Adicionar o idioma à lista e limpar o idioma atual
-      if (!data.idiomas) {
-        data.idiomas = [];
-      }
-
-      data.idiomas.push(data.idioma_atual);
-      delete data.idioma_atual;
-
-      return {
-        response: "Idioma adicionado com sucesso! O que você gostaria de adicionar agora?",
-        nextStep: 'escolher_proximo',
-        options: ['Formação Acadêmica', 'Experiência Profissional', 'Cursos e Certificados', 'Projetos', 'Idiomas', 'Finalizar'],
-        cvData: data
-      };
-
-    case 'finalizar':
-      if (['sim', 'sim, finalizar', 'yes', 's', 'y'].includes(message.toLowerCase())) {
-        return {
-          response: "Seu currículo foi finalizado com sucesso! Você pode acessá-lo na aba 'Meus Currículos'. Obrigado por usar o CurriculoBot!",
-          nextStep: 'concluido',
-          options: ['Iniciar Novo Currículo'],
-          cvData: data,
-          isFinished: true
-        };
-      } else {
-        return {
-          response: "O que você gostaria de adicionar agora?",
-          nextStep: 'escolher_proximo',
-          options: ['Formação Acadêmica', 'Experiência Profissional', 'Cursos e Certificados', 'Projetos', 'Idiomas', 'Finalizar'],
-          cvData: data
-        };
-      }
-
-    default:
-      return {
-        response: "Parece que tivemos um problema. Vamos recomeçar. Como posso ajudar com seu currículo?",
-        nextStep: 'boas_vindas',
-        options: ['Começar'],
-        cvData: initialCVData
-      };
-  }
-};
-
-const ConfirmationButtons = ({ onConfirm, onCorrect }) => {
-  return (
-    <View style={styles.confirmationContainer}>
-      <TouchableOpacity
-        style={[styles.confirmationButton, { backgroundColor: Colors.success }]}
-        onPress={onConfirm}
-      >
-        <Text style={styles.confirmationButtonText}>✓ Confirmar</Text>
-      </TouchableOpacity>
-      
-      <TouchableOpacity
-        style={[styles.confirmationButton, { backgroundColor: Colors.warning }]}
-        onPress={onCorrect}
-      >
-        <Text style={styles.confirmationButtonText}>✗ Corrigir</Text>
-      </TouchableOpacity>
-    </View>
-  );
-};
-
-const getCurrentTime = () => {
-  const now = new Date();
-  return `${now.getHours().toString().padStart(2, '0')}:${now.getMinutes().toString().padStart(2, '0')}`;
-};
-
-const getUniqueId = () => {
-  return Date.now().toString(36) + Math.random().toString(36).substr(2);
-};
-
-const salvarCurriculo = async (data, userId) => {
-  try {
-    // Buscar currículos existentes do usuário
-    const cvs = await AsyncStorage.getItem(`curriculos_${userId}`);
-    const curriculos = cvs ? JSON.parse(cvs) : [];
-
-    // Criar novo currículo
-    const novoCurriculo = {
-      id: getUniqueId(),
-      nome: `${data.informacoes_pessoais.nome || ''} ${data.informacoes_pessoais.sobrenome || ''}`.trim(),
-      data: data,
-      dataCriacao: new Date().toISOString()
-    };
-
-    // Adicionar ao array e salvar
-    curriculos.push(novoCurriculo);
-    await AsyncStorage.setItem(`curriculos_${userId}`, JSON.stringify(curriculos));
-
-    return novoCurriculo.id;
-  } catch (error) {
-    console.error('Erro ao salvar currículo:', error);
-    throw error;
-  }
-};
-
 const ConfiguracoesIAScreen = ({ navigation }) => {
   const [iasSalvas, setIasSalvas] = useState({});
   const [iaAtual, setIaAtual] = useState('GEMINI');
@@ -5543,7 +2962,6 @@ const ConfiguracoesIAScreen = ({ navigation }) => {
     </SafeAreaView>
   );
 };
-
 const SplashScreen = ({ navigation }) => {
   useEffect(() => {
     // Simular carregamento
@@ -5565,7 +2983,6 @@ const SplashScreen = ({ navigation }) => {
     </SafeAreaView>
   );
 };
-
 const LoginScreen = ({ navigation }) => {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -5649,7 +3066,6 @@ const LoginScreen = ({ navigation }) => {
     </SafeAreaView>
   );
 };
-
 const RegisterScreen = ({ navigation }) => {
   const [nome, setNome] = useState('');
   const [email, setEmail] = useState('');
@@ -5773,7 +3189,6 @@ const RegisterScreen = ({ navigation }) => {
     </SafeAreaView>
   );
 };
-
 const SimularEntrevistaScreen = ({ navigation }) => {
   const { user } = useAuth();
   const [curriculos, setCurriculos] = useState([]);
@@ -6050,7 +3465,6 @@ const SimularEntrevistaScreen = ({ navigation }) => {
     </SafeAreaView>
   );
 };
-
 const EntrevistaSimuladaScreen = ({ route, navigation }) => {
   const { curriculoData } = route.params;
   const { user } = useAuth();
@@ -6912,42 +4326,6 @@ Retorne apenas o JSON puro, sem texto adicional.
     </SafeAreaView>
   );
 };
-
-const salvarProgressoCurriculo = async (userId, data) => {
-  try {
-    // Salvar o estado atual do chatbot
-    await AsyncStorage.setItem(`curriculo_em_progresso_${userId}`, JSON.stringify({
-      timestamp: new Date().toISOString(),
-      data: data
-    }));
-    console.log('Progresso do currículo salvo com sucesso');
-  } catch (error) {
-    console.error('Erro ao salvar progresso do currículo:', error);
-  }
-};
-
-const recuperarProgressoCurriculo = async (userId) => {
-  try {
-    const progresso = await AsyncStorage.getItem(`curriculo_em_progresso_${userId}`);
-    if (progresso) {
-      return JSON.parse(progresso);
-    }
-    return null;
-  } catch (error) {
-    console.error('Erro ao recuperar progresso do currículo:', error);
-    return null;
-  }
-};
-
-const limparProgressoCurriculo = async (userId) => {
-  try {
-    await AsyncStorage.removeItem(`curriculo_em_progresso_${userId}`);
-    console.log('Progresso do currículo limpo com sucesso');
-  } catch (error) {
-    console.error('Erro ao limpar progresso do currículo:', error);
-  }
-};
-
 const ChatbotScreen = ({ navigation, route }) => {
   // Estados do componente original
   const [messages, setMessages] = useState([]);
@@ -7357,7 +4735,2607 @@ const ChatbotScreen = ({ navigation, route }) => {
     </SafeAreaView>
   );
 };
+const PreviewCVScreen = ({ route, navigation }) => {
+  const { curriculoData } = route.params;
+  const [templateStyle, setTemplateStyle] = useState('modern');
+  const [showTemplateSelector, setShowTemplateSelector] = useState(false);
+  const [generatingPDF, setGeneratingPDF] = useState(false);
+  const [currentData, setCurrentData] = useState(curriculoData); // Para armazenar versão atual (original ou melhorada)
+  const [showComparison, setShowComparison] = useState(false); // Para mostrar comparação antes/depois
+  const { user } = useAuth();
+  
+  const handleShare = async () => {
+    try {
+      await Share.share({
+        message: `Currículo de ${curriculoData.nome || 'Usuário'}`,
+        title: `Currículo - ${curriculoData.nome || 'Usuário'}`
+      });
+    } catch (error) {
+      console.error('Erro ao compartilhar:', error);
+      Alert.alert('Erro', 'Não foi possível compartilhar o currículo.');
+    }
+  };
 
+  // Emular criação de PDF (já que não temos a biblioteca)
+  const handleExportPDF = async () => {
+    setGeneratingPDF(true);
+
+    try {
+      // Simular processo de geração de PDF
+      await new Promise(resolve => setTimeout(resolve, 2000));
+
+      // Exibir alerta com opções de ação
+      Alert.alert(
+        'PDF Gerado com Sucesso!',
+        'O que você gostaria de fazer com o PDF?',
+        [
+          {
+            text: 'Compartilhar',
+            onPress: () => handleShare(),
+          },
+          {
+            text: 'Salvar na Galeria',
+            onPress: () => {
+              Alert.alert(
+                'Salvando na Galeria...',
+                'Funcionalidade simulada. Em um app real, o PDF seria salvo na galeria.',
+                [{ text: 'OK' }]
+              );
+            },
+          },
+          {
+            text: 'Cancelar',
+            style: 'cancel',
+          },
+        ]
+      );
+    } catch (error) {
+      console.error('Erro ao gerar PDF:', error);
+      Alert.alert('Erro', 'Não foi possível gerar o PDF.');
+    } finally {
+      setGeneratingPDF(false);
+    }
+  };
+  
+  // Função para salvar o currículo melhorado
+  const handleSalvarMelhorado = async (dadosMelhorados) => {
+    try {
+      // Buscar currículos existentes
+      const cvs = await AsyncStorage.getItem(`curriculos_${user.id}`);
+      const curriculos = cvs ? JSON.parse(cvs) : [];
+      
+      // Criar uma nova entrada para o currículo melhorado
+      const novoCurriculo = {
+        id: getUniqueId(),
+        nome: `${curriculoData.nome || 'Currículo'} (Melhorado)`,
+        data: dadosMelhorados,
+        dataCriacao: new Date().toISOString()
+      };
+      
+      // Adicionar ao array e salvar
+      curriculos.push(novoCurriculo);
+      await AsyncStorage.setItem(`curriculos_${user.id}`, JSON.stringify(curriculos));
+      
+      Alert.alert(
+        "Sucesso",
+        "Currículo melhorado salvo com sucesso!",
+        [{ text: "OK" }]
+      );
+      
+      // Atualizar dados na tela
+      setCurrentData({
+        ...novoCurriculo
+      });
+      
+    } catch (error) {
+      console.error('Erro ao salvar currículo melhorado:', error);
+      Alert.alert("Erro", "Não foi possível salvar o currículo melhorado.");
+    }
+  };
+  
+  // Lidar com melhoria de currículo
+  const handleCurriculoMelhorado = (dadosMelhorados) => {
+    // Mostrar alerta com opções
+    Alert.alert(
+      "Currículo Melhorado",
+      "Seu currículo foi melhorado com sucesso! O que deseja fazer?",
+      [
+        { 
+          text: "Visualizar Melhorias", 
+          onPress: () => {
+            // Mostrar comparação
+            setShowComparison(true);
+            setCurrentData({
+              ...curriculoData,
+              data: dadosMelhorados
+            });
+          }
+        },
+        { 
+          text: "Salvar como Novo", 
+          onPress: () => handleSalvarMelhorado(dadosMelhorados)
+        },
+        { 
+          text: "Cancelar", 
+          style: "cancel" 
+        }
+      ]
+    );
+  };
+
+  const templateOptions = [
+    { id: 'modern', name: 'Moderno', category: 'Moderno', color: Colors.primary },
+    // Clássicos
+    { id: 'classic', name: 'Clássico', category: 'Clássico', color: Colors.dark },
+    { id: 'traditional', name: 'Tradicional', category: 'Clássico', color: '#333333' },
+    // Criativos
+    { id: 'consulting', name: 'Consultoria', category: 'Profissional', color: '#1a237e' },
+  ];
+
+  return (
+    <SafeAreaView style={styles.container}>
+      <StatusBar barStyle="dark-content" backgroundColor={Colors.dark} />
+
+      <View style={styles.header}>
+        <TouchableOpacity
+          style={styles.backButton}
+          onPress={() => navigation.goBack()}
+        >
+          <Text style={styles.backButtonText}>‹</Text>
+        </TouchableOpacity>
+        <Text style={styles.headerTitle}>Visualizar Currículo</Text>
+      </View>
+
+      {/* Barra de ferramentas */}
+      <View style={{
+        flexDirection: 'row',
+        backgroundColor: '#f0f0f0',
+        padding: 10,
+        borderBottomWidth: 1,
+        borderBottomColor: Colors.mediumGray,
+      }}>
+        <TouchableOpacity
+          style={{
+            flex: 1,
+            flexDirection: 'row',
+            alignItems: 'center',
+            justifyContent: 'center',
+            paddingVertical: 8,
+            borderRightWidth: 1,
+            borderRightColor: Colors.mediumGray,
+          }}
+          onPress={() => setShowTemplateSelector(!showTemplateSelector)}
+        >
+          <Text style={{ marginRight: 5 }}>Template: {templateOptions.find(t => t.id === templateStyle)?.name}</Text>
+          <Text>▼</Text>
+        </TouchableOpacity>
+
+        <TouchableOpacity
+          style={{
+            flex: 1,
+            flexDirection: 'row',
+            alignItems: 'center',
+            justifyContent: 'center',
+            paddingVertical: 8,
+          }}
+          onPress={handleExportPDF}
+          disabled={generatingPDF}
+        >
+          {generatingPDF ? (
+            <ActivityIndicator size="small" color={Colors.primary} />
+          ) : (
+            <>
+              <Text style={{ marginRight: 5 }}>Exportar PDF</Text>
+              <Text>📄</Text>
+            </>
+          )}
+        </TouchableOpacity>
+      </View>
+
+      {/* Template selector overlay (em vez de Modal) */}
+      {showTemplateSelector && (
+        <View style={{
+          position: 'absolute',
+          top: 0,
+          left: 0,
+          right: 0,
+          bottom: 0,
+          backgroundColor: 'rgba(0, 0, 0, 0.5)',
+          zIndex: 100,
+        }}>
+          <TouchableOpacity
+            style={{ flex: 1 }}
+            onPress={() => setShowTemplateSelector(false)}
+          />
+
+          <View style={{
+            backgroundColor: Colors.white,
+            borderTopLeftRadius: 20,
+            borderTopRightRadius: 20,
+            padding: 20,
+          }}>
+            <View style={{
+              flexDirection: 'row',
+              justifyContent: 'space-between',
+              alignItems: 'center',
+              marginBottom: 15,
+            }}>
+              <Text style={{
+                fontSize: 18,
+                fontWeight: 'bold',
+                color: Colors.dark,
+              }}>
+                Escolher Template
+              </Text>
+
+              <TouchableOpacity
+                onPress={() => setShowTemplateSelector(false)}
+              >
+                <Text style={{
+                  fontSize: 22,
+                  color: Colors.lightText,
+                  paddingHorizontal: 5,
+                }}>
+                  ×
+                </Text>
+              </TouchableOpacity>
+            </View>
+
+            {templateOptions.map(template => (
+              <TouchableOpacity
+                key={template.id}
+                style={{
+                  flexDirection: 'row',
+                  alignItems: 'center',
+                  padding: 15,
+                  borderBottomWidth: 1,
+                  borderBottomColor: Colors.mediumGray,
+                  backgroundColor: templateStyle === template.id ? '#e3f2fd' : 'transparent',
+                }}
+                onPress={() => {
+                  setTemplateStyle(template.id);
+                  setShowTemplateSelector(false);
+                }}
+              >
+                <View style={{
+                  width: 24,
+                  height: 24,
+                  borderRadius: 12,
+                  backgroundColor: template.color,
+                  marginRight: 15,
+                }} />
+
+                <View style={{ flex: 1 }}>
+                  <Text style={{
+                    fontSize: 16,
+                    fontWeight: templateStyle === template.id ? 'bold' : 'normal',
+                    color: Colors.dark,
+                  }}>
+                    {template.name}
+                  </Text>
+                </View>
+
+                {templateStyle === template.id && (
+                  <Text style={{ fontSize: 18, color: Colors.primary }}>✓</Text>
+                )}
+              </TouchableOpacity>
+            ))}
+          </View>
+        </View>
+      )}
+
+      <ScrollView style={styles.previewScreenScroll}>
+        <View style={styles.previewScreenCard}>
+          <CurriculumPreview data={currentData.data} templateStyle={templateStyle} />
+        </View>
+        
+        {/* Adicionar o botão de melhoria com IA */}
+        <View style={{ padding: 15 }}>
+          <MelhorarComIAButton 
+            curriculoData={curriculoData}
+            onMelhoria={handleCurriculoMelhorado}
+          />
+        </View>
+      </ScrollView>
+
+      <View style={styles.previewActions}>
+        <TouchableOpacity
+          style={styles.previewActionButton}
+          onPress={handleShare}
+        >
+          <Text style={styles.previewActionButtonText}>Compartilhar</Text>
+        </TouchableOpacity>
+
+        <TouchableOpacity
+          style={[styles.previewActionButton, { backgroundColor: Colors.secondary }]}
+          onPress={() => navigation.navigate('AnaliseCV', { curriculoData })}
+        >
+          <Text style={styles.previewActionButtonText}>Analisar com IA</Text>
+        </TouchableOpacity>
+        
+        {/* Adicionar botão de edição */}
+        <TouchableOpacity
+          style={[styles.previewActionButton, { backgroundColor: Colors.info }]}
+          onPress={() => navigation.navigate('EditarCurriculo', { curriculoData: currentData })}
+        >
+          <Text style={styles.previewActionButtonText}>Editar Currículo</Text>
+        </TouchableOpacity>
+      </View>
+      
+      {/* Modal de comparação antes/depois */}
+      {showComparison && (
+        <View style={styles.comparisonModal}>
+          <View style={styles.comparisonContainer}>
+            <View style={styles.comparisonHeader}>
+              <Text style={styles.comparisonTitle}>Antes e Depois</Text>
+              <TouchableOpacity
+                style={styles.comparisonCloseButton}
+                onPress={() => setShowComparison(false)}
+              >
+                <Text style={styles.comparisonCloseText}>✕</Text>
+              </TouchableOpacity>
+            </View>
+            
+            <ScrollView style={styles.comparisonScroll}>
+              {/* Exemplo de comparação - resumo profissional */}
+              <View style={styles.comparisonSection}>
+                <Text style={styles.comparisonSectionTitle}>Resumo Profissional</Text>
+                
+                <View style={styles.comparisonItem}>
+                  <Text style={styles.comparisonLabel}>Antes:</Text>
+                  <Text style={styles.comparisonOriginalText}>
+                    {curriculoData.data.resumo_profissional || 'Sem resumo profissional'}
+                  </Text>
+                </View>
+                
+                <View style={styles.comparisonItem}>
+                  <Text style={styles.comparisonLabel}>Depois:</Text>
+                  <Text style={styles.comparisonImprovedText}>
+                    {currentData.data.resumo_profissional || 'Sem resumo profissional'}
+                  </Text>
+                </View>
+              </View>
+              
+              {/* Outras comparações podem ser adicionadas para experiências, etc. */}
+            </ScrollView>
+            
+            <View style={styles.comparisonActions}>
+              <TouchableOpacity
+                style={styles.comparisonButton}
+                onPress={() => setShowComparison(false)}
+              >
+                <Text style={styles.comparisonButtonText}>Fechar</Text>
+              </TouchableOpacity>
+              
+              <TouchableOpacity
+                style={[styles.comparisonButton, { backgroundColor: Colors.success }]}
+                onPress={() => {
+                  handleSalvarMelhorado(currentData.data);
+                  setShowComparison(false);
+                }}
+              >
+                <Text style={styles.comparisonButtonText}>Salvar Melhorias</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        </View>
+      )}
+    </SafeAreaView>
+  );
+};
+
+
+const TabNavigator = () => (
+  <Tab.Navigator
+    screenOptions={({ route }) => ({
+      headerShown: false,
+      tabBarIcon: ({ focused, color, size }) => renderTabBarIcon(route, focused, color, size),
+      tabBarActiveTintColor: Colors.primary,
+      tabBarInactiveTintColor: Colors.lightText,
+      tabBarStyle: {
+        height: 60,
+        paddingBottom: 10,
+        paddingTop: 5,
+      },
+      tabBarLabelStyle: {
+        fontSize: 12,
+      },
+    })}
+  >
+    <Tab.Screen
+      name="Home"
+      component={HomeStackScreen}
+      options={{ tabBarLabel: 'Início' }}
+    />
+    <Tab.Screen
+      name="Dashboard"
+      component={DashboardStackScreen}
+      options={{ tabBarLabel: 'Dashboard' }}
+    />
+    <Tab.Screen
+      name="ConfigAv"
+      component={ConfigAvStackScreen}
+      options={{ tabBarLabel: 'API Avançada' }}
+    />
+    <Tab.Screen
+      name="Config"
+      component={ConfigStackScreen}
+      options={{ tabBarLabel: 'Configurações' }}
+    />
+  </Tab.Navigator>
+);
+const AppNavigator = () => (
+  <AppStack.Navigator screenOptions={{ headerShown: false }}>
+    <AppStack.Screen name="MainTabs" component={TabNavigator} />
+  </AppStack.Navigator>
+);
+const buscarVagasComGemini = async (curriculoData, forceRefresh = false) => {
+  try {
+    // Verificar cache apenas se não estiver forçando atualização
+    if (!forceRefresh) {
+      const cacheKey = `vagas_${JSON.stringify(curriculoData).slice(0, 50)}`;
+      const cachedResult = await AsyncStorage.getItem(cacheKey);
+
+      if (cachedResult) {
+        const parsed = JSON.parse(cachedResult);
+        const cacheAge = new Date() - new Date(parsed.timestamp);
+        const cacheValidHours = 24;
+
+        if (cacheAge < cacheValidHours * 60 * 60 * 1000) {
+          console.log(`Usando resultado em cache para busca de vagas`);
+          return {
+            success: true,
+            vagas: parsed.resultado,
+            timestamp: parsed.timestamp,
+            fromCache: true
+          };
+        }
+      }
+    }
+
+    // Se estamos forçando refresh ou não tem cache válido, proceder com busca
+    console.log('Iniciando busca de vagas com IA', forceRefresh ? '(forçando atualização)' : '');
+
+    // Obter API key do Gemini
+    const apiKey = await getIAAPIKey('GEMINI');
+
+    if (!apiKey) {
+      throw new Error("API key do Google Gemini não configurada");
+    }
+
+    // Formatar dados relevantes do currículo para o prompt
+    const cv = curriculoData.data;
+
+    // Extrair informações chave do currículo
+    const area = cv.informacoes_pessoais?.area || '';
+    const nome = `${cv.informacoes_pessoais?.nome || ''} ${cv.informacoes_pessoais?.sobrenome || ''}`.trim();
+
+    // Extrair competências e palavras-chave do currículo
+    const habilidades = new Set();
+
+    // De projetos
+    if (cv.projetos && cv.projetos.length > 0) {
+      cv.projetos.forEach(projeto => {
+        if (projeto.habilidades) {
+          projeto.habilidades.split(',').forEach(hab => {
+            habilidades.add(hab.trim());
+          });
+        }
+      });
+    }
+
+    // De experiências
+    const experiencias = [];
+    if (cv.experiencias && cv.experiencias.length > 0) {
+      cv.experiencias.forEach(exp => {
+        experiencias.push({
+          cargo: exp.cargo,
+          empresa: exp.empresa,
+          descricao: exp.descricao
+        });
+
+        // Extrair palavras-chave das descrições de experiência
+        if (exp.descricao) {
+          const palavrasChave = exp.descricao
+            .split(/[\s,;.]+/)
+            .filter(palavra =>
+              palavra.length > 4 &&
+              !['sobre', 'como', 'para', 'onde', 'quando', 'quem', 'porque', 'então'].includes(palavra.toLowerCase())
+            );
+
+          palavrasChave.forEach(palavra => habilidades.add(palavra));
+        }
+      });
+    }
+
+    // De formação
+    const formacoes = [];
+    if (cv.formacoes_academicas && cv.formacoes_academicas.length > 0) {
+      cv.formacoes_academicas.forEach(formacao => {
+        formacoes.push({
+          diploma: formacao.diploma,
+          area: formacao.area_estudo,
+          instituicao: formacao.instituicao
+        });
+
+        // Adicionar área de estudo às habilidades
+        if (formacao.area_estudo) {
+          habilidades.add(formacao.area_estudo);
+        }
+      });
+    }
+
+    // De idiomas
+    const idiomas = [];
+    if (cv.idiomas && cv.idiomas.length > 0) {
+      cv.idiomas.forEach(idioma => {
+        idiomas.push({
+          idioma: idioma.nome,
+          nivel: idioma.nivel
+        });
+      });
+    }
+
+    // Adicionar timestamp para diversificar as respostas quando forçar atualização
+    const timestamp = new Date().toISOString();
+
+    // Prompt melhorado para garantir informações completas e links funcionais
+    const promptText = `
+Você é um recrutador e especialista em RH com 15 anos de experiência no mercado brasileiro.
+
+TAREFA: Analisar o perfil profissional abaixo e recomendar 5 vagas reais que estão abertas atualmente no mercado de trabalho brasileiro. Essas vagas devem ser adequadas para o perfil do candidato com base em suas habilidades, experiência e formação.
+
+PERFIL DO CANDIDATO:
+Nome: ${nome}
+Área de atuação: ${area}
+${experiencias.length > 0 ? `
+Experiências profissionais:
+${experiencias.map(exp => `- ${exp.cargo} na empresa ${exp.empresa}`).join('\n')}
+` : ''}
+
+${formacoes.length > 0 ? `
+Formação acadêmica:
+${formacoes.map(form => `- ${form.diploma} em ${form.area} - ${form.instituicao}`).join('\n')}
+` : ''}
+
+${idiomas.length > 0 ? `
+Idiomas:
+${idiomas.map(idioma => `- ${idioma.idioma}: ${idioma.nivel}`).join('\n')}
+` : ''}
+
+Principais competências e palavras-chave:
+${Array.from(habilidades).slice(0, 15).join(', ')}
+
+INSTRUÇÕES ESPECÍFICAS:
+1. Encontre 5 vagas reais que existem atualmente no mercado brasileiro (2025)
+2. As vagas devem ser compatíveis com o perfil, experiência e senioridade do candidato
+3. Cada vez que esta consulta for executada, encontre vagas DIFERENTES das anteriores (atual: ${timestamp})
+
+4. Para cada vaga, forneça OBRIGATORIAMENTE todas estas informações:
+   - Título da vaga (cargo específico)
+   - Nome da empresa
+   - Localização (cidade/estado ou remoto)
+   - Faixa salarial estimada (baseada em sua expertise de mercado)
+   - 5 principais requisitos/qualificações exigidos
+   - 3 diferenciais da vaga
+   - Link completo e clicável para a vaga (URL completa para LinkedIn, Glassdoor, Indeed, etc.)
+   - Breve descrição das responsabilidades (2-3 frases)
+   - Avaliação de compatibilidade com o perfil (porcentagem de 0-100% e justificativa)
+
+5. IMPORTANTE SOBRE OS LINKS: Forneça URLs completos e funcionais no formato [texto](url) 
+   - Use o formato markdown para links, garantindo que sejam clicáveis
+   - Os links devem apontar para plataformas reais como LinkedIn, Glassdoor, Indeed, Catho, etc.
+   - Cada vaga DEVE ter pelo menos um link funcional
+
+6. As vagas devem variar em termos de empresas e possibilidades, mostrando diferentes opções no mercado
+7. Priorize vagas publicadas nos últimos 30 dias
+8. Formate a resposta de forma estruturada usando markdown para facilitar a leitura
+9. Inclua uma análise final com recomendações sobre como o candidato pode se destacar ao aplicar para estas vagas
+
+FORMATO DE RESPOSTA:
+# Vagas Recomendadas para ${nome}
+
+## Vaga 1: [Título da Vaga] - [Empresa]
+**Localização:** [Cidade/Estado ou Remoto]  
+**Faixa Salarial:** R$ [valor] - R$ [valor]  
+
+### Descrição:
+[2-3 frases sobre as responsabilidades]
+
+### Requisitos:
+- [Requisito 1]
+- [Requisito 2]
+- [Requisito 3]
+- [Requisito 4]
+- [Requisito 5]
+
+### Diferenciais:
+- [Diferencial 1]
+- [Diferencial 2]
+- [Diferencial 3]
+
+### Link da Vaga:
+[Nome da Plataforma](URL completa da vaga)
+
+### Compatibilidade:
+**[XX]%** - [Justificativa breve]
+
+[Repetir o formato acima para as 5 vagas]
+
+## Recomendações para se destacar
+[3-5 dicas personalizadas]
+
+IMPORTANTE: Todas as vagas informadas devem ser REAIS e ATUAIS (2025), baseando-se em sua base de conhecimento sobre o mercado de trabalho brasileiro atual. Não crie vagas fictícias e SEMPRE forneça TODAS as informações solicitadas, sem omitir nenhum campo.
+`;
+
+    console.log('Enviando prompt para busca de vagas:', promptText);
+
+    // Preparar a requisição para o Gemini
+    const endpoint = `${IA_APIS.GEMINI.endpoint}?key=${apiKey}`;
+    const requestBody = {
+      contents: [{ parts: [{ text: promptText }] }],
+      generationConfig: {
+        temperature: forceRefresh ? 0.4 : 0.2,  // Temperatura ligeiramente mais alta para refresh
+        maxOutputTokens: 4000,  // Garantir conteúdo completo
+        topP: 0.8,
+        topK: 40
+      }
+    };
+
+    // Fazer a chamada para o Gemini
+    const response = await axios.post(endpoint, requestBody, {
+      headers: { 'Content-Type': 'application/json' },
+      timeout: 30000  // 30 segundos
+    });
+
+    // Processar a resposta
+    if (response.data?.candidates?.[0]?.content?.parts?.[0]?.text) {
+      const resultado = response.data.candidates[0].content.parts[0].text;
+
+      // Armazenar no cache
+      try {
+        const cacheKey = `vagas_${JSON.stringify(curriculoData).slice(0, 50)}`;
+        await AsyncStorage.setItem(cacheKey, JSON.stringify({
+          resultado: resultado,
+          timestamp: new Date().toISOString()
+        }));
+      } catch (cacheError) {
+        console.log('Erro ao salvar busca de vagas no cache:', cacheError.message);
+      }
+
+      return {
+        success: true,
+        vagas: resultado,
+        timestamp: new Date().toISOString(),
+        fromCache: false
+      };
+    } else {
+      throw new Error('Formato de resposta inesperado do Gemini');
+    }
+  } catch (error) {
+    console.error('Erro ao buscar vagas:', error);
+    return {
+      success: false,
+      error: error.message || 'Erro ao buscar vagas com IA'
+    };
+  }
+};
+const AuthProvider = ({ children }) => {
+  const [user, setUser] = useState(null);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    // Verificar se há usuário logado
+    const checkUser = async () => {
+      try {
+        const userData = await AsyncStorage.getItem('currentUser');
+        if (userData) {
+          setUser(JSON.parse(userData));
+        }
+      } catch (error) {
+        console.error('Erro ao verificar usuário:', error);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    checkUser();
+  }, []);
+
+  const login = async (email, password) => {
+    try {
+      // Buscar usuários
+      const usuarios = await AsyncStorage.getItem('usuarios');
+      const usuariosArray = usuarios ? JSON.parse(usuarios) : [];
+
+      // Verificar credenciais
+      const usuarioEncontrado = usuariosArray.find(
+        u => u.email === email && u.password === password
+      );
+
+      if (usuarioEncontrado) {
+        setUser(usuarioEncontrado);
+        await AsyncStorage.setItem('currentUser', JSON.stringify(usuarioEncontrado));
+        return { success: true };
+      } else {
+        return { success: false, message: 'Email ou senha incorretos' };
+      }
+    } catch (error) {
+      console.error('Erro ao fazer login:', error);
+      return { success: false, message: 'Erro ao fazer login' };
+    }
+  };
+
+  const register = async (nome, email, password) => {
+    try {
+      // Verificar se o email já está em uso
+      const usuarios = await AsyncStorage.getItem('usuarios');
+      const usuariosArray = usuarios ? JSON.parse(usuarios) : [];
+
+      if (usuariosArray.some(u => u.email === email)) {
+        return { success: false, message: 'Email já cadastrado' };
+      }
+
+      // Criar novo usuário
+      const novoUsuario = {
+        id: Date.now().toString(),
+        nome,
+        email,
+        password,
+        dataCadastro: new Date().toISOString()
+      };
+
+      // Salvar usuário
+      const novosUsuarios = [...usuariosArray, novoUsuario];
+      await AsyncStorage.setItem('usuarios', JSON.stringify(novosUsuarios));
+
+      // Fazer login automático
+      setUser(novoUsuario);
+      await AsyncStorage.setItem('currentUser', JSON.stringify(novoUsuario));
+
+      return { success: true };
+    } catch (error) {
+      console.error('Erro ao cadastrar:', error);
+      return { success: false, message: 'Erro ao cadastrar' };
+    }
+  };
+
+  // Função de logout corrigida
+  const logout = async () => {
+    try {
+      // Primeiro, definimos o estado para null para evitar acesso a dados antigos
+      setUser(null);
+
+      // Depois removemos os dados de usuário do AsyncStorage
+      await AsyncStorage.removeItem('currentUser');
+
+      // Talvez seja necessário limpar outras informações também
+      // Por exemplo, limpar cache de análises, etc.
+
+      console.log('Logout realizado com sucesso');
+      return true;
+    } catch (error) {
+      console.error('Erro ao fazer logout:', error);
+      // Mesmo com erro, definir o usuário como null para evitar problemas
+      setUser(null);
+      return false;
+    }
+  };
+
+  // Função para atualizar o user (opcional, se você tiver)
+  const updateUser = (userData) => {
+    try {
+      setUser(userData);
+    } catch (error) {
+      console.error('Erro ao atualizar dados do usuário:', error);
+    }
+  };
+
+  return (
+    <AuthContext.Provider value={{ user, loading, login, register, logout, updateUser }}>
+      {children}
+    </AuthContext.Provider>
+  );
+};
+const gerarAnaliseLocal = (curriculoData, tipoAnalise) => {
+  try {
+    // Extrair dados relevantes para personalizar a análise
+    const nome = curriculoData.informacoes_pessoais?.nome || '';
+    const sobrenome = curriculoData.informacoes_pessoais?.sobrenome || '';
+    const nomeCompleto = `${nome} ${sobrenome}`.trim();
+    const area = curriculoData.informacoes_pessoais?.area || 'profissional';
+
+    // Verificar completude das seções para pontuação
+    const temFormacao = curriculoData.formacoes_academicas?.length > 0;
+    const temExperiencia = curriculoData.experiencias?.length > 0;
+    const temCursos = curriculoData.cursos?.length > 0;
+    const temProjetos = curriculoData.projetos?.length > 0;
+    const temIdiomas = curriculoData.idiomas?.length > 0;
+
+    // Calcular pontuação básica
+    let pontuacaoBase = 5; // Base média
+
+    // Adicionar pontos para cada seção preenchida
+    if (temFormacao) pontuacaoBase += 1;
+    if (temExperiencia) pontuacaoBase += 1.5;
+    if (temCursos) pontuacaoBase += 0.5;
+    if (temProjetos) pontuacaoBase += 1;
+    if (temIdiomas) pontuacaoBase += 0.5;
+
+    // Limitar a 10
+    const pontuacaoFinal = Math.min(10, pontuacaoBase);
+
+    // Gerar análise baseada no tipo
+    let analiseTexto = '';
+
+    switch (tipoAnalise) {
+      case 'pontuacao':
+        analiseTexto = `# Análise de Pontuação do Currículo
+
+## Pontuação Geral: ${pontuacaoFinal.toFixed(1)}/10
+
+### Detalhamento:
+
+1. **Conteúdo (30%)**: ${Math.min(10, pontuacaoBase + 0.5).toFixed(1)}/10
+   - ${temExperiencia ? 'Apresenta experiência profissional relevante' : 'Falta detalhar experiência profissional'}
+   - ${temFormacao ? 'Formação acadêmica bem estruturada' : 'Precisa incluir formação acadêmica'}
+
+2. **Estrutura (20%)**: ${Math.min(10, pontuacaoBase).toFixed(1)}/10
+   - Organização ${temFormacao && temExperiencia ? 'lógica e clara' : 'pode ser melhorada'}
+   - ${temProjetos || temCursos ? 'Boa separação das seções' : 'Pode adicionar mais seções para melhorar a estrutura'}
+
+3. **Apresentação (20%)**: ${Math.min(10, pontuacaoBase - 0.5).toFixed(1)}/10
+   - Formatação ${temFormacao && temExperiencia && temCursos ? 'consistente' : 'inconsistente em algumas seções'}
+   - ${temIdiomas ? 'Habilidades linguísticas bem apresentadas' : 'Considere adicionar seção de idiomas'}
+
+4. **Impacto (30%)**: ${Math.min(10, pontuacaoBase - 0.3).toFixed(1)}/10
+   - O currículo ${pontuacaoBase > 7 ? 'causa uma boa primeira impressão' : 'precisa de mais impacto visual e de conteúdo'}
+   - ${temProjetos ? 'Os projetos adicionam valor diferencial' : 'Adicionar projetos pode aumentar o impacto'}
+
+*Esta análise foi gerada automaticamente com base nos dados fornecidos.*`;
+        break;
+
+      case 'melhorias':
+        analiseTexto = `# 5 Melhorias para o Currículo
+
+1. **${!temExperiencia ? 'Adicionar experiências profissionais detalhadas' : 'Detalhar mais os resultados nas experiências profissionais'}**
+   - ${!temExperiencia ? 'Inclua experiências prévias com datas, funções e responsabilidades' : 'Quantifique realizações com números e resultados tangíveis'}
+   - Exemplo: "Aumentou vendas em 27%" ou "Liderou equipe de 5 pessoas no desenvolvimento de novo produto"
+
+2. **${!temFormacao ? 'Incluir formação acadêmica' : 'Destacar competências específicas adquiridas na formação'}**
+   - ${!temFormacao ? 'Adicione sua formação com período, instituição e área' : 'Relacione disciplinas chave ou projetos acadêmicos relevantes'}
+   - Importante para validar conhecimentos técnicos e teóricos
+
+3. **${!temIdiomas ? 'Adicionar seção de idiomas' : 'Especificar níveis de proficiência em idiomas'}**
+   - ${!temIdiomas ? 'Inclua todos os idiomas que conhece com nível de proficiência' : 'Use padrões internacionais como A1-C2 ou descritores claros (fluente, intermediário)'}
+   - Competências linguísticas são diferenciais importantes
+
+4. **${!temProjetos ? 'Criar seção de projetos relevantes' : 'Aprimorar descrição dos projetos'}**
+   - ${!temProjetos ? 'Adicione projetos pessoais ou profissionais relacionados à sua área' : 'Descreva tecnologias e metodologias utilizadas em cada projeto'}
+   - Demonstre aplicação prática de suas habilidades
+
+5. **Personalizar o currículo para cada vaga**
+   - Adapte palavras-chave de acordo com a descrição da vaga
+   - Priorize experiências e habilidades mais relevantes para cada posição
+
+*Implementar estas melhorias pode aumentar significativamente suas chances de ser chamado para entrevistas.*`;
+        break;
+
+      case 'dicas':
+        analiseTexto = `# Dicas Estratégicas de Carreira
+
+## Com base no seu perfil na área de ${area}, recomendamos:
+
+1. **Especialização Técnica**
+   - Invista em conhecimentos específicos de ${area}
+   - Considere certificações reconhecidas pelo mercado
+   - Motivo: Profissionais especializados têm 42% mais chances de serem contratados
+
+2. **Presença Digital Profissional**
+   - Crie ou atualize seu perfil no LinkedIn destacando palavras-chave da área
+   - Compartilhe conteúdo relevante sobre ${area}
+   - Conecte-se com profissionais e empresas de referência no setor
+
+3. **Networking Estratégico**
+   - Participe de eventos, webinars e comunidades de ${area}
+   - Associe-se a grupos profissionais do seu segmento
+   - Busque mentoria de profissionais mais experientes
+
+4. **Desenvolvimento de Soft Skills**
+   - Além de habilidades técnicas, desenvolva comunicação e trabalho em equipe
+   - Pratique liderança e resolução de problemas em projetos paralelos
+   - Estas competências são cada vez mais valorizadas por recrutadores
+
+5. **Aprendizado Contínuo**
+   - Estabeleça uma rotina de atualização sobre tendências em ${area}
+   - Reserve tempo semanal para cursos, leituras e experimentação
+   - Mantenha-se relevante em um mercado que evolui rapidamente
+
+*Estas recomendações foram personalizadas com base nas informações do seu currículo.*`;
+        break;
+
+      case 'cursos':
+        analiseTexto = `# Cursos Recomendados para Seu Perfil
+
+Com base no seu currículo na área de ${area}, recomendamos os seguintes cursos:
+
+1. **${area === 'Tecnologia da Informação' ? 'AWS Certified Solutions Architect' :
+            area === 'Marketing' ? 'Google Analytics Certification' :
+              area === 'Administração' ? 'Gestão Ágil de Projetos (PMI-ACP)' :
+                'Especialização em ' + area}**
+   - Plataforma: ${area === 'Tecnologia da Informação' ? 'AWS Training' :
+            area === 'Marketing' ? 'Google Skillshop' :
+              area === 'Administração' ? 'PMI ou Coursera' :
+                'EdX ou Coursera'}
+   - Por que fazer: Certificação reconhecida globalmente que comprova competências avançadas
+   - Como agregaria: Abre portas para posições sênior com remuneração até 30% maior
+
+2. **${area === 'Tecnologia da Informação' ? 'Data Science Specialization' :
+            area === 'Marketing' ? 'Digital Marketing Specialization' :
+              area === 'Administração' ? 'Liderança e Gestão de Equipes' :
+                'Fundamentos de ' + area}**
+   - Plataforma: Coursera (em parceria com universidades)
+   - Por que fazer: Complementa sua formação com habilidades analíticas fundamentais
+   - Como agregaria: Amplia o perfil para funções que exigem tomada de decisão baseada em dados
+
+3. **${temIdiomas ? 'Business English Communication' : 'Inglês para Profissionais'}**
+   - Plataforma: Duolingo, EF English Live ou Cambly
+   - Por que fazer: Comunicação em inglês é requisito para empresas multinacionais
+   - Como agregaria: Aumenta empregabilidade em 65% e possibilidade de aumento salarial
+
+4. **${area === 'Tecnologia da Informação' ? 'DevOps for Professionals' :
+            area === 'Marketing' ? 'Growth Hacking Masterclass' :
+              area === 'Administração' ? 'Financial Management' :
+                'Inovação em ' + area}**
+   - Plataforma: Udemy ou LinkedIn Learning
+   - Por que fazer: Conhecimentos emergentes com alta demanda no mercado atual
+   - Como agregaria: Posiciona você como profissional atualizado com tendências recentes
+
+5. **${area === 'Tecnologia da Informação' ? 'UI/UX Design Fundamentals' :
+            area === 'Marketing' ? 'Content Marketing Strategy' :
+              area === 'Administração' ? 'Business Analytics' :
+                'Gestão de Projetos para ' + area}**
+   - Plataforma: Alura, Udacity ou Domestika
+   - Por que fazer: Complementa habilidades técnicas com visão de experiência do usuário
+   - Como agregaria: Diferencial competitivo para posições que exigem múltiplas competências
+
+*Esta lista foi personalizada com base no seu perfil atual e tendências de mercado para 2024. Atualizar estas competências pode aumentar significativamente sua empregabilidade.*`;
+        break;
+
+      case 'vagas':
+        analiseTexto = `# Vagas Recomendadas para Seu Perfil
+
+Com base no seu currículo na área de ${area}, você teria boas chances nas seguintes vagas:
+
+1. **${area === 'Tecnologia da Informação' ? 'Desenvolvedor Full-Stack' :
+            area === 'Marketing' ? 'Especialista em Marketing Digital' :
+              area === 'Administração' ? 'Analista de Projetos' :
+                'Especialista em ' + area}**
+   - Por que combina: ${temExperiencia ? 'Sua experiência anterior demonstra as competências necessárias' : 'Seu perfil de formação se alinha com os requisitos típicos'}
+   - Competências valorizadas: ${temProjetos ? 'Experiência prática em projetos' : 'Conhecimentos teóricos'}, ${temIdiomas ? 'domínio de idiomas' : 'habilidades analíticas'}
+   - Empresas/setores: ${area === 'Tecnologia da Informação' ? 'Fintechs, agências digitais' :
+            area === 'Marketing' ? 'E-commerces, agências' :
+              area === 'Administração' ? 'Multinacionais, consultorias' :
+                'Empresas de médio e grande porte'}
+   - Palavras-chave: ${area.toLowerCase()}, especialista, ${temFormacao ? 'graduação' : 'experiência'}, análise
+
+2. **${area === 'Tecnologia da Informação' ? 'Analista de Dados' :
+            area === 'Marketing' ? 'Coordenador de Mídia Social' :
+              area === 'Administração' ? 'Gerente de Operações' :
+                'Consultor em ' + area}**
+   - Por que combina: Aproveita suas competências em ${temProjetos ? 'projetos' : 'análise'} e ${temCursos ? 'conhecimentos específicos' : 'formação'}
+   - Competências valorizadas: Análise crítica, conhecimentos técnicos, ${temIdiomas ? 'comunicação multilíngue' : 'comunicação eficaz'}
+   - Empresas/setores: Consultorias, startups em crescimento, empresas de tecnologia
+   - Palavras-chave: análise, ${area.toLowerCase()}, consultoria, projetos, ${temExperiencia ? 'experiência comprovada' : 'potencial'}
+
+3. **${area === 'Tecnologia da Informação' ? 'Gerente de Produto Técnico' :
+            area === 'Marketing' ? 'Brand Manager' :
+              area === 'Administração' ? 'Analista de Negócios' :
+                'Analista de ' + area}**
+   - Por que combina: Mescla ${temFormacao ? 'formação acadêmica' : 'visão prática'} com ${temProjetos ? 'experiência em projetos' : 'capacidade analítica'}
+   - Competências valorizadas: Visão estratégica, conhecimento de mercado, ${temIdiomas ? 'habilidades de comunicação internacional' : 'comunicação clara'}
+   - Empresas/setores: Empresas de médio e grande porte, multinacionais, consultorias especializadas
+   - Palavras-chave: gerenciamento, estratégia, ${area.toLowerCase()}, análise, ${temFormacao ? 'qualificação acadêmica' : 'experiência prática'}
+
+4. **${area === 'Tecnologia da Informação' ? 'Arquiteto de Soluções' :
+            area === 'Marketing' ? 'Gerente de Growth Marketing' :
+              area === 'Administração' ? 'Coordenador de Projetos' :
+                'Gerente de ' + area}**
+   - Por que combina: Utiliza ${temFormacao ? 'conhecimento teórico' : 'visão prática'} combinado com ${temExperiencia ? 'experiência no mercado' : 'potencial de liderança'}
+   - Competências valorizadas: Visão holística, capacidade de coordenação, ${temCursos ? 'especialização técnica' : 'adaptabilidade'}
+   - Empresas/setores: Empresas inovadoras, líderes de mercado, organizações em transformação
+   - Palavras-chave: coordenação, ${area.toLowerCase()}, gerenciamento, ${temIdiomas ? 'internacional' : 'nacional'}, estratégia
+
+5. **${area === 'Tecnologia da Informação' ? 'Especialista em Segurança da Informação' :
+            area === 'Marketing' ? 'Customer Success Manager' :
+              area === 'Administração' ? 'Analista de Processos' :
+                'Especialista em ' + area} ${temIdiomas ? 'Internacional' : 'Sênior'}**
+   - Por que combina: Aproveita ${temFormacao && temExperiencia ? 'combinação de teoria e prática' : temFormacao ? 'sólida formação acadêmica' : 'experiência prática'}
+   - Competências valorizadas: Especialização técnica, ${temIdiomas ? 'comunicação multilíngue' : 'comunicação eficaz'}, resolução de problemas
+   - Empresas/setores: Empresas de tecnologia, multinacionais, consultorias especializadas
+   - Palavras-chave: especialista, ${area.toLowerCase()}, ${temFormacao ? 'graduação' : 'experiência'}, ${temIdiomas ? 'internacional' : 'nacional'}, técnico
+
+*Esta lista foi personalizada com base no seu perfil atual. Adapte seu currículo para destacar as competências relevantes para cada tipo de vaga.*`;
+        break;
+
+      default:
+        analiseTexto = `# Análise Geral do Currículo
+
+## Pontos Fortes
+- ${temFormacao ? 'Formação acadêmica na área de atuação' : 'Perfil com potencial de desenvolvimento'}
+- ${temExperiencia ? 'Experiência profissional demonstrada' : 'Oportunidade para destacar projetos e outras atividades'}
+- ${temIdiomas ? 'Conhecimento de idiomas' : 'Foco em competências técnicas'}
+
+## Áreas de Melhoria
+- ${!temProjetos ? 'Adicionar seção de projetos para demonstrar habilidades práticas' : 'Detalhar melhor os projetos apresentados'}
+- ${!temCursos ? 'Incluir cursos e certificações para complementar formação' : 'Relacionar cursos com objetivos profissionais'}
+- Personalizar o currículo para cada oportunidade específica
+
+## Impressão Geral
+O currículo apresenta um profissional ${pontuacaoFinal > 7 ? 'bem qualificado' : 'com potencial'} na área de ${area}. ${pontuacaoFinal > 7 ? 'Possui boa estrutura' : 'Precisa de ajustes na estrutura'} e ${temExperiencia && temFormacao ? 'apresenta informações relevantes' : 'pode ser enriquecido com mais informações relevantes'}.
+
+## Nota Geral: ${pontuacaoFinal.toFixed(1)}/10
+
+*Esta análise foi gerada pelo sistema de análise local e representa uma avaliação baseada nos dados fornecidos.*`;
+    }
+
+    // Informar que estamos usando análise local
+    return {
+      success: true,
+      analise: analiseTexto,
+      offline: true,
+      provider: 'Sistema Local'
+    };
+  } catch (error) {
+    console.error('Erro na análise local:', error);
+
+    // Em caso de erro, retornar uma análise genérica
+    return {
+      success: true,
+      analise: `# Análise de Currículo\n\nSeu currículo apresenta um bom equilíbrio entre formação e experiência. Continue aprimorando com cursos e projetos relevantes para sua área.\n\n*Nota: Esta é uma análise básica gerada pelo sistema.*`,
+      offline: true,
+      provider: 'Sistema Local'
+    };
+  }
+};
+const ChatMessage = ({ message, isUser, time }) => (
+  <View style={[
+    styles.messageContainer,
+    isUser ? styles.userMessageContainer : styles.botMessageContainer
+  ]}>
+    <Text style={[
+      styles.messageText,
+      isUser ? styles.userMessageText : styles.botMessageText
+    ]}>
+      {message}
+    </Text>
+    <Text style={styles.messageTime}>{time}</Text>
+  </View>
+);
+const ChatOptions = ({ options, onSelect }) => {
+  if (!options || options.length === 0) return null;
+
+  // Identificar se são opções longas
+  const hasLongOptions = options.some(option => option.length > 10);
+
+  // Verificar se são opções de áreas específicas
+  const isAreaStep = options.includes('Tecnologia da Informação') ||
+    options.includes('Administração');
+
+  return (
+    <ScrollView
+      horizontal
+      showsHorizontalScrollIndicator={false}
+      contentContainerStyle={styles.optionsContainer}
+    >
+      {options.map((option, index) => (
+        <TouchableOpacity
+          key={index}
+          style={[
+            styles.optionButton,
+            hasLongOptions && styles.longOptionButton,
+            isAreaStep && styles.areaOptionButton
+          ]}
+          onPress={() => onSelect(option)}
+        >
+          <Text
+            style={[
+              styles.optionText,
+              hasLongOptions && styles.longOptionText
+            ]}
+            adjustsFontSizeToFit={true}
+            numberOfLines={2}
+          >
+            {option}
+          </Text>
+        </TouchableOpacity>
+      ))}
+    </ScrollView>
+  );
+};
+const processMessage = (message, currentStep, cvData) => {
+  // Se não temos dados do CV ainda, inicializar
+  const data = cvData || { ...initialCVData };
+
+  // Para permitir pular campos com "não sei"
+  const isSkipping = ['não sei', 'nao sei', 'n sei', 'ns', 'desconheço', 'desconheco'].includes(message.toLowerCase());
+
+  // Processamento baseado na etapa atual
+  switch (currentStep) {
+    case 'boas_vindas':
+      if (['oi', 'olá', 'ola', 'começar', 'iniciar', 'hello', 'hi'].includes(message.toLowerCase())) {
+        return {
+          response: "Olá! Eu sou o CurriculoBot, seu assistente para criar um currículo profissional. Vamos começar com suas informações pessoais. Como posso te chamar?",
+          nextStep: 'nome',
+          options: [],
+          cvData: data
+        };
+      } else {
+        return {
+          response: "Olá! Sou o CurriculoBot, seu assistente para criar um currículo profissional. Digite 'começar' quando estiver pronto para iniciar.",
+          nextStep: 'boas_vindas',
+          options: ['Começar'],
+          cvData: data
+        };
+      }
+
+    case 'nome':
+      if (!message.trim()) {
+        return {
+          response: "Desculpe, não consegui entender seu nome. Poderia repetir por favor?",
+          nextStep: 'nome',
+          options: [],
+          cvData: data
+        };
+      }
+
+      data.informacoes_pessoais.nome = message.trim();
+
+      return {
+        response: `Prazer em conhecê-lo, ${message.trim()}! Agora, qual é o seu sobrenome?`,
+        nextStep: 'sobrenome',
+        options: [],
+        cvData: data
+      };
+
+    case 'sobrenome':
+      if (!message.trim()) {
+        return {
+          response: "Desculpe, não consegui entender seu sobrenome. Poderia repetir por favor?",
+          nextStep: 'sobrenome',
+          options: [],
+          cvData: data
+        };
+      }
+
+      data.informacoes_pessoais.sobrenome = message.trim();
+
+      return {
+        response: "Ótimo! Agora, qual é o seu endereço de e-mail?",
+        nextStep: 'email',
+        options: [],
+        cvData: data
+      };
+
+    case 'email':
+      if (!message.includes('@')) {
+        return {
+          response: "Hmm, isso não parece um endereço de e-mail válido. Por favor, inclua um '@' no seu e-mail.",
+          nextStep: 'email',
+          options: [],
+          cvData: data
+        };
+      }
+
+      data.informacoes_pessoais.email = message.trim();
+
+      return {
+        response: "Excelente! Agora, qual é o seu endereço?",
+        nextStep: 'endereco',
+        options: ['Não sei'],
+        cvData: data
+      };
+
+    case 'endereco':
+      if (!message.trim() && !isSkipping) {
+        return {
+          response: "Desculpe, não consegui entender seu endereço. Poderia repetir por favor?",
+          nextStep: 'endereco',
+          options: ['Não sei'],
+          cvData: data
+        };
+      }
+
+      if (!isSkipping) {
+        data.informacoes_pessoais.endereco = message.trim();
+      }
+
+      return {
+        response: "Qual é o seu CEP? (Digite 'não sei' caso não saiba ou prefira não informar)",
+        nextStep: 'cep',
+        options: ['Não sei'],
+        cvData: data
+      };
+
+    case 'cep':
+      if (!isSkipping) {
+        // Validação básica de CEP (formato XXXXX-XXX ou XXXXXXXX)
+        const cepRegex = /^[0-9]{5}-?[0-9]{3}$/;
+        
+        if (cepRegex.test(message.trim())) {
+          data.informacoes_pessoais.cep = message.trim();
+        } else if (message.trim() !== '') {
+          return {
+            response: "O CEP informado parece estar em formato inválido. Por favor, digite novamente no formato XXXXX-XXX ou XXXXXXXX. Ou digite 'não sei' para pular.",
+            nextStep: 'cep',
+            options: ['Não sei'],
+            cvData: data
+          };
+        }
+      }
+
+      return {
+        response: "Perfeito! Agora, qual é a sua área de atuação profissional?",
+        nextStep: 'area',
+        options: ['Tecnologia da Informação', 'Saúde', 'Educação', 'Engenharia', 'Direito', 'Marketing', 'Administração', 'Outro'],
+        cvData: data
+      };
+
+    case 'area':
+      if (!message.trim() && !isSkipping) {
+        return {
+          response: "Desculpe, não consegui entender sua área profissional. Poderia repetir por favor?",
+          nextStep: 'area',
+          options: ['Tecnologia da Informação', 'Saúde', 'Educação', 'Engenharia', 'Direito', 'Marketing', 'Administração', 'Outro'],
+          cvData: data
+        };
+      }
+
+      if (!isSkipping) {
+        data.informacoes_pessoais.area = message.trim();
+      }
+
+      return {
+        response: "Você tem um site pessoal ou portfólio? Se sim, qual é o endereço? (Digite 'não sei' se não tiver)",
+        nextStep: 'site',
+        options: ['Não sei', 'Não tenho'],
+        cvData: data
+      };
+
+    case 'site':
+      if (!['não', 'nao', 'no', 'n'].includes(message.toLowerCase()) && !isSkipping) {
+        data.informacoes_pessoais.site = message.trim();
+      }
+
+      return {
+        response: "Você tem um perfil no LinkedIn? Se sim, qual é o endereço? (Digite 'não sei' se não tiver)",
+        nextStep: 'linkedin',
+        options: ['Não sei', 'Não tenho'],
+        cvData: data
+      };
+
+    case 'linkedin':
+      if (!['não', 'nao', 'no', 'n'].includes(message.toLowerCase()) && !isSkipping) {
+        data.informacoes_pessoais.linkedin = message.trim();
+      }
+
+      // Verificar se é da área de tecnologia para perguntar sobre GitHub
+      if (data.informacoes_pessoais.area &&
+        ['tecnologia', 'tecnologia da informação', 'ti', 'desenvolvimento', 'programação']
+          .includes(data.informacoes_pessoais.area.toLowerCase())) {
+        return {
+          response: "Você tem uma conta no GitHub? Se sim, qual é o endereço? (Digite 'não sei' se não tiver)",
+          nextStep: 'github',
+          options: ['Não sei', 'Não tenho'],
+          cvData: data
+        };
+      } else {
+        return {
+          response: "Vamos prosseguir. O que você prefere adicionar primeiro? (Você pode finalizar a qualquer momento digitando 'finalizar')",
+          nextStep: 'escolher_proximo',
+          options: ['Formação Acadêmica', 'Experiência Profissional', 'Cursos e Certificados', 'Projetos', 'Idiomas', 'Finalizar'],
+          cvData: data
+        };
+      }
+
+    case 'github':
+      if (!['não', 'nao', 'no', 'n'].includes(message.toLowerCase()) && !isSkipping) {
+        data.informacoes_pessoais.github = message.trim();
+      }
+
+      return {
+        response: "Agora, conte um pouco sobre você. Descreva brevemente sua trajetória profissional, acadêmica ou objetivos pessoais. Esse texto será um resumo que aparecerá no início do seu currículo.",
+        nextStep: 'resumo_profissional',
+        options: [],
+        cvData: data
+      };
+
+    case 'resumo_profissional':
+      // Salvar o resumo profissional
+      data.resumo_profissional = message.trim();
+
+      return {
+        response: "Obrigado por compartilhar sua trajetória! Agora, o que você prefere adicionar primeiro? (Você pode finalizar a qualquer momento digitando 'finalizar')",
+        nextStep: 'escolher_proximo',
+        options: ['Formação Acadêmica', 'Experiência Profissional', 'Cursos e Certificados', 'Projetos', 'Idiomas', 'Finalizar'],
+        cvData: data
+      };
+
+    case 'escolher_proximo':
+      const option = message.toLowerCase();
+
+      if (option.includes('finalizar') || option.includes('concluir') || option.includes('pronto')) {
+        return {
+          response: "Deseja finalizar seu currículo? Todas as informações já foram salvas.",
+          nextStep: 'finalizar',
+          options: ['Sim, finalizar', 'Não, continuar editando'],
+          cvData: data
+        };
+      } else if (option.includes('formação') || option.includes('formacao')) {
+        return {
+          response: "Vamos adicionar uma formação acadêmica. Qual é a instituição de ensino?",
+          nextStep: 'formacao_instituicao',
+          options: ['Não sei'],
+          cvData: data
+        };
+      } else if (option.includes('experiência') || option.includes('experiencia')) {
+        return {
+          response: "Vamos adicionar uma experiência profissional. Qual foi o cargo ou posição?",
+          nextStep: 'experiencia_cargo',
+          options: ['Não sei'],
+          cvData: data
+        };
+      } else if (option.includes('curso') || option.includes('certificado')) {
+        return {
+          response: "Vamos adicionar um curso ou certificado. Qual é o nome do curso?",
+          nextStep: 'curso_nome',
+          options: ['Não sei'],
+          cvData: data
+        };
+      } else if (option.includes('projeto')) {
+        return {
+          response: "Vamos adicionar um projeto. Qual é o nome do projeto?",
+          nextStep: 'projeto_nome',
+          options: ['Não sei'],
+          cvData: data
+        };
+      } else if (option.includes('idioma')) {
+        return {
+          response: "Vamos adicionar um idioma. Qual idioma você conhece?",
+          nextStep: 'idioma_nome',
+          options: ['Inglês', 'Espanhol', 'Francês', 'Alemão', 'Italiano', 'Mandarim', 'Japonês', 'Outro', 'Não sei'],
+          cvData: data
+        };
+      } else {
+        return {
+          response: "Desculpe, não entendi sua escolha. O que você gostaria de adicionar agora?",
+          nextStep: 'escolher_proximo',
+          options: ['Formação Acadêmica', 'Experiência Profissional', 'Cursos e Certificados', 'Projetos', 'Idiomas', 'Finalizar'],
+          cvData: data
+        };
+      }
+
+    case 'formacao_instituicao':
+      if (!message.trim() && !isSkipping) {
+        return {
+          response: "Por favor, informe o nome da instituição de ensino.",
+          nextStep: 'formacao_instituicao',
+          options: ['Não sei'],
+          cvData: data
+        };
+      }
+
+      // Inicializar nova formação acadêmica
+      const novaFormacao = {
+        instituicao: isSkipping ? '' : message.trim()
+      };
+
+      return {
+        response: "Qual diploma ou grau você obteve? (Ex: Bacharel, Tecnólogo, Mestrado)",
+        nextStep: 'formacao_diploma',
+        options: ['Bacharel', 'Licenciatura', 'Tecnólogo', 'Mestrado', 'Doutorado', 'Técnico', 'Não sei'],
+        cvData: {
+          ...data,
+          formacao_atual: novaFormacao
+        }
+      };
+
+    case 'formacao_diploma':
+      if (!message.trim() && !isSkipping) {
+        return {
+          response: "Por favor, informe o tipo de diploma ou grau obtido.",
+          nextStep: 'formacao_diploma',
+          options: ['Bacharel', 'Licenciatura', 'Tecnólogo', 'Mestrado', 'Doutorado', 'Técnico', 'Não sei'],
+          cvData: data
+        };
+      }
+
+      if (!isSkipping) {
+        data.formacao_atual.diploma = message.trim();
+      }
+
+      return {
+        response: "Qual foi a área de estudo ou curso?",
+        nextStep: 'formacao_area',
+        options: ['Não sei'],
+        cvData: data
+      };
+
+    case 'formacao_area':
+      if (!message.trim() && !isSkipping) {
+        return {
+          response: "Por favor, informe a área de estudo ou curso.",
+          nextStep: 'formacao_area',
+          options: ['Não sei'],
+          cvData: data
+        };
+      }
+
+      if (!isSkipping) {
+        data.formacao_atual.area_estudo = message.trim();
+      }
+
+      return {
+        response: "Qual foi a data de início? (formato: MM/AAAA)",
+        nextStep: 'formacao_data_inicio',
+        options: ['Não sei'],
+        cvData: data
+      };
+
+    case 'formacao_data_inicio':
+      if (!message.trim() && !isSkipping) {
+        return {
+          response: "Por favor, informe a data de início no formato MM/AAAA.",
+          nextStep: 'formacao_data_inicio',
+          options: ['Não sei'],
+          cvData: data
+        };
+      }
+
+      if (!isSkipping) {
+        data.formacao_atual.data_inicio = message.trim();
+      }
+
+      return {
+        response: "Qual foi a data de conclusão? (formato: MM/AAAA, ou digite 'cursando' se ainda estiver em andamento)",
+        nextStep: 'formacao_data_fim',
+        options: ['Cursando', 'Não sei'],
+        cvData: data
+      };
+
+    case 'formacao_data_fim':
+      if (!isSkipping) {
+        data.formacao_atual.data_fim = message.toLowerCase() === 'cursando' ? 'Atual' : message.trim();
+      }
+
+      // Adicionar a formação à lista e limpar a formação atual
+      if (!data.formacoes_academicas) {
+        data.formacoes_academicas = [];
+      }
+
+      data.formacoes_academicas.push(data.formacao_atual);
+      delete data.formacao_atual;
+
+      return {
+        response: "Formação acadêmica adicionada com sucesso! O que você gostaria de adicionar agora?",
+        nextStep: 'escolher_proximo',
+        options: ['Formação Acadêmica', 'Experiência Profissional', 'Cursos e Certificados', 'Projetos', 'Idiomas', 'Finalizar'],
+        cvData: data
+      };
+
+    case 'experiencia_cargo':
+      if (!message.trim() && !isSkipping) {
+        return {
+          response: "Por favor, informe o cargo ou posição ocupada, ou escolha uma das opções abaixo.",
+          nextStep: 'experiencia_cargo',
+          options: ['Voltar para menu principal', 'Não tenho experiência', 'Não sei'],
+          cvData: data
+        };
+      }
+
+      // Inicializar nova experiência profissional
+      const novaExperiencia = {
+        cargo: isSkipping ? '' : message.trim()
+      };
+
+      return {
+        response: "Em qual empresa ou organização você trabalhou?",
+        nextStep: 'experiencia_empresa',
+        options: ['Não sei'],
+        cvData: {
+          ...data,
+          experiencia_atual: novaExperiencia
+        }
+      };
+
+    case 'experiencia_empresa':
+      if (!message.trim() && !isSkipping) {
+        return {
+          response: "Por favor, informe o nome da empresa ou organização.",
+          nextStep: 'experiencia_empresa',
+          options: ['Não sei'],
+          cvData: data
+        };
+      }
+
+      if (!isSkipping) {
+        data.experiencia_atual.empresa = message.trim();
+      }
+
+      return {
+        response: "Qual foi a data de início? (formato: MM/AAAA)",
+        nextStep: 'experiencia_data_inicio',
+        options: ['Não sei'],
+        cvData: data
+      };
+
+    case 'experiencia_data_inicio':
+      if (!message.trim() && !isSkipping) {
+        return {
+          response: "Por favor, informe a data de início no formato MM/AAAA.",
+          nextStep: 'experiencia_data_inicio',
+          options: ['Não sei'],
+          cvData: data
+        };
+      }
+
+      if (!isSkipping) {
+        data.experiencia_atual.data_inicio = message.trim();
+      }
+
+      return {
+        response: "Qual foi a data de término? (formato: MM/AAAA, ou digite 'atual' se ainda estiver neste emprego)",
+        nextStep: 'experiencia_data_fim',
+        options: ['Atual', 'Não sei'],
+        cvData: data
+      };
+
+    case 'experiencia_data_fim':
+      if (!isSkipping) {
+        data.experiencia_atual.data_fim = message.toLowerCase() === 'atual' ? 'Atual' : message.trim();
+      }
+
+      // Adicionar a experiência à lista e limpar a experiência atual
+      if (!data.experiencias) {
+        data.experiencias = [];
+      }
+
+      data.experiencias.push(data.experiencia_atual);
+      delete data.experiencia_atual;
+
+      return {
+        response: "Experiência profissional adicionada com sucesso! O que você gostaria de adicionar agora?",
+        nextStep: 'escolher_proximo',
+        options: ['Formação Acadêmica', 'Experiência Profissional', 'Cursos e Certificados', 'Projetos', 'Idiomas', 'Finalizar'],
+        cvData: data
+      };
+
+    // Curso
+    case 'curso_nome':
+      if (!message.trim() && !isSkipping) {
+        return {
+          response: "Por favor, informe o nome do curso ou certificado.",
+          nextStep: 'curso_nome',
+          options: ['Não sei'],
+          cvData: data
+        };
+      }
+
+      // Inicializar novo curso
+      const novoCurso = {
+        nome: isSkipping ? '' : message.trim()
+      };
+
+      return {
+        response: "Qual instituição ofereceu este curso?",
+        nextStep: 'curso_instituicao',
+        options: ['Não sei'],
+        cvData: {
+          ...data,
+          curso_atual: novoCurso
+        }
+      };
+
+    case 'curso_instituicao':
+      if (!message.trim() && !isSkipping) {
+        return {
+          response: "Por favor, informe o nome da instituição.",
+          nextStep: 'curso_instituicao',
+          options: ['Não sei'],
+          cvData: data
+        };
+      }
+
+      if (!isSkipping) {
+        data.curso_atual.instituicao = message.trim();
+      }
+
+      return {
+        response: "Qual foi a data de início? (formato: MM/AAAA, ou digite 'não sei' se não lembrar)",
+        nextStep: 'curso_data_inicio',
+        options: ['Não sei'],
+        cvData: data
+      };
+
+    case 'curso_data_inicio':
+      if (message.toLowerCase() !== 'não sei' && message.toLowerCase() !== 'nao sei' && !isSkipping) {
+        data.curso_atual.data_inicio = message.trim();
+      }
+
+      return {
+        response: "Qual foi a data de conclusão? (formato: MM/AAAA, ou digite 'cursando' se ainda estiver em andamento)",
+        nextStep: 'curso_data_fim',
+        options: ['Cursando', 'Não sei'],
+        cvData: data
+      };
+
+    case 'curso_data_fim':
+      if (!isSkipping) {
+        if (message.toLowerCase() === 'cursando') {
+          data.curso_atual.data_fim = 'Atual';
+        } else if (message.toLowerCase() !== 'não sei' && message.toLowerCase() !== 'nao sei') {
+          data.curso_atual.data_fim = message.trim();
+        }
+      }
+
+      // Adicionar o curso à lista e limpar o curso atual
+      if (!data.cursos) {
+        data.cursos = [];
+      }
+
+      data.cursos.push(data.curso_atual);
+      delete data.curso_atual;
+
+      return {
+        response: "Curso adicionado com sucesso! O que você gostaria de adicionar agora?",
+        nextStep: 'escolher_proximo',
+        options: ['Formação Acadêmica', 'Experiência Profissional', 'Cursos e Certificados', 'Projetos', 'Idiomas', 'Finalizar'],
+        cvData: data
+      };
+
+    // Projeto
+    case 'projeto_nome':
+      if (!message.trim() && !isSkipping) {
+        return {
+          response: "Por favor, informe o nome do projeto.",
+          nextStep: 'projeto_nome',
+          options: ['Não sei'],
+          cvData: data
+        };
+      }
+
+      // Inicializar novo projeto
+      const novoProjeto = {
+        nome: isSkipping ? '' : message.trim()
+      };
+
+      return {
+        response: "Quais habilidades ou tecnologias você utilizou neste projeto? (separadas por vírgula)",
+        nextStep: 'projeto_habilidades',
+        options: ['Não sei'],
+        cvData: {
+          ...data,
+          projeto_atual: novoProjeto
+        }
+      };
+
+    case 'projeto_habilidades':
+      if (!isSkipping) {
+        data.projeto_atual.habilidades = message.trim();
+      }
+
+      return {
+        response: "Descreva brevemente este projeto:",
+        nextStep: 'projeto_descricao',
+        options: ['Não sei'],
+        cvData: data
+      };
+
+    case 'projeto_descricao':
+      if (!isSkipping) {
+        data.projeto_atual.descricao = message.trim();
+      }
+
+      // Adicionar o projeto à lista e limpar o projeto atual
+      if (!data.projetos) {
+        data.projetos = [];
+      }
+
+      data.projetos.push(data.projeto_atual);
+      delete data.projeto_atual;
+
+      return {
+        response: "Projeto adicionado com sucesso! O que você gostaria de adicionar agora?",
+        nextStep: 'escolher_proximo',
+        options: ['Formação Acadêmica', 'Experiência Profissional', 'Cursos e Certificados', 'Projetos', 'Idiomas', 'Finalizar'],
+        cvData: data
+      };
+
+    // Idioma
+    case 'idioma_nome':
+      if (!message.trim() && !isSkipping) {
+        return {
+          response: "Por favor, informe o idioma.",
+          nextStep: 'idioma_nome',
+          options: ['Inglês', 'Espanhol', 'Francês', 'Alemão', 'Italiano', 'Mandarim', 'Japonês', 'Outro', 'Não sei'],
+          cvData: data
+        };
+      }
+
+      // Inicializar novo idioma
+      const novoIdioma = {
+        nome: isSkipping ? '' : message.trim()
+      };
+
+      return {
+        response: "Qual é o seu nível neste idioma?",
+        nextStep: 'idioma_nivel',
+        options: ['Básico', 'Intermediário', 'Avançado', 'Fluente', 'Nativo', 'Não sei'],
+        cvData: {
+          ...data,
+          idioma_atual: novoIdioma
+        }
+      };
+
+    case 'idioma_nivel':
+      if (!isSkipping) {
+        data.idioma_atual.nivel = message.trim();
+      }
+
+      // Adicionar o idioma à lista e limpar o idioma atual
+      if (!data.idiomas) {
+        data.idiomas = [];
+      }
+
+      data.idiomas.push(data.idioma_atual);
+      delete data.idioma_atual;
+
+      return {
+        response: "Idioma adicionado com sucesso! O que você gostaria de adicionar agora?",
+        nextStep: 'escolher_proximo',
+        options: ['Formação Acadêmica', 'Experiência Profissional', 'Cursos e Certificados', 'Projetos', 'Idiomas', 'Finalizar'],
+        cvData: data
+      };
+
+    case 'finalizar':
+      if (['sim', 'sim, finalizar', 'yes', 's', 'y'].includes(message.toLowerCase())) {
+        return {
+          response: "Seu currículo foi finalizado com sucesso! Você pode acessá-lo na aba 'Meus Currículos'. Obrigado por usar o CurriculoBot!",
+          nextStep: 'concluido',
+          options: ['Iniciar Novo Currículo'],
+          cvData: data,
+          isFinished: true
+        };
+      } else {
+        return {
+          response: "O que você gostaria de adicionar agora?",
+          nextStep: 'escolher_proximo',
+          options: ['Formação Acadêmica', 'Experiência Profissional', 'Cursos e Certificados', 'Projetos', 'Idiomas', 'Finalizar'],
+          cvData: data
+        };
+      }
+
+    default:
+      return {
+        response: "Parece que tivemos um problema. Vamos recomeçar. Como posso ajudar com seu currículo?",
+        nextStep: 'boas_vindas',
+        options: ['Começar'],
+        cvData: initialCVData
+      };
+  }
+};
+const ConfirmationButtons = ({ onConfirm, onCorrect }) => {
+  return (
+    <View style={styles.confirmationContainer}>
+      <TouchableOpacity
+        style={[styles.confirmationButton, { backgroundColor: Colors.success }]}
+        onPress={onConfirm}
+      >
+        <Text style={styles.confirmationButtonText}>✓ Confirmar</Text>
+      </TouchableOpacity>
+      
+      <TouchableOpacity
+        style={[styles.confirmationButton, { backgroundColor: Colors.warning }]}
+        onPress={onCorrect}
+      >
+        <Text style={styles.confirmationButtonText}>✗ Corrigir</Text>
+      </TouchableOpacity>
+    </View>
+  );
+};
+const getCurrentTime = () => {
+  const now = new Date();
+  return `${now.getHours().toString().padStart(2, '0')}:${now.getMinutes().toString().padStart(2, '0')}`;
+};
+const getUniqueId = () => {
+  return Date.now().toString(36) + Math.random().toString(36).substr(2);
+};
+
+
+
+
+const CurriculumPreview = ({ data, templateStyle = 'modern' }) => {
+  if (!data || !data.informacoes_pessoais) {
+    return (
+      <View style={styles.emptyPreview}>
+        <Text style={styles.emptyPreviewText}>
+          As informações do seu currículo aparecerão aqui conforme você as fornecer.
+        </Text>
+      </View>
+    );
+  }
+
+  // Definição de estilos baseados no template selecionado
+  const getTemplateStyles = () => {
+    switch (templateStyle) {
+      case 'classic':
+        return {
+          container: {
+            backgroundColor: Colors.white,
+            padding: 15,
+          },
+          header: {
+            borderBottomWidth: 2,
+            borderBottomColor: Colors.dark,
+            paddingBottom: 10,
+            marginBottom: 15,
+          },
+          name: {
+            fontSize: 24,
+            fontWeight: 'bold',
+            color: Colors.dark,
+            textAlign: 'center',
+          },
+          contact: {
+            color: Colors.dark,
+            textAlign: 'center',
+            marginBottom: 5,
+          },
+          sectionTitle: {
+            fontSize: 18,
+            fontWeight: 'bold',
+            color: Colors.dark,
+            marginBottom: 10,
+            borderBottomWidth: 1,
+            borderBottomColor: Colors.mediumGray,
+            paddingBottom: 5,
+          },
+          itemTitle: {
+            fontSize: 16,
+            fontWeight: 'bold',
+            color: Colors.dark,
+          },
+          accent: Colors.dark,
+          itemBorder: {
+            borderLeftWidth: 0,
+            paddingLeft: 0,
+          }
+        };
+
+      case 'elegant':
+        return {
+          container: {
+            backgroundColor: '#fff',
+            padding: 20,
+            borderWidth: 1,
+            borderColor: '#d4d4d4',
+          },
+          header: {
+            marginBottom: 25,
+            alignItems: 'center',
+            borderBottomWidth: 0.5,
+            borderBottomColor: '#aaa',
+            paddingBottom: 20,
+          },
+          name: {
+            fontSize: 28,
+            fontWeight: '300', // Mais leve
+            color: '#333',
+            marginBottom: 5,
+            letterSpacing: 2,
+            textTransform: 'uppercase',
+            textAlign: 'center',
+          },
+          contact: {
+            color: '#666',
+            marginBottom: 3,
+            textAlign: 'center',
+            fontSize: 14,
+          },
+          sectionTitle: {
+            fontSize: 16,
+            fontWeight: '400',
+            color: '#333',
+            marginBottom: 15,
+            textTransform: 'uppercase',
+            letterSpacing: 2,
+            paddingBottom: 5,
+            borderBottomWidth: 0.5,
+            borderBottomColor: '#aaa',
+            textAlign: 'center',
+          },
+          itemTitle: {
+            fontSize: 16,
+            fontWeight: '500',
+            color: '#333',
+          },
+          accent: '#333',
+          itemBorder: {
+            paddingLeft: 0,
+            marginBottom: 18,
+          }
+        };
+
+      // Template padrão (Modern)
+      default:
+        return {
+          container: {
+            backgroundColor: Colors.white,
+            padding: 15,
+          },
+          header: {
+            marginBottom: 15,
+          },
+          name: {
+            fontSize: 24,
+            fontWeight: 'bold',
+            color: Colors.primary,
+            marginBottom: 5,
+          },
+          contact: {
+            color: Colors.dark,
+            marginBottom: 5,
+          },
+          sectionTitle: {
+            fontSize: 18,
+            fontWeight: 'bold',
+            color: Colors.primary,
+            marginBottom: 10,
+            borderBottomWidth: 1,
+            borderBottomColor: Colors.primary,
+            paddingBottom: 5,
+          },
+          itemTitle: {
+            fontSize: 16,
+            fontWeight: 'bold',
+            color: Colors.dark,
+          },
+          accent: Colors.primary,
+          itemBorder: {
+            borderLeftWidth: 3,
+            borderLeftColor: Colors.primary,
+            paddingLeft: 10,
+          }
+        };
+    }
+  };
+
+  const ts = getTemplateStyles();
+  const personalInfo = data.informacoes_pessoais;
+  const fullName = `${personalInfo.nome || ''} ${personalInfo.sobrenome || ''}`.trim();
+
+  // Renderização do currículo em duas colunas ou formato padrão
+  if (templateStyle === 'two-column') {
+    return (
+      <View style={[styles.previewContainer, ts.container]}>
+        {/* Coluna lateral */}
+        <View style={ts.header}>
+          {fullName ? (
+            <Text style={ts.name}>{fullName}</Text>
+          ) : null}
+
+          {personalInfo.email || personalInfo.endereco ? (
+            <Text style={ts.contact}>
+              {personalInfo.email}
+              {personalInfo.email && personalInfo.endereco ? '\n' : ''}
+              {personalInfo.endereco}
+            </Text>
+          ) : null}
+
+          {/* Links na barra lateral */}
+          {(personalInfo.site || personalInfo.linkedin || personalInfo.github) && (
+            <View style={ts.sidebarSection}>
+              <Text style={ts.sidebarTitle}>Links</Text>
+              {personalInfo.site && (
+                <Text style={[styles.previewLink, { color: '#fff', textAlign: 'center' }]}>{personalInfo.site}</Text>
+              )}
+              {personalInfo.linkedin && (
+                <Text style={[styles.previewLink, { color: '#fff', textAlign: 'center' }]}>LinkedIn</Text>
+              )}
+              {personalInfo.github && (
+                <Text style={[styles.previewLink, { color: '#fff', textAlign: 'center' }]}>GitHub</Text>
+              )}
+            </View>
+          )}
+
+          {/* Idiomas na barra lateral */}
+          {data.idiomas && data.idiomas.length > 0 && (
+            <View style={ts.sidebarSection}>
+              <Text style={ts.sidebarTitle}>Idiomas</Text>
+              {data.idiomas.map((idioma, index) => (
+                <Text key={index} style={{ color: '#fff', textAlign: 'center', marginBottom: 4 }}>
+                  {idioma.nome}: {idioma.nivel}
+                </Text>
+              ))}
+            </View>
+          )}
+        </View>
+
+        {/* Coluna principal de conteúdo */}
+        <View style={ts.contentColumn}>
+          {/* Resumo Profissional */}
+          {data.resumo_profissional ? (
+            <View style={styles.previewSection}>
+              <Text style={[styles.previewSectionTitle, ts.sectionTitle]}>Resumo Profissional</Text>
+              <Text style={styles.previewResumeText}>{data.resumo_profissional}</Text>
+            </View>
+          ) : null}
+
+          {/* Formação Acadêmica */}
+          {data.formacoes_academicas && data.formacoes_academicas.length > 0 && (
+            <View style={styles.previewSection}>
+              <Text style={[styles.previewSectionTitle, ts.sectionTitle]}>Formação Acadêmica</Text>
+              {data.formacoes_academicas.map((formacao, index) => (
+                <View key={index} style={[styles.previewItem, ts.itemBorder]}>
+                  <Text style={[styles.previewItemTitle, ts.itemTitle]}>
+                    {formacao.diploma} em {formacao.area_estudo}
+                  </Text>
+                  <Text style={styles.previewItemSubtitle}>{formacao.instituicao}</Text>
+                  {formacao.data_inicio ? (
+                    <Text style={styles.previewItemDate}>
+                      {formacao.data_inicio}
+                      {formacao.data_fim ?
+                        formacao.data_fim.toLowerCase() === 'atual' ?
+                          ' - Presente' :
+                          ` - ${formacao.data_fim}` :
+                        ''}
+                    </Text>
+                  ) : null}
+                </View>
+              ))}
+            </View>
+          )}
+
+          {/* Experiência Profissional */}
+          {data.experiencias && data.experiencias.length > 0 && (
+            <View style={styles.previewSection}>
+              <Text style={[styles.previewSectionTitle, ts.sectionTitle]}>Experiência Profissional</Text>
+              {data.experiencias.map((exp, index) => (
+                <View key={index} style={[styles.previewItem, ts.itemBorder]}>
+                  <Text style={[styles.previewItemTitle, ts.itemTitle]}>{exp.cargo}</Text>
+                  <Text style={styles.previewItemSubtitle}>{exp.empresa}</Text>
+                  {exp.data_inicio ? (
+                    <Text style={styles.previewItemDate}>
+                      {exp.data_inicio}
+                      {exp.data_fim ?
+                        exp.data_fim.toLowerCase() === 'atual' ?
+                          ' - Presente' :
+                          ` - ${exp.data_fim}` :
+                        ''}
+                    </Text>
+                  ) : null}
+                  {exp.descricao ? (
+                    <Text style={styles.previewItemDescription}>{exp.descricao}</Text>
+                  ) : null}
+                </View>
+              ))}
+            </View>
+          )}
+
+          {/* Cursos */}
+          {data.cursos && data.cursos.length > 0 && (
+            <View style={styles.previewSection}>
+              <Text style={[styles.previewSectionTitle, ts.sectionTitle]}>Cursos e Certificados</Text>
+              {data.cursos.map((curso, index) => (
+                <View key={index} style={[styles.previewItem, ts.itemBorder]}>
+                  <Text style={[styles.previewItemTitle, ts.itemTitle]}>{curso.nome}</Text>
+                  <Text style={styles.previewItemSubtitle}>{curso.instituicao}</Text>
+                  {curso.data_inicio || curso.data_fim ? (
+                    <Text style={styles.previewItemDate}>
+                      {curso.data_inicio || ''}
+                      {curso.data_inicio && curso.data_fim ? ' - ' : ''}
+                      {curso.data_fim || ''}
+                    </Text>
+                  ) : null}
+                  {curso.descricao ? (
+                    <Text style={styles.previewItemDescription}>{curso.descricao}</Text>
+                  ) : null}
+                </View>
+              ))}
+            </View>
+          )}
+
+          {/* Projetos */}
+          {data.projetos && data.projetos.length > 0 && (
+            <View style={styles.previewSection}>
+              <Text style={[styles.previewSectionTitle, ts.sectionTitle]}>Projetos</Text>
+              {data.projetos.map((projeto, index) => (
+                <View key={index} style={[styles.previewItem, ts.itemBorder]}>
+                  <Text style={[styles.previewItemTitle, ts.itemTitle]}>{projeto.nome}</Text>
+                  {projeto.habilidades ? (
+                    <Text style={styles.previewItemSubtitle}>
+                      <Text style={{ fontWeight: 'bold' }}>Habilidades:</Text> {projeto.habilidades}
+                    </Text>
+                  ) : null}
+                  {projeto.descricao ? (
+                    <Text style={styles.previewItemDescription}>{projeto.descricao}</Text>
+                  ) : null}
+                </View>
+              ))}
+            </View>
+          )}
+        </View>
+      </View>
+    );
+  }
+
+  // Renderização especial para template de timeline
+  else if (templateStyle === 'timeline') {
+    return (
+      <View style={[styles.previewContainer, ts.container]}>
+        <View style={ts.header}>
+          {fullName ? (
+            <Text style={ts.name}>{fullName}</Text>
+          ) : null}
+
+          {personalInfo.email || personalInfo.endereco ? (
+            <Text style={ts.contact}>
+              {personalInfo.email}
+              {personalInfo.email && personalInfo.endereco ? ' | ' : ''}
+              {personalInfo.endereco}
+            </Text>
+          ) : null}
+
+          {/* Links */}
+          {(personalInfo.site || personalInfo.linkedin || personalInfo.github) && (
+            <View style={styles.previewLinks}>
+              {personalInfo.site && (
+                <Text style={[styles.previewLink, { color: '#b2dfdb' }]}>{personalInfo.site}</Text>
+              )}
+              {personalInfo.linkedin && (
+                <Text style={[styles.previewLink, { color: '#b2dfdb' }]}>LinkedIn</Text>
+              )}
+              {personalInfo.github && (
+                <Text style={[styles.previewLink, { color: '#b2dfdb' }]}>GitHub</Text>
+              )}
+            </View>
+          )}
+        </View>
+
+        {/* Resumo Profissional */}
+        {data.resumo_profissional ? (
+          <View style={styles.previewSection}>
+            <Text style={[styles.previewSectionTitle, ts.sectionTitle]}>Resumo Profissional</Text>
+            <Text style={styles.previewResumeText}>{data.resumo_profissional}</Text>
+          </View>
+        ) : null}
+
+        {/* Experiência Profissional com Timeline */}
+        {data.experiencias && data.experiencias.length > 0 && (
+          <View style={styles.previewSection}>
+            <Text style={[styles.previewSectionTitle, ts.sectionTitle]}>Experiência Profissional</Text>
+            {data.experiencias.map((exp, index) => (
+              <View key={index} style={[styles.previewItem, ts.itemBorder]}>
+                {/* Dot da Timeline */}
+                <View style={ts.timelineDot}>
+                  <Text style={{ color: '#fff', fontSize: 10, fontWeight: 'bold' }}>
+                    {index + 1}
+                  </Text>
+                </View>
+
+                <Text style={[styles.previewItemTitle, ts.itemTitle]}>{exp.cargo}</Text>
+                <Text style={styles.previewItemSubtitle}>{exp.empresa}</Text>
+                {exp.data_inicio ? (
+                  <Text style={[styles.previewItemDate, { fontWeight: 'bold', color: '#00796b' }]}>
+                    {exp.data_inicio}
+                    {exp.data_fim ?
+                      exp.data_fim.toLowerCase() === 'atual' ?
+                        ' - Presente' :
+                        ` - ${exp.data_fim}` :
+                      ''}
+                  </Text>
+                ) : null}
+                {exp.descricao ? (
+                  <Text style={styles.previewItemDescription}>{exp.descricao}</Text>
+                ) : null}
+              </View>
+            ))}
+          </View>
+        )}
+
+        {/* Outras seções como padrão */}
+        {data.formacoes_academicas && data.formacoes_academicas.length > 0 && (
+          <View style={styles.previewSection}>
+            <Text style={[styles.previewSectionTitle, ts.sectionTitle]}>Formação Acadêmica</Text>
+            {data.formacoes_academicas.map((formacao, index) => (
+              <View key={index} style={[styles.previewItem, ts.itemBorder]}>
+                <Text style={[styles.previewItemTitle, ts.itemTitle]}>
+                  {formacao.diploma} em {formacao.area_estudo}
+                </Text>
+                <Text style={styles.previewItemSubtitle}>{formacao.instituicao}</Text>
+                {formacao.data_inicio ? (
+                  <Text style={styles.previewItemDate}>
+                    {formacao.data_inicio}
+                    {formacao.data_fim ?
+                      formacao.data_fim.toLowerCase() === 'atual' ?
+                        ' - Presente' :
+                        ` - ${formacao.data_fim}` :
+                      ''}
+                  </Text>
+                ) : null}
+              </View>
+            ))}
+          </View>
+        )}
+
+        {/* Restante das seções como no padrão */}
+        {data.cursos && data.cursos.length > 0 && (
+          <View style={styles.previewSection}>
+            <Text style={[styles.previewSectionTitle, ts.sectionTitle]}>Cursos e Certificados</Text>
+            {data.cursos.map((curso, index) => (
+              <View key={index} style={[styles.previewItem, ts.itemBorder]}>
+                <Text style={[styles.previewItemTitle, ts.itemTitle]}>{curso.nome}</Text>
+                <Text style={styles.previewItemSubtitle}>{curso.instituicao}</Text>
+                {curso.data_inicio || curso.data_fim ? (
+                  <Text style={styles.previewItemDate}>
+                    {curso.data_inicio || ''}
+                    {curso.data_inicio && curso.data_fim ? ' - ' : ''}
+                    {curso.data_fim || ''}
+                  </Text>
+                ) : null}
+                {curso.descricao ? (
+                  <Text style={styles.previewItemDescription}>{curso.descricao}</Text>
+                ) : null}
+              </View>
+            ))}
+          </View>
+        )}
+
+        {data.projetos && data.projetos.length > 0 && (
+          <View style={styles.previewSection}>
+            <Text style={[styles.previewSectionTitle, ts.sectionTitle]}>Projetos</Text>
+            {data.projetos.map((projeto, index) => (
+              <View key={index} style={[styles.previewItem, ts.itemBorder]}>
+                <Text style={[styles.previewItemTitle, ts.itemTitle]}>{projeto.nome}</Text>
+                {projeto.habilidades ? (
+                  <Text style={styles.previewItemSubtitle}>
+                    <Text style={{ fontWeight: 'bold' }}>Habilidades:</Text> {projeto.habilidades}
+                  </Text>
+                ) : null}
+                {projeto.descricao ? (
+                  <Text style={styles.previewItemDescription}>{projeto.descricao}</Text>
+                ) : null}
+              </View>
+            ))}
+          </View>
+        )}
+
+        {data.idiomas && data.idiomas.length > 0 && (
+          <View style={styles.previewSection}>
+            <Text style={[styles.previewSectionTitle, ts.sectionTitle]}>Idiomas</Text>
+            <View style={{ flexDirection: 'row', flexWrap: 'wrap' }}>
+              {data.idiomas.map((idioma, index) => (
+                <View key={index} style={{
+                  backgroundColor: '#e0f2f1',
+                  paddingVertical: 8,
+                  paddingHorizontal: 12,
+                  marginRight: 10,
+                  marginBottom: 10,
+                  borderRadius: 5,
+                  borderLeftWidth: 3,
+                  borderLeftColor: ts.accent,
+                }}>
+                  <Text style={{ fontWeight: 'bold', color: '#00796b' }}>
+                    {idioma.nome}: <Text style={{ fontWeight: 'normal' }}>{idioma.nivel}</Text>
+                  </Text>
+                </View>
+              ))}
+            </View>
+          </View>
+        )}
+      </View>
+    );
+  }
+
+  // Renderização padrão para os outros templates
+  return (
+    <View style={[styles.previewContainer, ts.container]}>
+      <View style={ts.header}>
+        {fullName ? (
+          <Text style={ts.name}>{fullName}</Text>
+        ) : null}
+
+        {personalInfo.email || personalInfo.endereco ? (
+          <Text style={ts.contact}>
+            {personalInfo.email}
+            {personalInfo.email && personalInfo.endereco ? ' | ' : ''}
+            {personalInfo.endereco}
+          </Text>
+        ) : null}
+
+        {/* Links */}
+        {(personalInfo.site || personalInfo.linkedin || personalInfo.github) && (
+          <View style={styles.previewLinks}>
+            {personalInfo.site && (
+              <Text style={[styles.previewLink, { color: ts.accent }]}>{personalInfo.site}</Text>
+            )}
+            {personalInfo.linkedin && (
+              <Text style={[styles.previewLink, { color: ts.accent }]}>LinkedIn</Text>
+            )}
+            {personalInfo.github && (
+              <Text style={[styles.previewLink, { color: ts.accent }]}>GitHub</Text>
+            )}
+          </View>
+        )}
+      </View>
+
+      {/* Resumo Profissional */}
+      {data.resumo_profissional ? (
+        <View style={styles.previewSection}>
+          <Text style={[styles.previewSectionTitle, ts.sectionTitle]}>Resumo Profissional</Text>
+          <Text style={styles.previewResumeText}>{data.resumo_profissional}</Text>
+        </View>
+      ) : null}
+
+      {/* Formação Acadêmica */}
+      {data.formacoes_academicas && data.formacoes_academicas.length > 0 && (
+        <View style={styles.previewSection}>
+          <Text style={[styles.previewSectionTitle, ts.sectionTitle]}>Formação Acadêmica</Text>
+          {data.formacoes_academicas.map((formacao, index) => (
+            <View key={index} style={[styles.previewItem, ts.itemBorder]}>
+              <Text style={[styles.previewItemTitle, ts.itemTitle]}>
+                {formacao.diploma} em {formacao.area_estudo}
+              </Text>
+              <Text style={styles.previewItemSubtitle}>{formacao.instituicao}</Text>
+              {formacao.data_inicio ? (
+                <Text style={styles.previewItemDate}>
+                  {formacao.data_inicio}
+                  {formacao.data_fim ?
+                    formacao.data_fim.toLowerCase() === 'atual' ?
+                      ' - Presente' :
+                      ` - ${formacao.data_fim}` :
+                    ''}
+                </Text>
+              ) : null}
+            </View>
+          ))}
+        </View>
+      )}
+
+      {/* Experiência Profissional */}
+      {data.experiencias && data.experiencias.length > 0 && (
+        <View style={styles.previewSection}>
+          <Text style={[styles.previewSectionTitle, ts.sectionTitle]}>Experiência Profissional</Text>
+          {data.experiencias.map((exp, index) => (
+            <View key={index} style={[styles.previewItem, ts.itemBorder]}>
+              <Text style={[styles.previewItemTitle, ts.itemTitle]}>{exp.cargo}</Text>
+              <Text style={styles.previewItemSubtitle}>{exp.empresa}</Text>
+              {exp.data_inicio ? (
+                <Text style={styles.previewItemDate}>
+                  {exp.data_inicio}
+                  {exp.data_fim ?
+                    exp.data_fim.toLowerCase() === 'atual' ?
+                      ' - Presente' :
+                      ` - ${exp.data_fim}` :
+                    ''}
+                </Text>
+              ) : null}
+              {exp.descricao ? (
+                <Text style={styles.previewItemDescription}>{exp.descricao}</Text>
+              ) : null}
+            </View>
+          ))}
+        </View>
+      )}
+
+      {/* Cursos */}
+      {data.cursos && data.cursos.length > 0 && (
+        <View style={styles.previewSection}>
+          <Text style={[styles.previewSectionTitle, ts.sectionTitle]}>Cursos e Certificados</Text>
+          {data.cursos.map((curso, index) => (
+            <View key={index} style={[styles.previewItem, ts.itemBorder]}>
+              <Text style={[styles.previewItemTitle, ts.itemTitle]}>{curso.nome}</Text>
+              <Text style={styles.previewItemSubtitle}>{curso.instituicao}</Text>
+              {curso.data_inicio || curso.data_fim ? (
+                <Text style={styles.previewItemDate}>
+                  {curso.data_inicio || ''}
+                  {curso.data_inicio && curso.data_fim ? ' - ' : ''}
+                  {curso.data_fim || ''}
+                </Text>
+              ) : null}
+              {curso.descricao ? (
+                <Text style={styles.previewItemDescription}>{curso.descricao}</Text>
+              ) : null}
+            </View>
+          ))}
+        </View>
+      )}
+
+      {/* Projetos */}
+      {data.projetos && data.projetos.length > 0 && (
+        <View style={styles.previewSection}>
+          <Text style={[styles.previewSectionTitle, ts.sectionTitle]}>Projetos</Text>
+          {data.projetos.map((projeto, index) => (
+            <View key={index} style={[styles.previewItem, ts.itemBorder]}>
+              <Text style={[styles.previewItemTitle, ts.itemTitle]}>{projeto.nome}</Text>
+              {projeto.habilidades ? (
+                <Text style={styles.previewItemSubtitle}>
+                  <Text style={{ fontWeight: 'bold' }}>Habilidades:</Text> {projeto.habilidades}
+                </Text>
+              ) : null}
+              {projeto.descricao ? (
+                <Text style={styles.previewItemDescription}>{projeto.descricao}</Text>
+              ) : null}
+            </View>
+          ))}
+        </View>
+      )}
+
+      {/* Idiomas */}
+      {data.idiomas && data.idiomas.length > 0 && (
+        <View style={styles.previewSection}>
+          <Text style={[styles.previewSectionTitle, ts.sectionTitle]}>Idiomas</Text>
+          <View style={{ flexDirection: 'row', flexWrap: 'wrap' }}>
+            {data.idiomas.map((idioma, index) => (
+              <View key={index} style={[
+                styles.previewItem,
+                {
+                  backgroundColor: '#f8f9fa',
+                  paddingVertical: 8,
+                  paddingHorizontal: 12,
+                  marginRight: 10,
+                  marginBottom: 10,
+                  borderRadius: 5,
+                  borderLeftWidth: 3,
+                  borderLeftColor: ts.accent,
+                }
+              ]}>
+                <Text style={{ fontWeight: 'bold' }}>{idioma.nome}: <Text style={{ fontWeight: 'normal' }}>{idioma.nivel}</Text></Text>
+              </View>
+            ))}
+          </View>
+        </View>
+      )}
+    </View>
+  );
+};
+const salvarCurriculo = async (data, userId) => {
+  try {
+    // Buscar currículos existentes do usuário
+    const cvs = await AsyncStorage.getItem(`curriculos_${userId}`);
+    const curriculos = cvs ? JSON.parse(cvs) : [];
+
+    // Criar novo currículo
+    const novoCurriculo = {
+      id: getUniqueId(),
+      nome: `${data.informacoes_pessoais.nome || ''} ${data.informacoes_pessoais.sobrenome || ''}`.trim(),
+      data: data,
+      dataCriacao: new Date().toISOString()
+    };
+
+    // Adicionar ao array e salvar
+    curriculos.push(novoCurriculo);
+    await AsyncStorage.setItem(`curriculos_${userId}`, JSON.stringify(curriculos));
+
+    return novoCurriculo.id;
+  } catch (error) {
+    console.error('Erro ao salvar currículo:', error);
+    throw error;
+  }
+};
+const salvarProgressoCurriculo = async (userId, data) => {
+  try {
+    // Salvar o estado atual do chatbot
+    await AsyncStorage.setItem(`curriculo_em_progresso_${userId}`, JSON.stringify({
+      timestamp: new Date().toISOString(),
+      data: data
+    }));
+    console.log('Progresso do currículo salvo com sucesso');
+  } catch (error) {
+    console.error('Erro ao salvar progresso do currículo:', error);
+  }
+};
+const recuperarProgressoCurriculo = async (userId) => {
+  try {
+    const progresso = await AsyncStorage.getItem(`curriculo_em_progresso_${userId}`);
+    if (progresso) {
+      return JSON.parse(progresso);
+    }
+    return null;
+  } catch (error) {
+    console.error('Erro ao recuperar progresso do currículo:', error);
+    return null;
+  }
+};
+const limparProgressoCurriculo = async (userId) => {
+  try {
+    await AsyncStorage.removeItem(`curriculo_em_progresso_${userId}`);
+    console.log('Progresso do currículo limpo com sucesso');
+  } catch (error) {
+    console.error('Erro ao limpar progresso do currículo:', error);
+  }
+};
+const melhorarCurriculoComIA = async (curriculoData) => {
+  try {
+    // Obter API key do Gemini ou outro provedor disponível
+    const apiKey = await getIAAPIKey('GEMINI');
+    
+    if (!apiKey) {
+      throw new Error("API key do Gemini não configurada");
+    }
+    
+    // Formatar o currículo para envio à IA
+    const cvFormatado = formatarCurriculo(curriculoData);
+    
+    // Construir o prompt para a IA
+    const promptText = `
+Você é um especialista em recrutamento e elaboração de currículos profissionais. Sua tarefa é melhorar o currículo abaixo, mantendo todas as informações verdadeiras, mas tornando-o mais atrativo, profissional e eficaz.
+
+- Melhore o resumo profissional para destacar competências e realizações
+- Reformule as descrições de experiência para enfatizar resultados e impacto
+- Padronize a formatação e estrutura 
+- Mantenha todas as informações factuais e datas inalteradas
+- Use linguagem mais dinâmica e verbos de ação
+- Elimine repetições e informações desnecessárias
+- Inclua palavras-chave relevantes para a área
+
+NÃO INVENTE informações falsas ou exageradas. Mantenha-se fiel ao conteúdo original.
+
+CURRÍCULO ORIGINAL:
+${cvFormatado}
+
+Retorne o currículo melhorado no formato JSON com a mesma estrutura do original, mas com conteúdo aprimorado. Mantenha os nomes das propriedades exatamente iguais.
+    `;
+    
+    // Chamar a API do Gemini
+    const endpoint = `${IA_APIS.GEMINI.endpoint}?key=${apiKey}`;
+    const requestBody = {
+      contents: [{ parts: [{ text: promptText }] }],
+      generationConfig: {
+        temperature: 0.3,
+        maxOutputTokens: 4000,
+        topP: 0.8,
+        topK: 40
+      }
+    };
+    
+    const response = await axios.post(endpoint, requestBody, {
+      headers: { 'Content-Type': 'application/json' },
+      timeout: 30000
+    });
+    
+    if (response.data?.candidates?.[0]?.content?.parts?.[0]?.text) {
+      const resultText = response.data.candidates[0].content.parts[0].text;
+      
+      // Extrair o JSON da resposta
+      const jsonMatch = resultText.match(/\{[\s\S]*\}/);
+      if (jsonMatch) {
+        try {
+          // Converter o texto JSON em objeto
+          const melhoradoData = JSON.parse(jsonMatch[0]);
+          
+          return {
+            success: true,
+            curriculoMelhorado: melhoradoData
+          };
+        } catch (jsonError) {
+          console.error('Erro ao parsear JSON da resposta:', jsonError);
+          throw new Error('Formato de resposta inválido');
+        }
+      } else {
+        throw new Error('Não foi possível extrair currículo melhorado da resposta');
+      }
+    } else {
+      throw new Error('Formato de resposta inesperado do Gemini');
+    }
+  } catch (error) {
+    console.error('Erro ao melhorar currículo com IA:', error);
+    return {
+      success: false,
+      error: error.message || 'Erro ao processar o currículo'
+    };
+  }
+};
 const EditarCurriculoScreen = ({ route, navigation }) => {
   const { curriculoData } = route.params;
   const { user } = useAuth();
@@ -7940,560 +7918,6 @@ const EditarCurriculoScreen = ({ route, navigation }) => {
     </SafeAreaView>
   );
 };
-
-const melhorarCurriculoComIA = async (curriculoData) => {
-  try {
-    // Obter API key do Gemini ou outro provedor disponível
-    const apiKey = await getIAAPIKey('GEMINI');
-    
-    if (!apiKey) {
-      throw new Error("API key do Gemini não configurada");
-    }
-    
-    // Formatar o currículo para envio à IA
-    const cvFormatado = formatarCurriculo(curriculoData);
-    
-    // Construir o prompt para a IA
-    const promptText = `
-Você é um especialista em recrutamento e elaboração de currículos profissionais. Sua tarefa é melhorar o currículo abaixo, mantendo todas as informações verdadeiras, mas tornando-o mais atrativo, profissional e eficaz.
-
-- Melhore o resumo profissional para destacar competências e realizações
-- Reformule as descrições de experiência para enfatizar resultados e impacto
-- Padronize a formatação e estrutura 
-- Mantenha todas as informações factuais e datas inalteradas
-- Use linguagem mais dinâmica e verbos de ação
-- Elimine repetições e informações desnecessárias
-- Inclua palavras-chave relevantes para a área
-
-NÃO INVENTE informações falsas ou exageradas. Mantenha-se fiel ao conteúdo original.
-
-CURRÍCULO ORIGINAL:
-${cvFormatado}
-
-Retorne o currículo melhorado no formato JSON com a mesma estrutura do original, mas com conteúdo aprimorado. Mantenha os nomes das propriedades exatamente iguais.
-    `;
-    
-    // Chamar a API do Gemini
-    const endpoint = `${IA_APIS.GEMINI.endpoint}?key=${apiKey}`;
-    const requestBody = {
-      contents: [{ parts: [{ text: promptText }] }],
-      generationConfig: {
-        temperature: 0.3,
-        maxOutputTokens: 4000,
-        topP: 0.8,
-        topK: 40
-      }
-    };
-    
-    const response = await axios.post(endpoint, requestBody, {
-      headers: { 'Content-Type': 'application/json' },
-      timeout: 30000
-    });
-    
-    if (response.data?.candidates?.[0]?.content?.parts?.[0]?.text) {
-      const resultText = response.data.candidates[0].content.parts[0].text;
-      
-      // Extrair o JSON da resposta
-      const jsonMatch = resultText.match(/\{[\s\S]*\}/);
-      if (jsonMatch) {
-        try {
-          // Converter o texto JSON em objeto
-          const melhoradoData = JSON.parse(jsonMatch[0]);
-          
-          return {
-            success: true,
-            curriculoMelhorado: melhoradoData
-          };
-        } catch (jsonError) {
-          console.error('Erro ao parsear JSON da resposta:', jsonError);
-          throw new Error('Formato de resposta inválido');
-        }
-      } else {
-        throw new Error('Não foi possível extrair currículo melhorado da resposta');
-      }
-    } else {
-      throw new Error('Formato de resposta inesperado do Gemini');
-    }
-  } catch (error) {
-    console.error('Erro ao melhorar currículo com IA:', error);
-    return {
-      success: false,
-      error: error.message || 'Erro ao processar o currículo'
-    };
-  }
-};
-
-const MelhorarComIAButton = ({ curriculoData, onMelhoria }) => {
-  const [loading, setLoading] = useState(false);
-  
-  const handleMelhorarComIA = async () => {
-    try {
-      setLoading(true);
-      
-      // Confirmar antes de proceder
-      Alert.alert(
-        "Melhorar com IA",
-        "A IA irá melhorar a redação e apresentação do seu currículo, mantendo todas as informações verdadeiras. Deseja continuar?",
-        [
-          { text: "Cancelar", style: "cancel" },
-          { 
-            text: "Continuar", 
-            onPress: async () => {
-              // Chamar a função de melhoria
-              const resultado = await melhorarCurriculoComIA(curriculoData.data);
-              
-              if (resultado.success) {
-                // Chamar a função de callback com os dados melhorados
-                onMelhoria(resultado.curriculoMelhorado);
-              } else {
-                Alert.alert("Erro", resultado.error || "Não foi possível melhorar o currículo.");
-              }
-              
-              setLoading(false);
-            }
-          }
-        ]
-      );
-    } catch (error) {
-      console.error('Erro ao melhorar currículo:', error);
-      Alert.alert("Erro", "Ocorreu um erro ao tentar melhorar o currículo.");
-      setLoading(false);
-    }
-  };
-  
-  return (
-    <TouchableOpacity
-      style={{
-        backgroundColor: Colors.info,
-        paddingVertical: 12,
-        paddingHorizontal: 20,
-        borderRadius: 8,
-        flexDirection: 'row',
-        alignItems: 'center',
-        justifyContent: 'center',
-        marginVertical: 10,
-      }}
-      onPress={handleMelhorarComIA}
-      disabled={loading}
-    >
-      {loading ? (
-        <ActivityIndicator size="small" color={Colors.white} />
-      ) : (
-        <>
-          <Text style={{ color: Colors.white, fontWeight: 'bold', marginRight: 5 }}>✨</Text>
-          <Text style={{ color: Colors.white, fontWeight: 'bold' }}>
-            Melhorar com IA
-          </Text>
-        </>
-      )}
-    </TouchableOpacity>
-  );
-};
-
-const PreviewCVScreen = ({ route, navigation }) => {
-  const { curriculoData } = route.params;
-  const [templateStyle, setTemplateStyle] = useState('modern');
-  const [showTemplateSelector, setShowTemplateSelector] = useState(false);
-  const [generatingPDF, setGeneratingPDF] = useState(false);
-  const [currentData, setCurrentData] = useState(curriculoData); // Para armazenar versão atual (original ou melhorada)
-  const [showComparison, setShowComparison] = useState(false); // Para mostrar comparação antes/depois
-  const { user } = useAuth();
-  
-  const handleShare = async () => {
-    try {
-      await Share.share({
-        message: `Currículo de ${curriculoData.nome || 'Usuário'}`,
-        title: `Currículo - ${curriculoData.nome || 'Usuário'}`
-      });
-    } catch (error) {
-      console.error('Erro ao compartilhar:', error);
-      Alert.alert('Erro', 'Não foi possível compartilhar o currículo.');
-    }
-  };
-
-  // Emular criação de PDF (já que não temos a biblioteca)
-  const handleExportPDF = async () => {
-    setGeneratingPDF(true);
-
-    try {
-      // Simular processo de geração de PDF
-      await new Promise(resolve => setTimeout(resolve, 2000));
-
-      // Exibir alerta com opções de ação
-      Alert.alert(
-        'PDF Gerado com Sucesso!',
-        'O que você gostaria de fazer com o PDF?',
-        [
-          {
-            text: 'Compartilhar',
-            onPress: () => handleShare(),
-          },
-          {
-            text: 'Salvar na Galeria',
-            onPress: () => {
-              Alert.alert(
-                'Salvando na Galeria...',
-                'Funcionalidade simulada. Em um app real, o PDF seria salvo na galeria.',
-                [{ text: 'OK' }]
-              );
-            },
-          },
-          {
-            text: 'Cancelar',
-            style: 'cancel',
-          },
-        ]
-      );
-    } catch (error) {
-      console.error('Erro ao gerar PDF:', error);
-      Alert.alert('Erro', 'Não foi possível gerar o PDF.');
-    } finally {
-      setGeneratingPDF(false);
-    }
-  };
-  
-  // Função para salvar o currículo melhorado
-  const handleSalvarMelhorado = async (dadosMelhorados) => {
-    try {
-      // Buscar currículos existentes
-      const cvs = await AsyncStorage.getItem(`curriculos_${user.id}`);
-      const curriculos = cvs ? JSON.parse(cvs) : [];
-      
-      // Criar uma nova entrada para o currículo melhorado
-      const novoCurriculo = {
-        id: getUniqueId(),
-        nome: `${curriculoData.nome || 'Currículo'} (Melhorado)`,
-        data: dadosMelhorados,
-        dataCriacao: new Date().toISOString()
-      };
-      
-      // Adicionar ao array e salvar
-      curriculos.push(novoCurriculo);
-      await AsyncStorage.setItem(`curriculos_${user.id}`, JSON.stringify(curriculos));
-      
-      Alert.alert(
-        "Sucesso",
-        "Currículo melhorado salvo com sucesso!",
-        [{ text: "OK" }]
-      );
-      
-      // Atualizar dados na tela
-      setCurrentData({
-        ...novoCurriculo
-      });
-      
-    } catch (error) {
-      console.error('Erro ao salvar currículo melhorado:', error);
-      Alert.alert("Erro", "Não foi possível salvar o currículo melhorado.");
-    }
-  };
-  
-  // Lidar com melhoria de currículo
-  const handleCurriculoMelhorado = (dadosMelhorados) => {
-    // Mostrar alerta com opções
-    Alert.alert(
-      "Currículo Melhorado",
-      "Seu currículo foi melhorado com sucesso! O que deseja fazer?",
-      [
-        { 
-          text: "Visualizar Melhorias", 
-          onPress: () => {
-            // Mostrar comparação
-            setShowComparison(true);
-            setCurrentData({
-              ...curriculoData,
-              data: dadosMelhorados
-            });
-          }
-        },
-        { 
-          text: "Salvar como Novo", 
-          onPress: () => handleSalvarMelhorado(dadosMelhorados)
-        },
-        { 
-          text: "Cancelar", 
-          style: "cancel" 
-        }
-      ]
-    );
-  };
-
-  const templateOptions = [
-    { id: 'modern', name: 'Moderno', category: 'Moderno', color: Colors.primary },
-    // Clássicos
-    { id: 'classic', name: 'Clássico', category: 'Clássico', color: Colors.dark },
-    { id: 'traditional', name: 'Tradicional', category: 'Clássico', color: '#333333' },
-    // Criativos
-    { id: 'consulting', name: 'Consultoria', category: 'Profissional', color: '#1a237e' },
-  ];
-
-  return (
-    <SafeAreaView style={styles.container}>
-      <StatusBar barStyle="dark-content" backgroundColor={Colors.dark} />
-
-      <View style={styles.header}>
-        <TouchableOpacity
-          style={styles.backButton}
-          onPress={() => navigation.goBack()}
-        >
-          <Text style={styles.backButtonText}>‹</Text>
-        </TouchableOpacity>
-        <Text style={styles.headerTitle}>Visualizar Currículo</Text>
-      </View>
-
-      {/* Barra de ferramentas */}
-      <View style={{
-        flexDirection: 'row',
-        backgroundColor: '#f0f0f0',
-        padding: 10,
-        borderBottomWidth: 1,
-        borderBottomColor: Colors.mediumGray,
-      }}>
-        <TouchableOpacity
-          style={{
-            flex: 1,
-            flexDirection: 'row',
-            alignItems: 'center',
-            justifyContent: 'center',
-            paddingVertical: 8,
-            borderRightWidth: 1,
-            borderRightColor: Colors.mediumGray,
-          }}
-          onPress={() => setShowTemplateSelector(!showTemplateSelector)}
-        >
-          <Text style={{ marginRight: 5 }}>Template: {templateOptions.find(t => t.id === templateStyle)?.name}</Text>
-          <Text>▼</Text>
-        </TouchableOpacity>
-
-        <TouchableOpacity
-          style={{
-            flex: 1,
-            flexDirection: 'row',
-            alignItems: 'center',
-            justifyContent: 'center',
-            paddingVertical: 8,
-          }}
-          onPress={handleExportPDF}
-          disabled={generatingPDF}
-        >
-          {generatingPDF ? (
-            <ActivityIndicator size="small" color={Colors.primary} />
-          ) : (
-            <>
-              <Text style={{ marginRight: 5 }}>Exportar PDF</Text>
-              <Text>📄</Text>
-            </>
-          )}
-        </TouchableOpacity>
-      </View>
-
-      {/* Template selector overlay (em vez de Modal) */}
-      {showTemplateSelector && (
-        <View style={{
-          position: 'absolute',
-          top: 0,
-          left: 0,
-          right: 0,
-          bottom: 0,
-          backgroundColor: 'rgba(0, 0, 0, 0.5)',
-          zIndex: 100,
-        }}>
-          <TouchableOpacity
-            style={{ flex: 1 }}
-            onPress={() => setShowTemplateSelector(false)}
-          />
-
-          <View style={{
-            backgroundColor: Colors.white,
-            borderTopLeftRadius: 20,
-            borderTopRightRadius: 20,
-            padding: 20,
-          }}>
-            <View style={{
-              flexDirection: 'row',
-              justifyContent: 'space-between',
-              alignItems: 'center',
-              marginBottom: 15,
-            }}>
-              <Text style={{
-                fontSize: 18,
-                fontWeight: 'bold',
-                color: Colors.dark,
-              }}>
-                Escolher Template
-              </Text>
-
-              <TouchableOpacity
-                onPress={() => setShowTemplateSelector(false)}
-              >
-                <Text style={{
-                  fontSize: 22,
-                  color: Colors.lightText,
-                  paddingHorizontal: 5,
-                }}>
-                  ×
-                </Text>
-              </TouchableOpacity>
-            </View>
-
-            {templateOptions.map(template => (
-              <TouchableOpacity
-                key={template.id}
-                style={{
-                  flexDirection: 'row',
-                  alignItems: 'center',
-                  padding: 15,
-                  borderBottomWidth: 1,
-                  borderBottomColor: Colors.mediumGray,
-                  backgroundColor: templateStyle === template.id ? '#e3f2fd' : 'transparent',
-                }}
-                onPress={() => {
-                  setTemplateStyle(template.id);
-                  setShowTemplateSelector(false);
-                }}
-              >
-                <View style={{
-                  width: 24,
-                  height: 24,
-                  borderRadius: 12,
-                  backgroundColor: template.color,
-                  marginRight: 15,
-                }} />
-
-                <View style={{ flex: 1 }}>
-                  <Text style={{
-                    fontSize: 16,
-                    fontWeight: templateStyle === template.id ? 'bold' : 'normal',
-                    color: Colors.dark,
-                  }}>
-                    {template.name}
-                  </Text>
-                </View>
-
-                {templateStyle === template.id && (
-                  <Text style={{ fontSize: 18, color: Colors.primary }}>✓</Text>
-                )}
-              </TouchableOpacity>
-            ))}
-          </View>
-        </View>
-      )}
-
-      <ScrollView style={styles.previewScreenScroll}>
-        <View style={styles.previewScreenCard}>
-          <CurriculumPreview data={currentData.data} templateStyle={templateStyle} />
-        </View>
-        
-        {/* Adicionar o botão de melhoria com IA */}
-        <View style={{ padding: 15 }}>
-          <MelhorarComIAButton 
-            curriculoData={curriculoData}
-            onMelhoria={handleCurriculoMelhorado}
-          />
-        </View>
-      </ScrollView>
-
-      <View style={styles.previewActions}>
-        <TouchableOpacity
-          style={styles.previewActionButton}
-          onPress={handleShare}
-        >
-          <Text style={styles.previewActionButtonText}>Compartilhar</Text>
-        </TouchableOpacity>
-
-        <TouchableOpacity
-          style={[styles.previewActionButton, { backgroundColor: Colors.secondary }]}
-          onPress={() => navigation.navigate('AnaliseCV', { curriculoData })}
-        >
-          <Text style={styles.previewActionButtonText}>Analisar com IA</Text>
-        </TouchableOpacity>
-        
-        {/* Adicionar botão de edição */}
-        <TouchableOpacity
-          style={[styles.previewActionButton, { backgroundColor: Colors.info }]}
-          onPress={() => navigation.navigate('EditarCurriculo', { curriculoData: currentData })}
-        >
-          <Text style={styles.previewActionButtonText}>Editar Currículo</Text>
-        </TouchableOpacity>
-      </View>
-      
-      {/* Modal de comparação antes/depois */}
-      {showComparison && (
-        <View style={styles.comparisonModal}>
-          <View style={styles.comparisonContainer}>
-            <View style={styles.comparisonHeader}>
-              <Text style={styles.comparisonTitle}>Antes e Depois</Text>
-              <TouchableOpacity
-                style={styles.comparisonCloseButton}
-                onPress={() => setShowComparison(false)}
-              >
-                <Text style={styles.comparisonCloseText}>✕</Text>
-              </TouchableOpacity>
-            </View>
-            
-            <ScrollView style={styles.comparisonScroll}>
-              {/* Exemplo de comparação - resumo profissional */}
-              <View style={styles.comparisonSection}>
-                <Text style={styles.comparisonSectionTitle}>Resumo Profissional</Text>
-                
-                <View style={styles.comparisonItem}>
-                  <Text style={styles.comparisonLabel}>Antes:</Text>
-                  <Text style={styles.comparisonOriginalText}>
-                    {curriculoData.data.resumo_profissional || 'Sem resumo profissional'}
-                  </Text>
-                </View>
-                
-                <View style={styles.comparisonItem}>
-                  <Text style={styles.comparisonLabel}>Depois:</Text>
-                  <Text style={styles.comparisonImprovedText}>
-                    {currentData.data.resumo_profissional || 'Sem resumo profissional'}
-                  </Text>
-                </View>
-              </View>
-              
-              {/* Outras comparações podem ser adicionadas para experiências, etc. */}
-            </ScrollView>
-            
-            <View style={styles.comparisonActions}>
-              <TouchableOpacity
-                style={styles.comparisonButton}
-                onPress={() => setShowComparison(false)}
-              >
-                <Text style={styles.comparisonButtonText}>Fechar</Text>
-              </TouchableOpacity>
-              
-              <TouchableOpacity
-                style={[styles.comparisonButton, { backgroundColor: Colors.success }]}
-                onPress={() => {
-                  handleSalvarMelhorado(currentData.data);
-                  setShowComparison(false);
-                }}
-              >
-                <Text style={styles.comparisonButtonText}>Salvar Melhorias</Text>
-              </TouchableOpacity>
-            </View>
-          </View>
-        </View>
-      )}
-    </SafeAreaView>
-  );
-};
-
-const DocumentIcon = ({ style }) => {
-  return (
-    <View style={[{
-      width: 80,
-      height: 80,
-      justifyContent: 'center',
-      alignItems: 'center',
-      backgroundColor: 'rgba(78, 115, 223, 0.1)',
-      borderRadius: 40,
-    }, style]}>
-      <Text style={{ fontSize: 40 }}>📄</Text>
-    </View>
-  );
-};
-
 const CurriculosAnaliseScreen = ({ navigation }) => {
   const { user } = useAuth();
   const [curriculos, setCurriculos] = useState([]);
@@ -8734,7 +8158,6 @@ const CurriculosAnaliseScreen = ({ navigation }) => {
     </SafeAreaView>
   );
 };
-
 const MeusCurriculosScreen = ({ navigation }) => {
   const { user } = useAuth();
   const [curriculos, setCurriculos] = useState([]);
@@ -9204,410 +8627,95 @@ const MeusCurriculosScreen = ({ navigation }) => {
   );
 };
 
-const PerfilFotoScreen = ({ navigation, route }) => {
-  const { user, updateUser } = useAuth();
-  const [selectedImage, setSelectedImage] = useState(user?.foto || null);
+
+
+
+
+
+
+
+
+
+
+const MelhorarComIAButton = ({ curriculoData, onMelhoria }) => {
   const [loading, setLoading] = useState(false);
-  const [showImageOptions, setShowImageOptions] = useState(false);
-
-  // Cores predefinidas para avatares caso não haja foto
-  const colorOptions = [
-    '#3498db', '#2ecc71', '#e74c3c', '#f39c12',
-    '#9b59b6', '#1abc9c', '#d35400', '#c0392b'
-  ];
-
-  // Imagens de exemplo para simular a galeria
-  const exampleImages = [
-    { id: 'img1', uri: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=200&h=200&fit=crop' },
-    { id: 'img2', uri: 'https://images.unsplash.com/photo-1506794778202-cad84cf45f1d?w=200&h=200&fit=crop' },
-    { id: 'img3', uri: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=200&h=200&fit=crop' },
-    { id: 'img4', uri: 'https://images.unsplash.com/photo-1438761681033-6461ffad8d80?w=200&h=200&fit=crop' },
-    { id: 'img5', uri: 'https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=200&h=200&fit=crop' },
-    { id: 'img6', uri: 'https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=200&h=200&fit=crop' },
-    { id: 'img7', uri: 'https://randomuser.me/api/portraits/men/1.jpg' },
-    { id: 'img8', uri: 'https://randomuser.me/api/portraits/women/1.jpg' },
-    { id: 'img9', uri: 'https://randomuser.me/api/portraits/men/32.jpg' },
-    { id: 'img10', uri: 'https://randomuser.me/api/portraits/women/44.jpg' },
-    { id: 'img11', uri: 'https://randomuser.me/api/portraits/men/85.jpg' },
-    { id: 'img12', uri: 'https://randomuser.me/api/portraits/women/63.jpg' },
-  ];
-
-  // Estado para controlar o avatar de cor selecionado (caso não use foto)
-  const [selectedColorIndex, setSelectedColorIndex] = useState(
-    user?.avatarColorIndex !== undefined ? user.avatarColorIndex : Math.floor(Math.random() * colorOptions.length)
-  );
-
-  // Função para salvar a foto do perfil
-  const saveProfileImage = async () => {
+  
+  const handleMelhorarComIA = async () => {
     try {
       setLoading(true);
-
-      // Buscar dados atuais do usuário
-      const usuariosStr = await AsyncStorage.getItem('usuarios');
-      const usuarios = JSON.parse(usuariosStr) || [];
-
-      // Encontrar índice do usuário atual
-      const userIndex = usuarios.findIndex(u => u.id === user.id);
-      if (userIndex === -1) {
-        throw new Error('Usuário não encontrado');
-      }
-
-      // Atualizar usuário com a nova foto e índice de cor do avatar
-      const updatedUser = {
-        ...usuarios[userIndex],
-        foto: selectedImage,
-        avatarColorIndex: selectedColorIndex,
-        dataAtualizacao: new Date().toISOString()
-      };
-
-      usuarios[userIndex] = updatedUser;
-
-      // Salvar usuários atualizados
-      await AsyncStorage.setItem('usuarios', JSON.stringify(usuarios));
-
-      // Atualizar usuário atual
-      await AsyncStorage.setItem('currentUser', JSON.stringify(updatedUser));
-
-      // Se o contexto de autenticação tiver uma função para atualizar o usuário, use-a
-      if (updateUser) {
-        updateUser(updatedUser);
-      }
-
-      Alert.alert('Sucesso', 'Foto de perfil atualizada com sucesso!');
-
-      // Navegar de volta se veio de uma rota específica
-      if (route.params?.returnTo) {
-        navigation.navigate(route.params.returnTo);
-      } else {
-        navigation.goBack();
-      }
-
+      
+      // Confirmar antes de proceder
+      Alert.alert(
+        "Melhorar com IA",
+        "A IA irá melhorar a redação e apresentação do seu currículo, mantendo todas as informações verdadeiras. Deseja continuar?",
+        [
+          { text: "Cancelar", style: "cancel" },
+          { 
+            text: "Continuar", 
+            onPress: async () => {
+              // Chamar a função de melhoria
+              const resultado = await melhorarCurriculoComIA(curriculoData.data);
+              
+              if (resultado.success) {
+                // Chamar a função de callback com os dados melhorados
+                onMelhoria(resultado.curriculoMelhorado);
+              } else {
+                Alert.alert("Erro", resultado.error || "Não foi possível melhorar o currículo.");
+              }
+              
+              setLoading(false);
+            }
+          }
+        ]
+      );
     } catch (error) {
-      console.error('Erro ao salvar foto de perfil:', error);
-      Alert.alert('Erro', 'Não foi possível salvar a foto de perfil.');
-    } finally {
+      console.error('Erro ao melhorar currículo:', error);
+      Alert.alert("Erro", "Ocorreu um erro ao tentar melhorar o currículo.");
       setLoading(false);
     }
   };
-
-  // Função para simular a captura de foto com a câmera
-  const handleTakePhoto = () => {
-    setShowImageOptions(false);
-
-    // Simular o processo de tirar uma foto
-    setLoading(true);
-    setTimeout(() => {
-      // Seleciona uma imagem aleatória da galeria para simular uma foto
-      const randomIndex = Math.floor(Math.random() * exampleImages.length);
-      setSelectedImage(exampleImages[randomIndex].uri);
-      setLoading(false);
-
-      Alert.alert('Foto Capturada', 'A foto foi capturada com sucesso! (Simulação)');
-    }, 1500);
-  };
-
-  // Função para remover a foto de perfil
-  const handleRemovePhoto = () => {
-    Alert.alert(
-      'Remover Foto',
-      'Tem certeza que deseja remover sua foto de perfil?',
-      [
-        { text: 'Cancelar', style: 'cancel' },
-        {
-          text: 'Remover',
-          style: 'destructive',
-          onPress: () => {
-            setSelectedImage(null);
-            setShowImageOptions(false);
-          }
-        }
-      ]
-    );
-  };
-
-  // Renderiza o avatar com iniciais caso não haja foto
-  const renderInitialsAvatar = () => {
-    const initials = user?.nome ? user.nome.charAt(0).toUpperCase() : 'U';
-    const backgroundColor = colorOptions[selectedColorIndex];
-
-    return (
-      <View style={{
-        width: 150,
-        height: 150,
-        borderRadius: 75,
-        backgroundColor,
-        justifyContent: 'center',
-        alignItems: 'center',
-      }}>
-        <Text style={{
-          fontSize: 60,
-          color: Colors.white,
-          fontWeight: 'bold',
-        }}>
-          {initials}
-        </Text>
-      </View>
-    );
-  };
-
+  
   return (
-    <SafeAreaView style={styles.container}>
-      <StatusBar barStyle="dark-content" backgroundColor={Colors.dark} />
-
-      <View style={styles.header}>
-        <TouchableOpacity
-          style={styles.backButton}
-          onPress={() => navigation.goBack()}
-        >
-          <Text style={styles.backButtonText}>‹</Text>
-        </TouchableOpacity>
-        <Text style={styles.headerTitle}>Foto de Perfil</Text>
-      </View>
-
-      <ScrollView style={{ flex: 1 }}>
-        <View style={{
-          padding: 20,
-          alignItems: 'center',
-        }}>
-          {/* Avatar ou foto do perfil */}
-          <TouchableOpacity
-            style={{
-              marginVertical: 20,
-              borderWidth: 3,
-              borderColor: Colors.primary,
-              borderRadius: 75,
-              padding: 3,
-            }}
-            onPress={() => setShowImageOptions(true)}
-            disabled={loading}
-          >
-            {selectedImage ? (
-              <Image
-                source={{ uri: selectedImage }}
-                style={{
-                  width: 150,
-                  height: 150,
-                  borderRadius: 75,
-                }}
-              />
-            ) : (
-              renderInitialsAvatar()
-            )}
-
-            {/* Ícone de câmera sobreposto */}
-            <View style={{
-              position: 'absolute',
-              bottom: 0,
-              right: 0,
-              backgroundColor: Colors.primary,
-              borderRadius: 20,
-              width: 40,
-              height: 40,
-              justifyContent: 'center',
-              alignItems: 'center',
-              borderWidth: 2,
-              borderColor: Colors.white,
-            }}>
-              <Text style={{ fontSize: 18, color: Colors.white }}>📷</Text>
-            </View>
-          </TouchableOpacity>
-
-          <Text style={{
-            fontSize: 20,
-            fontWeight: 'bold',
-            marginVertical: 10,
-          }}>
-            {user?.nome || 'Usuário'}
+    <TouchableOpacity
+      style={{
+        backgroundColor: Colors.info,
+        paddingVertical: 12,
+        paddingHorizontal: 20,
+        borderRadius: 8,
+        flexDirection: 'row',
+        alignItems: 'center',
+        justifyContent: 'center',
+        marginVertical: 10,
+      }}
+      onPress={handleMelhorarComIA}
+      disabled={loading}
+    >
+      {loading ? (
+        <ActivityIndicator size="small" color={Colors.white} />
+      ) : (
+        <>
+          <Text style={{ color: Colors.white, fontWeight: 'bold', marginRight: 5 }}>✨</Text>
+          <Text style={{ color: Colors.white, fontWeight: 'bold' }}>
+            Melhorar com IA
           </Text>
+        </>
+      )}
+    </TouchableOpacity>
+  );
+};
 
-          <Text style={{
-            fontSize: 16,
-            color: Colors.lightText,
-            marginBottom: 20,
-            textAlign: 'center',
-          }}>
-            Selecione ou tire uma foto para seu perfil, ou escolha uma cor para o avatar com suas iniciais.
-          </Text>
-
-          {/* Seletor de cores para o avatar */}
-          {!selectedImage && (
-            <View style={{ marginVertical: 20 }}>
-              <Text style={{
-                fontSize: 16,
-                fontWeight: 'bold',
-                marginBottom: 10,
-                textAlign: 'center',
-              }}>
-                Escolha uma cor para seu avatar
-              </Text>
-
-              <View style={{
-                flexDirection: 'row',
-                flexWrap: 'wrap',
-                justifyContent: 'center',
-              }}>
-                {colorOptions.map((color, index) => (
-                  <TouchableOpacity
-                    key={index}
-                    style={{
-                      width: 40,
-                      height: 40,
-                      borderRadius: 20,
-                      backgroundColor: color,
-                      margin: 5,
-                      justifyContent: 'center',
-                      alignItems: 'center',
-                      borderWidth: selectedColorIndex === index ? 3 : 0,
-                      borderColor: Colors.white,
-                      elevation: selectedColorIndex === index ? 5 : 0,
-                      shadowColor: '#000',
-                      shadowOffset: { width: 0, height: 2 },
-                      shadowOpacity: selectedColorIndex === index ? 0.3 : 0,
-                      shadowRadius: selectedColorIndex === index ? 4 : 0,
-                    }}
-                    onPress={() => setSelectedColorIndex(index)}
-                  >
-                    {selectedColorIndex === index && (
-                      <Text style={{ color: Colors.white, fontWeight: 'bold' }}>✓</Text>
-                    )}
-                  </TouchableOpacity>
-                ))}
-              </View>
-            </View>
-          )}
-
-          {/* Galeria de fotos de exemplo */}
-          {showImageOptions && (
-            <View style={{ marginTop: 20, width: '100%' }}>
-              <View style={{
-                flexDirection: 'row',
-                justifyContent: 'space-between',
-                alignItems: 'center',
-                marginBottom: 15,
-                paddingHorizontal: 10,
-              }}>
-                <Text style={{
-                  fontSize: 18,
-                  fontWeight: 'bold',
-                }}>
-                  Escolha uma Foto
-                </Text>
-
-                <TouchableOpacity
-                  onPress={() => setShowImageOptions(false)}
-                >
-                  <Text style={{
-                    fontSize: 22,
-                    color: Colors.lightText,
-                    paddingHorizontal: 5,
-                  }}>
-                    ×
-                  </Text>
-                </TouchableOpacity>
-              </View>
-
-              <View style={{
-                flexDirection: 'row',
-                justifyContent: 'space-around',
-                marginBottom: 20,
-              }}>
-                <TouchableOpacity
-                  style={{
-                    alignItems: 'center',
-                    backgroundColor: Colors.primary,
-                    padding: 12,
-                    borderRadius: 8,
-                    width: '45%',
-                  }}
-                  onPress={handleTakePhoto}
-                >
-                  <Text style={{ color: Colors.white }}>Tirar Foto</Text>
-                </TouchableOpacity>
-
-                <TouchableOpacity
-                  style={{
-                    alignItems: 'center',
-                    backgroundColor: Colors.danger,
-                    padding: 12,
-                    borderRadius: 8,
-                    width: '45%',
-                  }}
-                  onPress={handleRemovePhoto}
-                >
-                  <Text style={{ color: Colors.white }}>Remover Foto</Text>
-                </TouchableOpacity>
-              </View>
-
-              <Text style={{
-                fontSize: 16,
-                fontWeight: 'bold',
-                marginBottom: 10,
-                paddingHorizontal: 10,
-              }}>
-                Selecione da Galeria:
-              </Text>
-
-              <View style={{
-                flexDirection: 'row',
-                flexWrap: 'wrap',
-                justifyContent: 'space-between',
-                paddingHorizontal: 5,
-              }}>
-                {exampleImages.map((img, index) => (
-                  <TouchableOpacity
-                    key={img.id}
-                    style={{
-                      width: '30%',
-                      aspectRatio: 1,
-                      marginBottom: 10,
-                      borderWidth: 2,
-                      borderColor: selectedImage === img.uri ? Colors.primary : 'transparent',
-                      borderRadius: 8,
-                    }}
-                    onPress={() => setSelectedImage(img.uri)}
-                  >
-                    <Image
-                      source={{ uri: img.uri }}
-                      style={{
-                        width: '100%',
-                        height: '100%',
-                        borderRadius: 6,
-                      }}
-                    />
-                  </TouchableOpacity>
-                ))}
-              </View>
-            </View>
-          )}
-
-          <TouchableOpacity
-            style={{
-              backgroundColor: Colors.primary,
-              paddingVertical: 12,
-              paddingHorizontal: 30,
-              borderRadius: 8,
-              marginTop: 30,
-              width: '80%',
-              alignItems: 'center',
-            }}
-            onPress={saveProfileImage}
-            disabled={loading}
-          >
-            {loading ? (
-              <ActivityIndicator size="small" color={Colors.white} />
-            ) : (
-              <Text style={{
-                color: Colors.white,
-                fontWeight: 'bold',
-                fontSize: 16,
-              }}>
-                Salvar
-              </Text>
-            )}
-          </TouchableOpacity>
-        </View>
-      </ScrollView>
-    </SafeAreaView>
+const DocumentIcon = ({ style }) => {
+  return (
+    <View style={[{
+      width: 80,
+      height: 80,
+      justifyContent: 'center',
+      alignItems: 'center',
+      backgroundColor: 'rgba(78, 115, 223, 0.1)',
+      borderRadius: 40,
+    }, style]}>
+      <Text style={{ fontSize: 40 }}>📄</Text>
+    </View>
   );
 };
 
