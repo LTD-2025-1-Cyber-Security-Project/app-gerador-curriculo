@@ -5,7 +5,7 @@ import {
   TextInput,
   TouchableOpacity,
   ScrollView,
-  StyleSheet,
+  // StyleSheet,
   Modal,
   FlatList,
   SafeAreaView,
@@ -23,7 +23,11 @@ import {
   RefreshControl
 } from 'react-native';
 import ColorsModule from './styles/colors';
+import sharedStyles from './styles/sharedStyles';
 import styles from './styles/styles';
+import meusCurriculosStyles from './styles/meusCurriculosStyles';
+import ProfessionalColors from './styles/ProfessionalColors';
+import curriculoAnaliseStyles from './styles/curriculoAnaliseStyles';
 import HeaderColors from './styles/HeaderColors'
 const Colors = ColorsModule.Colors;
 import { Ionicons, MaterialIcons, FontAwesome5 } from '@expo/vector-icons';
@@ -34,6 +38,20 @@ import { createStackNavigator } from '@react-navigation/stack';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import axios from 'axios';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import IA_APIS from './src/api/IA_APIS';
+import salvarIAAPIKey from './src/api/salvarIAAPIKey';
+import getIAAPIKey from './src/api/getIAAPIKey';
+
+const Tab = createBottomTabNavigator();
+const HomeStack = createStackNavigator();
+const DashboardStack = createStackNavigator();
+const ConfigStack = createStackNavigator();
+const ConfigAvStack = createStackNavigator();
+const AuthContext = createContext();
+const useAuth = () => useContext(AuthContext);
+const AuthStack = createStackNavigator();
+const AppStack = createStackNavigator();
+const RootStack = createStackNavigator();
 
 axios.interceptors.request.use(request => {
   console.log('Starting Request', JSON.stringify(request, null, 2));
@@ -49,62 +67,6 @@ axios.interceptors.response.use(response => {
   console.log('Error Data:', error.response?.data);
   return Promise.reject(error);
 });
-
-const IA_APIS = {
-  GEMINI: {
-    nome: 'Google Gemini',
-    chaveNecessaria: true,
-    chaveDefault: 'AIzaSyDCAepi3dUF78ef0-735Z6g1occ31fF7Pg', // Nova API key padrão
-    endpoint: 'https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent'
-  },
-  OPENAI: {
-    nome: 'ChatGPT',
-    chaveNecessaria: true,
-    chaveDefault: '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',
-    endpoint: 'https://api.openai.com/v1/chat/completions'
-  },
-  CLAUDE: {
-    nome: 'Claude',
-    chaveNecessaria: true,
-    chaveDefault: '',
-    endpoint: 'https://api.anthropic.com/v1/messages'
-  },
-  PERPLEXITY: {
-    nome: 'Perplexity',
-    chaveNecessaria: true,
-    chaveDefault: '',
-    endpoint: 'https://api.perplexity.ai/chat/completions'
-  },
-  BING: {
-    nome: 'Bing AI',
-    chaveNecessaria: true,
-    chaveDefault: '',
-    endpoint: 'https://api.bing.microsoft.com/v7.0/search'
-  },
-  DEEPSEEK: {
-    nome: 'DeepSeek',
-    chaveNecessaria: true,
-    chaveDefault: '',
-    endpoint: 'https://api.deepseek.com/v1/chat/completions'
-  },
-  BLACKBOX: {
-    nome: 'Blackbox AI',
-    chaveNecessaria: true,
-    chaveDefault: '',
-    endpoint: 'https://api.useblackbox.io/v1/chat/completions'
-  },
-  GROK: {
-    nome: 'Grok',
-    chaveNecessaria: true,
-    chaveDefault: '',
-    endpoint: 'https://api.grok.x.ai/v1/chat/completions'
-  },
-  OFFLINE: {
-    nome: 'Modo Offline',
-    chaveNecessaria: false,
-    offline: true
-  }
-};
 
 const DashboardScreen = ({ navigation }) => {
   const { user } = useAuth();
@@ -5183,10 +5145,6 @@ const ConfiguracoesScreen = ({ navigation }) => {
   );
 };
 
-const Tab = createBottomTabNavigator();
-
-const HomeStack = createStackNavigator();
-
 const renderTabBarIcon = (route, focused, color, size) => {
   // Usar emojis ou caracteres unicode em vez de ícones
   if (route.name === 'Home') {
@@ -5226,8 +5184,6 @@ const HomeStackScreen = () => (
   </HomeStack.Navigator>
 );
 
-const DashboardStack = createStackNavigator();
-
 const DashboardStackScreen = () => (
   <DashboardStack.Navigator screenOptions={{ headerShown: false }}>
     <DashboardStack.Screen name="DashboardMain" component={DashboardScreen} />
@@ -5242,8 +5198,6 @@ const DashboardStackScreen = () => (
   </DashboardStack.Navigator>
 );
 
-const ConfigStack = createStackNavigator();
-
 const ConfigStackScreen = () => (
   <ConfigStack.Navigator screenOptions={{ headerShown: false }}>
     <ConfigStack.Screen name="ConfigMain" component={ConfiguracoesScreen} />
@@ -5253,8 +5207,6 @@ const ConfigStackScreen = () => (
     <ConfigStack.Screen name="SobreApp" component={SobreAppScreen} />
   </ConfigStack.Navigator>
 );
-
-const ConfigAvStack = createStackNavigator();
 
 const ConfigAvStackScreen = () => (
   <ConfigAvStack.Navigator screenOptions={{ headerShown: false }}>
@@ -5307,27 +5259,6 @@ const AppNavigator = () => (
     <AppStack.Screen name="MainTabs" component={TabNavigator} />
   </AppStack.Navigator>
 );
-
-const getIAAPIKey = async (tipoIA) => {
-  try {
-    const savedKey = await AsyncStorage.getItem(`ia_api_key_${tipoIA}`);
-    if (savedKey) return savedKey;
-    return IA_APIS[tipoIA]?.chaveDefault || '';
-  } catch (error) {
-    console.error('Erro ao obter chave da API:', error);
-    return IA_APIS[tipoIA]?.chaveDefault || '';
-  }
-};
-
-const salvarIAAPIKey = async (tipoIA, apiKey) => {
-  try {
-    await AsyncStorage.setItem(`ia_api_key_${tipoIA}`, apiKey);
-    return true;
-  } catch (error) {
-    console.error('Erro ao salvar chave da API:', error);
-    return false;
-  }
-};
 
 const buscarVagasComGemini = async (curriculoData, forceRefresh = false) => {
   try {
@@ -6111,8 +6042,6 @@ const BuscaVagasScreen = ({ route, navigation }) => {
   );
 };
 
-const AuthContext = createContext();
-
 const AuthProvider = ({ children }) => {
   const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -6230,8 +6159,6 @@ const AuthProvider = ({ children }) => {
     </AuthContext.Provider>
   );
 };
-
-const useAuth = () => useContext(AuthContext);
 
 const chamarIAAPI = async (tipoIA, apiKey, promptText) => {
   const MAX_RETRIES = 2;
@@ -8852,6 +8779,5194 @@ const RegisterScreen = ({ navigation }) => {
           <Text style={styles.textButtonText}>Já tem uma conta? Faça login</Text>
         </TouchableOpacity>
       </View>
+    </SafeAreaView>
+  );
+};
+
+const SimularEntrevistaScreen = ({ navigation }) => {
+  const { user } = useAuth();
+  const [curriculos, setCurriculos] = useState([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    carregarCurriculos();
+  }, []);
+
+  const carregarCurriculos = async () => {
+    try {
+      setLoading(true);
+      const cvs = await AsyncStorage.getItem(`curriculos_${user.id}`);
+      setCurriculos(cvs ? JSON.parse(cvs) : []);
+    } catch (error) {
+      console.error('Erro ao carregar currículos:', error);
+      Alert.alert('Erro', 'Não foi possível carregar seus currículos.');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleIniciarEntrevista = (curriculo) => {
+    navigation.navigate('EntrevistaSimulada', { curriculoData: curriculo });
+  };
+
+  const handleEntrevistaGenerica = () => {
+    navigation.navigate('EntrevistaSimulada', { curriculoData: null });
+  };
+
+  const formatDate = (dateString) => {
+    try {
+      if (!dateString) return 'Data não disponível';
+      const date = new Date(dateString);
+      return `${date.getDate().toString().padStart(2, '0')}/${(date.getMonth() + 1).toString().padStart(2, '0')}/${date.getFullYear()}`;
+    } catch (error) {
+      return 'Data inválida';
+    }
+  };
+
+  // Extrair informações do currículo para exibição
+  const getResumoCurriculo = (curriculo) => {
+    const cv = curriculo.data;
+    const experiencias = cv.experiencias?.length || 0;
+    const formacoes = cv.formacoes_academicas?.length || 0;
+    const area = cv.informacoes_pessoais?.area || 'Não especificada';
+
+    return { experiencias, formacoes, area };
+  };
+
+  return (
+    <SafeAreaView style={styles.container}>
+      <StatusBar barStyle="dark-content" backgroundColor={Colors.dark} />
+
+      <View style={styles.header}>
+        <TouchableOpacity
+          style={styles.backButton}
+          onPress={() => navigation.goBack()}
+        >
+          <Text style={styles.backButtonText}>‹</Text>
+        </TouchableOpacity>
+        <Text style={styles.headerTitle}>Simular Entrevista</Text>
+      </View>
+
+      {loading ? (
+        <View style={styles.loadingContainer}>
+          <ActivityIndicator size="large" color={Colors.primary} />
+          <Text style={{ marginTop: 10 }}>Carregando currículos...</Text>
+        </View>
+      ) : (
+        <View style={{ flex: 1, padding: 15 }}>
+          <View style={{
+            backgroundColor: '#e1f5fe',
+            padding: 15,
+            borderRadius: 10,
+            marginBottom: 20,
+            borderLeftWidth: 4,
+            borderLeftColor: Colors.info,
+          }}>
+            <Text style={{
+              fontSize: 18,
+              fontWeight: 'bold',
+              marginBottom: 5,
+              color: Colors.dark,
+            }}>
+              Simulador de Entrevista com IA
+            </Text>
+            <Text style={{
+              fontSize: 14,
+              color: '#01579b',
+              lineHeight: 22,
+            }}>
+              Prepare-se para suas entrevistas de emprego com nosso simulador inteligente. A IA fará perguntas baseadas no seu currículo ou em um formato genérico, avaliará suas respostas e fornecerá feedback para melhorar seu desempenho.
+            </Text>
+          </View>
+
+          {curriculos.length > 0 ? (
+            <>
+              <Text style={{
+                fontSize: 16,
+                fontWeight: 'bold',
+                marginBottom: 10,
+                color: Colors.dark,
+              }}>
+                Selecione um currículo para uma entrevista personalizada:
+              </Text>
+
+              <FlatList
+                data={curriculos}
+                keyExtractor={(item) => item.id}
+                renderItem={({ item }) => {
+                  const resumo = getResumoCurriculo(item);
+
+                  return (
+                    <TouchableOpacity
+                      style={{
+                        backgroundColor: Colors.white,
+                        borderRadius: 10,
+                        marginBottom: 15,
+                        padding: 16,
+                        ...Platform.select({
+                          ios: {
+                            shadowColor: '#000',
+                            shadowOffset: { width: 0, height: 2 },
+                            shadowOpacity: 0.1,
+                            shadowRadius: 3,
+                          },
+                          android: {
+                            elevation: 2,
+                          },
+                        }),
+                        borderLeftWidth: 4,
+                        borderLeftColor: Colors.primary,
+                      }}
+                      onPress={() => handleIniciarEntrevista(item)}
+                    >
+                      <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
+                        <Text style={{
+                          fontSize: 18,
+                          fontWeight: 'bold',
+                          color: Colors.dark,
+                          marginBottom: 5,
+                        }}>
+                          {item.nome || 'Currículo sem nome'}
+                        </Text>
+
+                        <View style={{
+                          backgroundColor: Colors.primary,
+                          paddingVertical: 4,
+                          paddingHorizontal: 8,
+                          borderRadius: 15,
+                        }}>
+                          <Text style={{ color: Colors.white, fontSize: 12 }}>
+                            Selecionar
+                          </Text>
+                        </View>
+                      </View>
+
+                      <Text style={{
+                        fontSize: 14,
+                        color: Colors.lightText,
+                        marginBottom: 10,
+                      }}>
+                        Criado em: {formatDate(item.dataCriacao)}
+                      </Text>
+
+                      <View style={{
+                        backgroundColor: '#f5f5f5',
+                        padding: 10,
+                        borderRadius: 5,
+                        marginTop: 5,
+                      }}>
+                        <Text style={{ color: Colors.dark }}>
+                          <Text style={{ fontWeight: 'bold' }}>Área: </Text>
+                          {resumo.area}
+                        </Text>
+
+                        <View style={{ flexDirection: 'row', marginTop: 5, flexWrap: 'wrap' }}>
+                          <View style={{
+                            backgroundColor: Colors.primary,
+                            paddingVertical: 3,
+                            paddingHorizontal: 8,
+                            borderRadius: 12,
+                            marginRight: 8,
+                            marginBottom: 5,
+                          }}>
+                            <Text style={{ color: Colors.white, fontSize: 12 }}>
+                              {resumo.experiencias} experiência(s)
+                            </Text>
+                          </View>
+
+                          <View style={{
+                            backgroundColor: Colors.secondary,
+                            paddingVertical: 3,
+                            paddingHorizontal: 8,
+                            borderRadius: 12,
+                            marginRight: 8,
+                            marginBottom: 5,
+                          }}>
+                            <Text style={{ color: Colors.white, fontSize: 12 }}>
+                              {resumo.formacoes} formação(ões)
+                            </Text>
+                          </View>
+                        </View>
+                      </View>
+                    </TouchableOpacity>
+                  );
+                }}
+              />
+            </>
+          ) : (
+            <View style={{ alignItems: 'center', marginTop: 20 }}>
+              <Text style={{ textAlign: 'center', marginBottom: 20 }}>
+                Você ainda não tem currículos cadastrados. Crie um currículo primeiro ou use o modo de entrevista genérica.
+              </Text>
+              <TouchableOpacity
+                style={{
+                  backgroundColor: Colors.primary,
+                  paddingVertical: 12,
+                  paddingHorizontal: 20,
+                  borderRadius: 8,
+                  marginBottom: 15,
+                }}
+                onPress={() => navigation.navigate('Chatbot')}
+              >
+                <Text style={{ color: Colors.white, fontWeight: 'bold' }}>
+                  Criar Novo Currículo
+                </Text>
+              </TouchableOpacity>
+            </View>
+          )}
+
+          <View style={{
+            backgroundColor: '#f9fbe7',
+            padding: 15,
+            borderRadius: 10,
+            marginTop: 10,
+            marginBottom: 20,
+            borderLeftWidth: 4,
+            borderLeftColor: '#9e9d24',
+          }}>
+            <Text style={{
+              fontSize: 16,
+              fontWeight: 'bold',
+              marginBottom: 5,
+              color: Colors.dark,
+            }}>
+              Entrevista Genérica
+            </Text>
+            <Text style={{
+              fontSize: 14,
+              color: '#616161',
+              marginBottom: 10,
+            }}>
+              Prefere uma entrevista sem vínculo com um currículo específico? Faça uma simulação com perguntas genéricas para qualquer cargo.
+            </Text>
+            <TouchableOpacity
+              style={{
+                backgroundColor: '#9e9d24',
+                paddingVertical: 10,
+                paddingHorizontal: 15,
+                borderRadius: 8,
+                alignSelf: 'flex-start',
+              }}
+              onPress={handleEntrevistaGenerica}
+            >
+              <Text style={{ color: Colors.white, fontWeight: 'bold' }}>
+                Iniciar Entrevista Genérica
+              </Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      )}
+    </SafeAreaView>
+  );
+};
+
+const EntrevistaSimuladaScreen = ({ route, navigation }) => {
+  const { curriculoData } = route.params;
+  const { user } = useAuth();
+  const [entrevistaIniciada, setEntrevistaIniciada] = useState(false);
+  const [carregando, setCarregando] = useState(false);
+  const [perguntaAtual, setPerguntaAtual] = useState(null);
+  const [resposta, setResposta] = useState('');
+  const [historico, setHistorico] = useState([]);
+  const [numeroPergunta, setNumeroPergunta] = useState(0);
+  const [totalPerguntas, setTotalPerguntas] = useState(0);
+  const [feedbackVisible, setFeedbackVisible] = useState(false);
+  const [feedback, setFeedback] = useState('');
+  const [finalizando, setFinalizando] = useState(false);
+  const [concluido, setConcluido] = useState(false);
+  const [avaliacaoFinal, setAvaliacaoFinal] = useState(null);
+  const [tipoCargo, setTipoCargo] = useState('');
+  const [area, setArea] = useState('');
+  
+  const flatListRef = useRef();
+  const respostaInputRef = useRef();
+
+  // Função para iniciar a entrevista
+  const iniciarEntrevista = async () => {
+    try {
+      setCarregando(true);
+      
+      // Verificar se é uma entrevista baseada em currículo ou genérica
+      if (curriculoData) {
+        // Extrair a área e cargo do currículo para personalizar a entrevista
+        const cv = curriculoData.data;
+        const areaDoCV = cv.informacoes_pessoais?.area || '';
+        setArea(areaDoCV);
+        
+        // Determinar o cargo com base na experiência mais recente, se disponível
+        if (cv.experiencias && cv.experiencias.length > 0) {
+          setTipoCargo(cv.experiencias[0].cargo || '');
+        }
+      } else {
+        // Para entrevista genérica, solicitar informações
+        Alert.prompt(
+          "Informações para Entrevista",
+          "Qual cargo ou área você está buscando?",
+          [
+            {
+              text: "Cancelar",
+              onPress: () => navigation.goBack(),
+              style: "cancel"
+            },
+            {
+              text: "Continuar",
+              onPress: input => {
+                setArea(input || "Área não especificada");
+                prepararEntrevista(input);
+              }
+            }
+          ],
+          "plain-text"
+        );
+        return; // Aguardar input do usuário
+      }
+      
+      // Se temos currículo, continuar diretamente
+      prepararEntrevista();
+      
+    } catch (error) {
+      console.error('Erro ao iniciar entrevista:', error);
+      Alert.alert('Erro', 'Não foi possível iniciar a entrevista. Tente novamente.');
+      setCarregando(false);
+    }
+  };
+  
+  // Função para preparar o conjunto de perguntas da entrevista
+  const prepararEntrevista = async (areaInput = null) => {
+    try {
+      setCarregando(true);
+      
+      // Usar área do input para entrevista genérica, ou do currículo para específica
+      const areaFinal = areaInput || area;
+      
+      // Obter API key da IA
+      const apiKey = await getIAAPIKey('GEMINI');
+      
+      if (!apiKey) {
+        throw new Error("API key do Gemini não configurada");
+      }
+      
+      // Construir prompt para gerar perguntas de entrevista
+      let promptText = "";
+      
+      if (curriculoData) {
+        // Formatamos os dados do currículo
+        const cv = curriculoData.data;
+        const experiencias = cv.experiencias?.map(exp => 
+          `${exp.cargo} em ${exp.empresa} (${exp.data_inicio || ''} - ${exp.data_fim || 'atual'}): ${exp.descricao || ''}`
+        ).join('\n') || 'Sem experiências profissionais';
+        
+        const formacoes = cv.formacoes_academicas?.map(form => 
+          `${form.diploma} em ${form.area_estudo} pela ${form.instituicao} (${form.data_inicio || ''} - ${form.data_fim || ''})`
+        ).join('\n') || 'Sem formação acadêmica';
+        
+        const habilidades = cv.projetos?.map(proj => proj.habilidades).filter(Boolean).join(', ') || 'Não especificadas';
+        
+        promptText = `
+Você é um recrutador experiente especializado em entrevistas para a área de ${areaFinal}. Conduza uma entrevista simulada de emprego detalhada e realista para um candidato à posição de ${tipoCargo || areaFinal}.
+
+CURRÍCULO DO CANDIDATO:
+Nome: ${cv.informacoes_pessoais?.nome || ''} ${cv.informacoes_pessoais?.sobrenome || ''}
+Área: ${areaFinal}
+
+Experiências:
+${experiencias}
+
+Formação:
+${formacoes}
+
+Habilidades:
+${habilidades}
+
+INSTRUÇÕES PARA A ENTREVISTA:
+1. Crie exatamente 10 perguntas desafiadoras e realistas baseadas no currículo do candidato
+2. As perguntas devem incluir:
+   - Perguntas comportamentais (situações específicas)
+   - Perguntas técnicas relevantes para a área
+   - Perguntas sobre experiências anteriores
+   - Perguntas sobre soft skills e trabalho em equipe
+   - Pelo menos uma pergunta situacional de resolução de problemas
+   - Pelo menos uma pergunta de motivação profissional
+
+3. Elabore perguntas que um recrutador real faria, usando linguagem profissional
+4. Foque em perguntas que extraiam informações sobre competências, experiências e fit cultural
+5. Use as informações do currículo para personalizar as perguntas
+6. Inclua perguntas sobre possíveis gaps no currículo ou áreas de melhoria
+
+FORMATO DE RESPOSTA:
+Forneça apenas um array JSON de objetos, cada um representando uma pergunta, na seguinte estrutura:
+[
+  {
+    "pergunta": "texto da pergunta 1",
+    "context": "contexto breve sobre por que essa pergunta está sendo feita",
+    "tipo": "comportamental/técnica/experiência/motivacional/situacional"
+  },
+  {
+    "pergunta": "texto da pergunta 2",
+    "context": "contexto breve sobre por que essa pergunta está sendo feita",
+    "tipo": "comportamental/técnica/experiência/motivacional/situacional"
+  }
+]
+
+Apenas retorne o JSON puro, sem texto introdutório ou explicações.
+`;
+      } else {
+        // Prompt para entrevista genérica
+        promptText = `
+Você é um recrutador experiente especializado em entrevistas para a área de ${areaFinal}. Conduza uma entrevista simulada de emprego detalhada e realista para um candidato.
+
+INSTRUÇÕES PARA A ENTREVISTA GENÉRICA:
+1. Crie exatamente 10 perguntas desafiadoras e realistas para uma entrevista de emprego na área de ${areaFinal}
+2. As perguntas devem incluir:
+   - Perguntas comportamentais (situações específicas)
+   - Perguntas técnicas relevantes para a área
+   - Perguntas sobre experiências anteriores
+   - Perguntas sobre soft skills e trabalho em equipe
+   - Pelo menos uma pergunta situacional de resolução de problemas
+   - Pelo menos uma pergunta de motivação profissional
+
+3. Elabore perguntas que um recrutador real faria, usando linguagem profissional
+4. Foque em perguntas que extraiam informações sobre competências, experiências e fit cultural
+5. As perguntas devem ser genéricas o suficiente para qualquer pessoa na área, mas específicas o suficiente para avaliar conhecimentos relevantes
+6. Inclua perguntas típicas de entrevistas para ${areaFinal} baseadas nas melhores práticas do mercado
+
+FORMATO DE RESPOSTA:
+Forneça apenas um array JSON de objetos, cada um representando uma pergunta, na seguinte estrutura:
+[
+  {
+    "pergunta": "texto da pergunta 1",
+    "context": "contexto breve sobre por que essa pergunta está sendo feita",
+    "tipo": "comportamental/técnica/experiência/motivacional/situacional"
+  },
+  {
+    "pergunta": "texto da pergunta 2",
+    "context": "contexto breve sobre por que essa pergunta está sendo feita",
+    "tipo": "comportamental/técnica/experiência/motivacional/situacional"
+  }
+]
+
+Apenas retorne o JSON puro, sem texto introdutório ou explicações.
+`;
+      }
+      
+      // Chamar a API do Gemini para gerar perguntas
+      const endpoint = `${IA_APIS.GEMINI.endpoint}?key=${apiKey}`;
+      const requestBody = {
+        contents: [{ parts: [{ text: promptText }] }],
+        generationConfig: {
+          temperature: 0.2,
+          maxOutputTokens: 4000,
+          topP: 0.8,
+          topK: 40
+        }
+      };
+      
+      const response = await axios.post(endpoint, requestBody, {
+        headers: { 'Content-Type': 'application/json' },
+        timeout: 30000
+      });
+      
+      if (response.data?.candidates?.[0]?.content?.parts?.[0]?.text) {
+        const resultText = response.data.candidates[0].content.parts[0].text;
+        
+        // Extrair o JSON da resposta
+        const jsonMatch = resultText.match(/\[[\s\S]*\]/);
+        if (jsonMatch) {
+          try {
+            const perguntas = JSON.parse(jsonMatch[0]);
+            setTotalPerguntas(perguntas.length);
+            setNumeroPergunta(1);
+            setPerguntaAtual(perguntas[0]);
+            
+            // Adicionar primeira pergunta ao histórico
+            setHistorico([{
+              id: '0',
+              texto: perguntas[0].pergunta,
+              isUser: false,
+              context: perguntas[0].context,
+              tipo: perguntas[0].tipo
+            }]);
+            
+            // Salvar perguntas restantes no estado
+            setEntrevistaIniciada(true);
+            
+            // Armazenar perguntas em AsyncStorage para recuperação caso a app feche
+            await AsyncStorage.setItem(`entrevista_perguntas_${user.id}`, 
+              JSON.stringify({
+                perguntas,
+                timestampInicio: new Date().toISOString(),
+                curriculoId: curriculoData?.id || null,
+                area: areaFinal,
+                tipoCargo: tipoCargo
+              })
+            );
+          } catch (jsonError) {
+            console.error('Erro ao parsear JSON da resposta:', jsonError);
+            throw new Error('Formato de resposta inválido');
+          }
+        } else {
+          throw new Error('Não foi possível extrair perguntas da resposta');
+        }
+      } else {
+        throw new Error('Formato de resposta inesperado do Gemini');
+      }
+    } catch (error) {
+      console.error('Erro ao preparar entrevista:', error);
+      Alert.alert('Erro', 'Não foi possível preparar a entrevista. Tente novamente mais tarde.');
+    } finally {
+      setCarregando(false);
+    }
+  };
+  
+  // Função para processar a resposta do usuário e fornecer feedback
+  const enviarResposta = async () => {
+    if (resposta.trim() === '') return;
+    
+    try {
+      // Adicionar a resposta do usuário ao histórico
+      const novoHistorico = [...historico, {
+        id: `u-${numeroPergunta}`,
+        texto: resposta,
+        isUser: true
+      }];
+      
+      setHistorico(novoHistorico);
+      setResposta('');
+      setCarregando(true);
+      
+      // Obter API key da IA
+      const apiKey = await getIAAPIKey('GEMINI');
+      
+      if (!apiKey) {
+        throw new Error("API key do Gemini não configurada");
+      }
+      
+      // Obter entrevista armazenada
+      const entrevistaJson = await AsyncStorage.getItem(`entrevista_perguntas_${user.id}`);
+      if (!entrevistaJson) {
+        throw new Error("Dados da entrevista não encontrados");
+      }
+      
+      const entrevistaData = JSON.parse(entrevistaJson);
+      const perguntas = entrevistaData.perguntas;
+      
+      // Construir prompt para feedback da resposta
+      const promptText = `
+Você é um recrutador experiente especializado em entrevistas para a área de ${area || entrevistaData.area}.
+
+PERGUNTA DA ENTREVISTA:
+"${perguntaAtual.pergunta}"
+
+Contexto da pergunta: ${perguntaAtual.context}
+Tipo de pergunta: ${perguntaAtual.tipo}
+
+RESPOSTA DO CANDIDATO:
+"${resposta}"
+
+TAREFA:
+Analise a resposta do candidato à pergunta de entrevista acima e forneça um feedback detalhado:
+
+1. Avalie a qualidade da resposta (escala de 1-10)
+2. Identifique pontos fortes da resposta
+3. Identifique pontos fracos ou informações faltantes
+4. Forneça sugestões específicas para melhorar a resposta
+5. Explique o que um recrutador buscaria neste tipo de resposta
+
+FORMATO DE RESPOSTA:
+{
+  "pontuacao": 7,
+  "pontos_fortes": ["ponto forte 1", "ponto forte 2"],
+  "pontos_fracos": ["ponto fraco 1", "ponto fraco 2"],
+  "sugestoes": ["sugestão 1", "sugestão 2"],
+  "explicacao": "Explicação sobre o que um recrutador busca nesta resposta",
+  "resumo": "Um resumo conciso do feedback em um parágrafo"
+}
+
+Retorne apenas o JSON puro, sem texto adicional.
+`;
+      
+      // Chamar a API do Gemini para gerar feedback
+      const endpoint = `${IA_APIS.GEMINI.endpoint}?key=${apiKey}`;
+      const requestBody = {
+        contents: [{ parts: [{ text: promptText }] }],
+        generationConfig: {
+          temperature: 0.3,
+          maxOutputTokens: 2000,
+          topP: 0.8,
+          topK: 40
+        }
+      };
+      
+      const response = await axios.post(endpoint, requestBody, {
+        headers: { 'Content-Type': 'application/json' },
+        timeout: 30000
+      });
+      
+      if (response.data?.candidates?.[0]?.content?.parts?.[0]?.text) {
+        const resultText = response.data.candidates[0].content.parts[0].text;
+        
+        // Extrair o JSON da resposta
+        const jsonMatch = resultText.match(/\{[\s\S]*\}/);
+        if (jsonMatch) {
+          try {
+            const feedbackData = JSON.parse(jsonMatch[0]);
+            
+            // Formatar feedback para exibição
+            const feedbackFormatado = `## Feedback sobre sua resposta
+
+**Pontuação:** ${feedbackData.pontuacao}/10
+
+**Pontos fortes:**
+${feedbackData.pontos_fortes.map(ponto => `- ${ponto}`).join('\n')}
+
+**Pontos a melhorar:**
+${feedbackData.pontos_fracos.map(ponto => `- ${ponto}`).join('\n')}
+
+**Sugestões:**
+${feedbackData.sugestoes.map(sugestao => `- ${sugestao}`).join('\n')}
+
+**O que o recrutador busca:**
+${feedbackData.explicacao}
+
+**Resumo:**
+${feedbackData.resumo}`;
+            
+            setFeedback(feedbackFormatado);
+            setFeedbackVisible(true);
+            
+            // Salvar feedback no histórico de entrevista
+            await AsyncStorage.setItem(`entrevista_feedback_${user.id}_${numeroPergunta}`, 
+              JSON.stringify({
+                pergunta: perguntaAtual.pergunta,
+                resposta: resposta,
+                feedback: feedbackData
+              })
+            );
+            
+          } catch (jsonError) {
+            console.error('Erro ao parsear JSON do feedback:', jsonError);
+            setFeedback("Não foi possível gerar o feedback para sua resposta. Vamos continuar com a próxima pergunta.");
+            setFeedbackVisible(true);
+          }
+        } else {
+          setFeedback("Não foi possível gerar o feedback para sua resposta. Vamos continuar com a próxima pergunta.");
+          setFeedbackVisible(true);
+        }
+      } else {
+        setFeedback("Não foi possível gerar o feedback para sua resposta. Vamos continuar com a próxima pergunta.");
+        setFeedbackVisible(true);
+      }
+    } catch (error) {
+      console.error('Erro ao processar resposta:', error);
+      Alert.alert('Erro', 'Não foi possível processar sua resposta. Tente novamente.');
+    } finally {
+      setCarregando(false);
+    }
+  };
+  
+  // Função para prosseguir para a próxima pergunta
+  const proximaPergunta = async () => {
+    try {
+      setFeedbackVisible(false);
+      setFeedback('');
+      
+      // Obter entrevista armazenada
+      const entrevistaJson = await AsyncStorage.getItem(`entrevista_perguntas_${user.id}`);
+      if (!entrevistaJson) {
+        throw new Error("Dados da entrevista não encontrados");
+      }
+      
+      const entrevistaData = JSON.parse(entrevistaJson);
+      const perguntas = entrevistaData.perguntas;
+      
+      // Verificar se ainda há perguntas
+      if (numeroPergunta < perguntas.length) {
+        // Próxima pergunta
+        const proximoNumero = numeroPergunta + 1;
+        const proximaPergunta = perguntas[proximoNumero - 1];
+        
+        setNumeroPergunta(proximoNumero);
+        setPerguntaAtual(proximaPergunta);
+        
+        // Adicionar próxima pergunta ao histórico
+        setHistorico(prev => [...prev, {
+          id: `${proximoNumero}`,
+          texto: proximaPergunta.pergunta,
+          isUser: false,
+          context: proximaPergunta.context,
+          tipo: proximaPergunta.tipo
+        }]);
+        
+        // Rolar para o fim da lista
+        if (flatListRef.current) {
+          setTimeout(() => {
+            flatListRef.current.scrollToEnd({ animated: true });
+          }, 200);
+        }
+      } else {
+        // Finalizar entrevista
+        setFinalizando(true);
+        gerarAvaliacaoFinal();
+      }
+    } catch (error) {
+      console.error('Erro ao avançar para próxima pergunta:', error);
+      Alert.alert('Erro', 'Não foi possível carregar a próxima pergunta. Tente novamente.');
+    }
+  };
+  
+  // Função para gerar avaliação final da entrevista
+  const gerarAvaliacaoFinal = async () => {
+    try {
+      setCarregando(true);
+      
+      // Obter API key da IA
+      const apiKey = await getIAAPIKey('GEMINI');
+      
+      if (!apiKey) {
+        throw new Error("API key do Gemini não configurada");
+      }
+      
+      // Recuperar todos os feedbacks armazenados
+      const entrevistaJson = await AsyncStorage.getItem(`entrevista_perguntas_${user.id}`);
+      if (!entrevistaJson) {
+        throw new Error("Dados da entrevista não encontrados");
+      }
+      
+      const entrevistaData = JSON.parse(entrevistaJson);
+      const perguntas = entrevistaData.perguntas;
+      
+      // Construir lista de perguntas e respostas
+      let perguntasRespostas = [];
+      
+      for (let i = 1; i <= perguntas.length; i++) {
+        const feedbackJson = await AsyncStorage.getItem(`entrevista_feedback_${user.id}_${i}`);
+        if (feedbackJson) {
+          const feedbackData = JSON.parse(feedbackJson);
+          perguntasRespostas.push({
+            pergunta: feedbackData.pergunta,
+            resposta: feedbackData.resposta,
+            feedback: feedbackData.feedback
+          });
+        }
+      }
+      
+      // Construir prompt para avaliação final
+      const promptText = `
+Você é um recrutador experiente especializado em entrevistas para a área de ${entrevistaData.area || area}.
+
+CONTEXTO:
+Foi conduzida uma entrevista simulada com um candidato para uma posição na área de ${entrevistaData.area || area}${entrevistaData.tipoCargo ? `, com foco em ${entrevistaData.tipoCargo}` : ''}.
+
+RESUMO DA ENTREVISTA:
+${perguntasRespostas.map((item, index) => `
+Pergunta ${index + 1}: "${item.pergunta}"
+Resposta: "${item.resposta}"
+Pontuação: ${item.feedback.pontuacao}/10
+`).join('\n')}
+
+TAREFA:
+Baseado nas respostas do candidato, faça uma avaliação completa de seu desempenho na entrevista:
+
+1. Calcule a pontuação global (média das pontuações individuais)
+2. Identifique os 3-5 principais pontos fortes demonstrados
+3. Identifique as 3-5 principais áreas de melhoria
+4. Forneça 3-5 recomendações específicas para melhorar em futuras entrevistas
+5. Avalie as habilidades de comunicação, estruturação de respostas e confiança do candidato
+6. Dê uma avaliação geral sobre as chances do candidato neste processo seletivo (baixa/média/alta)
+
+FORMATO DE RESPOSTA:
+{
+  "pontuacao_global": 7.5,
+  "pontos_fortes": [
+    {"ponto": "Descrição do ponto forte 1", "exemplo": "Exemplo específico da entrevista"},
+    {"ponto": "Descrição do ponto forte 2", "exemplo": "Exemplo específico da entrevista"}
+  ],
+  "areas_melhoria": [
+    {"area": "Descrição da área 1", "sugestao": "Sugestão específica"},
+    {"area": "Descrição da área 2", "sugestao": "Sugestão específica"}
+  ],
+  "recomendacoes": ["Recomendação 1", "Recomendação 2", "Recomendação 3"],
+  "avaliacao_comunicacao": "Análise da comunicação",
+  "avaliacao_estrutura": "Análise da estrutura das respostas",
+  "avaliacao_confianca": "Análise da confiança demonstrada",
+  "chance_sucesso": "média",
+  "conclusao": "Conclusão geral sobre o desempenho em um parágrafo"
+}
+
+Retorne apenas o JSON puro, sem texto adicional.
+`;
+      
+      // Chamar a API do Gemini para gerar avaliação final
+      const endpoint = `${IA_APIS.GEMINI.endpoint}?key=${apiKey}`;
+      const requestBody = {
+        contents: [{ parts: [{ text: promptText }] }],
+        generationConfig: {
+          temperature: 0.2,
+          maxOutputTokens: 4000,
+          topP: 0.8,
+          topK: 40
+        }
+      };
+      
+      const response = await axios.post(endpoint, requestBody, {
+        headers: { 'Content-Type': 'application/json' },
+        timeout: 30000
+      });
+      
+      if (response.data?.candidates?.[0]?.content?.parts?.[0]?.text) {
+        const resultText = response.data.candidates[0].content.parts[0].text;
+        
+        // Extrair o JSON da resposta
+        const jsonMatch = resultText.match(/\{[\s\S]*\}/);
+        if (jsonMatch) {
+          try {
+            const avaliacaoData = JSON.parse(jsonMatch[0]);
+            setAvaliacaoFinal(avaliacaoData);
+            setConcluido(true);
+            
+            // Salvar avaliação final
+            await AsyncStorage.setItem(`entrevista_avaliacao_${user.id}`, 
+              JSON.stringify({
+                avaliacao: avaliacaoData,
+                timestamp: new Date().toISOString(),
+                area: entrevistaData.area || area,
+                tipoCargo: entrevistaData.tipoCargo || tipoCargo
+              })
+            );
+            
+          } catch (jsonError) {
+            console.error('Erro ao parsear JSON da avaliação final:', jsonError);
+            throw new Error('Formato de resposta inválido');
+          }
+        } else {
+          throw new Error('Não foi possível extrair avaliação final da resposta');
+        }
+      } else {
+        throw new Error('Formato de resposta inesperado do Gemini');
+      }
+    } catch (error) {
+      console.error('Erro ao gerar avaliação final:', error);
+      Alert.alert('Erro', 'Não foi possível gerar a avaliação final da entrevista. Tente novamente mais tarde.');
+    } finally {
+      setCarregando(false);
+    }
+  };
+  
+  // Hook para iniciar a entrevista quando o componente for montado
+  useEffect(() => {
+    if (!entrevistaIniciada && !carregando) {
+      iniciarEntrevista();
+    }
+  }, []);
+  
+  // Função para mapear o nível de chance de sucesso para uma cor
+  const getChanceColor = (chance) => {
+    switch(chance.toLowerCase()) {
+      case 'alta':
+        return Colors.success;
+      case 'média':
+        return Colors.warning;
+      case 'baixa':
+        return Colors.danger;
+      default:
+        return Colors.primary;
+    }
+  };
+  
+  // Renderizar mensagem de entrevista
+  const renderMensagem = ({ item }) => (
+    <View style={[
+      styles.mensagemEntrevista,
+      item.isUser ? styles.mensagemUsuario : styles.mensagemRecrutador
+    ]}>
+      <Text style={[
+        styles.textoMensagem,
+        item.isUser ? styles.textoMensagemUsuario : styles.textoMensagemRecrutador
+      ]}>
+        {item.texto}
+      </Text>
+      {!item.isUser && item.tipo && (
+        <View style={styles.tipoPerguntaBadge}>
+          <Text style={styles.tipoPerguntaTexto}>
+            {item.tipo}
+          </Text>
+        </View>
+      )}
+    </View>
+  );
+  
+  // Renderizar avaliação final
+  const renderAvaliacaoFinal = () => {
+    if (!avaliacaoFinal) return null;
+    
+    return (
+      <ScrollView style={styles.avaliacaoFinalContainer}>
+        <View style={styles.avaliacaoHeader}>
+          <Text style={styles.avaliacaoTitulo}>Avaliação Final da Entrevista</Text>
+          
+          <View style={styles.pontuacaoContainer}>
+            <Text style={styles.pontuacaoLabel}>Pontuação Global</Text>
+            <View style={styles.pontuacaoCircle}>
+              <Text style={styles.pontuacaoValor}>
+                {avaliacaoFinal.pontuacao_global.toFixed(1)}
+              </Text>
+              <Text style={styles.pontuacaoMax}>/10</Text>
+            </View>
+          </View>
+          
+          <View style={[
+            styles.chanceSucessoContainer,
+            { backgroundColor: getChanceColor(avaliacaoFinal.chance_sucesso) }
+          ]}>
+            <Text style={styles.chanceSucessoTexto}>
+              Chance de sucesso: {avaliacaoFinal.chance_sucesso.toUpperCase()}
+            </Text>
+          </View>
+        </View>
+        
+        <View style={styles.secaoAvaliacao}>
+          <Text style={styles.secaoTitulo}>Pontos Fortes</Text>
+          {avaliacaoFinal.pontos_fortes.map((ponto, index) => (
+            <View key={`forte-${index}`} style={styles.pontoItem}>
+              <Text style={styles.pontoTitulo}>{ponto.ponto}</Text>
+              <Text style={styles.pontoExemplo}>{ponto.exemplo}</Text>
+            </View>
+          ))}
+        </View>
+        
+        <View style={styles.secaoAvaliacao}>
+          <Text style={styles.secaoTitulo}>Áreas de Melhoria</Text>
+          {avaliacaoFinal.areas_melhoria.map((area, index) => (
+            <View key={`melhoria-${index}`} style={styles.pontoItem}>
+              <Text style={styles.pontoTitulo}>{area.area}</Text>
+              <Text style={styles.pontoExemplo}>{area.sugestao}</Text>
+            </View>
+          ))}
+        </View>
+        
+        <View style={styles.secaoAvaliacao}>
+          <Text style={styles.secaoTitulo}>Recomendações</Text>
+          {avaliacaoFinal.recomendacoes.map((recomendacao, index) => (
+            <View key={`rec-${index}`} style={styles.recomendacaoItem}>
+              <Text style={styles.recomendacaoNumero}>{index + 1}</Text>
+              <Text style={styles.recomendacaoTexto}>{recomendacao}</Text>
+            </View>
+          ))}
+        </View>
+        
+        <View style={styles.secaoAvaliacao}>
+          <Text style={styles.secaoTitulo}>Avaliação Detalhada</Text>
+          
+          <View style={styles.avaliacaoDetalheItem}>
+            <Text style={styles.avaliacaoDetalheTitulo}>Comunicação:</Text>
+            <Text style={styles.avaliacaoDetalheTexto}>{avaliacaoFinal.avaliacao_comunicacao}</Text>
+          </View>
+          
+          <View style={styles.avaliacaoDetalheItem}>
+            <Text style={styles.avaliacaoDetalheTitulo}>Estrutura das Respostas:</Text>
+            <Text style={styles.avaliacaoDetalheTexto}>{avaliacaoFinal.avaliacao_estrutura}</Text>
+          </View>
+          
+          <View style={styles.avaliacaoDetalheItem}>
+            <Text style={styles.avaliacaoDetalheTitulo}>Confiança:</Text>
+            <Text style={styles.avaliacaoDetalheTexto}>{avaliacaoFinal.avaliacao_confianca}</Text>
+          </View>
+        </View>
+        
+        <View style={styles.conclusaoContainer}>
+          <Text style={styles.conclusaoTitulo}>Conclusão</Text>
+          <Text style={styles.conclusaoTexto}>{avaliacaoFinal.conclusao}</Text>
+        </View>
+        
+        <TouchableOpacity
+          style={styles.botaoEncerrar}
+          onPress={() => navigation.goBack()}
+        >
+          <Text style={styles.textoEncerrar}>Encerrar Entrevista</Text>
+        </TouchableOpacity>
+      </ScrollView>
+    );
+  };
+  
+  return (
+    <SafeAreaView style={styles.container}>
+      <StatusBar barStyle="dark-content" backgroundColor={Colors.dark} />
+      
+      <View style={styles.header}>
+        <TouchableOpacity
+          style={styles.backButton}
+          onPress={() => {
+            if (entrevistaIniciada && !concluido) {
+              Alert.alert(
+                "Sair da entrevista",
+                "Tem certeza que deseja sair? Seu progresso será perdido.",
+                [
+                  { text: "Cancelar", style: "cancel" },
+                  { text: "Sair", onPress: () => navigation.goBack() }
+                ]
+              );
+            } else {
+              navigation.goBack();
+            }
+          }}
+        >
+          <Text style={styles.backButtonText}>‹</Text>
+        </TouchableOpacity>
+        <Text style={styles.headerTitle}>
+          {concluido ? 'Resultado da Entrevista' : 'Entrevista Simulada'}
+        </Text>
+      </View>
+      
+      {carregando && !entrevistaIniciada ? (
+        <View style={styles.loadingContainer}>
+          <ActivityIndicator size="large" color={Colors.primary} />
+          <Text style={styles.loadingText}>
+            Preparando sua entrevista{curriculoData ? ' personalizada' : ' genérica'}...
+          </Text>
+        </View>
+      ) : concluido ? (
+        renderAvaliacaoFinal()
+      ) : (
+        <View style={styles.entrevistaContainer}>
+          <View style={styles.progressoContainer}>
+            <View style={styles.progressoTrack}>
+              <View
+                style={[
+                  styles.progressoFill,
+                  { width: `${(numeroPergunta / totalPerguntas) * 100}%` }
+                ]}
+              />
+            </View>
+            <Text style={styles.progressoTexto}>
+              Pergunta {numeroPergunta} de {totalPerguntas}
+            </Text>
+          </View>
+          
+          <FlatList
+            ref={flatListRef}
+            data={historico}
+            keyExtractor={(item) => item.id}
+            renderItem={renderMensagem}
+            contentContainerStyle={styles.mensagensLista}
+            onLayout={() => {
+              if (flatListRef.current) {
+                flatListRef.current.scrollToEnd({ animated: true });
+              }
+            }}
+          />
+          
+          {feedbackVisible ? (
+            <View style={styles.feedbackContainer}>
+              <Text style={styles.feedbackTitulo}>Feedback do Recrutador</Text>
+              
+              <ScrollView style={styles.feedbackScrollView}>
+                <Markdown
+                  style={{
+                    body: { fontSize: 14, lineHeight: 20, color: Colors.dark },
+                    heading2: {
+                      fontSize: 16,
+                      fontWeight: 'bold',
+                      marginBottom: 10,
+                      color: Colors.dark
+                    },
+                    bullet_list: { marginVertical: 5 },
+                    paragraph: { marginBottom: 10 },
+                    strong: { fontWeight: 'bold' },
+                  }}
+                >
+                  {feedback}
+                </Markdown>
+              </ScrollView>
+              
+              <TouchableOpacity
+                style={styles.continuarButton}
+                onPress={proximaPergunta}
+              >
+                <Text style={styles.continuarButtonText}>
+                  {numeroPergunta === totalPerguntas ? 'Finalizar Entrevista' : 'Próxima Pergunta'}
+                </Text>
+              </TouchableOpacity>
+            </View>
+          ) : (
+            <View style={styles.inputContainer}>
+              <TextInput
+                ref={respostaInputRef}
+                style={styles.input}
+                placeholder="Digite sua resposta aqui..."
+                value={resposta}
+                onChangeText={setResposta}
+                multiline
+                textAlignVertical="top"
+                editable={!carregando}
+              />
+              
+              <TouchableOpacity
+                style={[
+                  styles.enviarButton,
+                  (resposta.trim() === '' || carregando) && styles.enviarButtonDisabled
+                ]}
+                onPress={enviarResposta}
+                disabled={resposta.trim() === '' || carregando}
+              >
+                {carregando ? (
+                  <ActivityIndicator color={Colors.white} size="small" />
+                ) : (
+                  <Text style={styles.enviarButtonText}>Enviar</Text>
+                )}
+              </TouchableOpacity>
+            </View>
+          )}
+        </View>
+      )}
+    </SafeAreaView>
+  );
+};
+
+const salvarProgressoCurriculo = async (userId, data) => {
+  try {
+    // Salvar o estado atual do chatbot
+    await AsyncStorage.setItem(`curriculo_em_progresso_${userId}`, JSON.stringify({
+      timestamp: new Date().toISOString(),
+      data: data
+    }));
+    console.log('Progresso do currículo salvo com sucesso');
+  } catch (error) {
+    console.error('Erro ao salvar progresso do currículo:', error);
+  }
+};
+
+const recuperarProgressoCurriculo = async (userId) => {
+  try {
+    const progresso = await AsyncStorage.getItem(`curriculo_em_progresso_${userId}`);
+    if (progresso) {
+      return JSON.parse(progresso);
+    }
+    return null;
+  } catch (error) {
+    console.error('Erro ao recuperar progresso do currículo:', error);
+    return null;
+  }
+};
+
+const limparProgressoCurriculo = async (userId) => {
+  try {
+    await AsyncStorage.removeItem(`curriculo_em_progresso_${userId}`);
+    console.log('Progresso do currículo limpo com sucesso');
+  } catch (error) {
+    console.error('Erro ao limpar progresso do currículo:', error);
+  }
+};
+
+const ChatbotScreen = ({ navigation, route }) => {
+  // Estados do componente original
+  const [messages, setMessages] = useState([]);
+  const [currentMessage, setCurrentMessage] = useState('');
+  const [options, setOptions] = useState(['Começar']);
+  const [isTyping, setIsTyping] = useState(false);
+  const [currentStep, setCurrentStep] = useState('boas_vindas');
+  const [cvData, setCvData] = useState(null);
+  const [showPreview, setShowPreview] = useState(false);
+  const [initializing, setInitializing] = useState(true);
+  
+  // Novos estados para controle de confirmação
+  const [showConfirmation, setShowConfirmation] = useState(false);
+  const [lastResponse, setLastResponse] = useState(null);
+  const [waitingConfirmation, setWaitingConfirmation] = useState(false);
+  const [lastProcessedResult, setLastProcessedResult] = useState(null);
+
+  const { user } = useAuth();
+  const flatListRef = useRef();
+
+  // Função para inicializar o chat com mensagem de boas-vindas
+  const inicializarChat = () => {
+    console.log('Inicializando chat com mensagem de boas-vindas');
+    const welcomeMessage = {
+      id: getUniqueId(),
+      text: "Olá! Sou o CurriculoBot, seu assistente para criar um currículo profissional. Digite 'começar' quando estiver pronto!",
+      isUser: false,
+      time: getCurrentTime()
+    };
+
+    setMessages([welcomeMessage]);
+    setCurrentStep('boas_vindas');
+    setCvData(null);
+    setOptions(['Começar']);
+  };
+
+  // Verificar se estamos retomando um currículo em progresso
+  useEffect(() => {
+    const carregarDados = async () => {
+      try {
+        console.log('Carregando dados iniciais do chat');
+
+        // Flag para verificar se devemos restaurar ou inicializar
+        let restaurado = false;
+
+        // Verificar se estamos restaurando de um progresso salvo
+        if (route.params?.continuarProgresso) {
+          console.log('Tentando restaurar progresso...');
+          const progresso = await recuperarProgressoCurriculo(user.id);
+
+          if (progresso && progresso.data) {
+            // Verificar se o progresso é válido (menos de 24h)
+            const dataProgresso = new Date(progresso.timestamp);
+            const agora = new Date();
+            const diferencaHoras = (agora - dataProgresso) / (1000 * 60 * 60);
+
+            if (diferencaHoras < 24 && progresso.data.messages && progresso.data.messages.length > 0) {
+              console.log('Restaurando progresso de', dataProgresso);
+
+              // Restaurar o estado do chat
+              setCvData(progresso.data.cvData || null);
+              setCurrentStep(progresso.data.currentStep || 'boas_vindas');
+              setOptions(progresso.data.options || ['Começar']);
+              setMessages(progresso.data.messages || []);
+
+              restaurado = true;
+
+              // Notificar o usuário que o progresso foi restaurado
+              setTimeout(() => {
+                Alert.alert(
+                  "Progresso Restaurado",
+                  "Seu currículo em andamento foi restaurado com sucesso!"
+                );
+              }, 500);
+            } else {
+              console.log('Progresso muito antigo ou inválido:', diferencaHoras, 'horas');
+            }
+          } else {
+            console.log('Nenhum progresso encontrado para restaurar');
+          }
+        }
+
+        // Se não conseguimos restaurar, inicializar normalmente
+        if (!restaurado) {
+          console.log('Inicializando chat normalmente');
+          inicializarChat();
+        }
+      } catch (error) {
+        console.error('Erro ao carregar dados iniciais:', error);
+        // Em caso de erro, garantir que o chat seja inicializado
+        inicializarChat();
+      } finally {
+        // Sempre marcar a inicialização como concluída
+        setInitializing(false);
+      }
+    };
+
+    carregarDados();
+  }, []);
+
+  // Efeito para rolar para o final da lista quando mensagens mudarem
+  useEffect(() => {
+    if (messages.length > 0 && flatListRef.current && !initializing) {
+      setTimeout(() => {
+        flatListRef.current.scrollToEnd({ animated: true });
+      }, 100);
+    }
+  }, [messages, initializing]);
+
+  // Salvar progresso quando sair da tela
+  useEffect(() => {
+    return () => {
+      // Só salvar se houver progresso significativo (além da mensagem inicial) e não estiver concluído
+      if (messages.length > 1 && currentStep !== 'boas_vindas' && currentStep !== 'concluido' && cvData) {
+        console.log('Salvando progresso ao sair da tela');
+        salvarProgressoCurriculo(user.id, {
+          cvData,
+          currentStep,
+          options,
+          messages,
+        });
+      }
+    };
+  }, [messages, currentStep, cvData, options, user.id]);
+
+  // Limpar o progresso salvo quando finalizar o currículo
+  useEffect(() => {
+    if (currentStep === 'concluido' && cvData) {
+      console.log('Currículo concluído, limpando progresso salvo');
+      limparProgressoCurriculo(user.id);
+    }
+  }, [currentStep, cvData, user.id]);
+
+  // Adicionar mensagem do bot
+  const addBotMessage = (text) => {
+    setIsTyping(true);
+
+    // Simular tempo de digitação do bot (mais curto para melhor responsividade)
+    setTimeout(() => {
+      const newMessage = {
+        id: getUniqueId(),
+        text,
+        isUser: false,
+        time: getCurrentTime()
+      };
+
+      setMessages(prevMessages => [...prevMessages, newMessage]);
+      setIsTyping(false);
+
+      // Rolar para o final da lista
+      if (flatListRef.current) {
+        setTimeout(() => flatListRef.current.scrollToEnd({ animated: true }), 100);
+      }
+    }, 700);
+  };
+
+  // Função para aplicar o resultado processado
+  const applyProcessedResult = (result) => {
+    // Atualizar estados
+    setCvData(result.cvData);
+    setCurrentStep(result.nextStep);
+    setOptions(result.options || []);
+
+    // Adicionar resposta do bot
+    addBotMessage(result.response);
+    
+    // Resetar confirmação
+    setShowConfirmation(false);
+    setWaitingConfirmation(false);
+
+    // Salvar currículo se finalizado
+    if (result.isFinished) {
+      salvarCurriculo(result.cvData, user.id)
+        .then(id => {
+          console.log('Currículo salvo com ID:', id);
+          // Limpar o progresso salvo ao finalizar
+          limparProgressoCurriculo(user.id);
+        })
+        .catch(error => {
+          console.error('Erro ao salvar currículo:', error);
+          Alert.alert('Erro', 'Não foi possível salvar o currículo.');
+        });
+    }
+  };
+
+  // Lidar com envio de mensagem (versão modificada com confirmação)
+  const handleSendMessage = () => {
+    if (currentMessage.trim() === '') return;
+    
+    // Se estamos esperando confirmação, ignorar novas mensagens
+    if (waitingConfirmation) return;
+
+    // Adicionar mensagem do usuário
+    const userMessage = {
+      id: getUniqueId(),
+      text: currentMessage,
+      isUser: true,
+      time: getCurrentTime()
+    };
+
+    // Atualizar mensagens
+    setMessages(prevMessages => [...prevMessages, userMessage]);
+
+    // Processar a mensagem para obter a resposta
+    const result = processMessage(currentMessage, currentStep, cvData);
+    
+    // Salvar resultado para usar após confirmação
+    setLastProcessedResult(result);
+    setLastResponse(currentMessage);
+    
+    // Limpar campo de entrada
+    setCurrentMessage('');
+    
+    // Mostrar confirmação, exceto para algumas etapas como 'boas_vindas'
+    if (currentStep !== 'boas_vindas' && currentStep !== 'concluido' && !currentStep.includes('escolher')) {
+      setShowConfirmation(true);
+      setWaitingConfirmation(true);
+    } else {
+      // Para etapas que não precisam de confirmação, proceder normalmente
+      applyProcessedResult(result);
+    }
+
+    // Rolar para o final da lista
+    if (flatListRef.current) {
+      setTimeout(() => flatListRef.current.scrollToEnd({ animated: true }), 100);
+    }
+  };
+  
+  // Função para confirmar a resposta
+  const handleConfirmResponse = () => {
+    if (lastProcessedResult) {
+      applyProcessedResult(lastProcessedResult);
+    }
+  };
+  
+  // Função para corrigir a resposta
+  const handleCorrectResponse = () => {
+    // Voltar para a entrada anterior
+    setCurrentMessage(lastResponse || '');
+    setShowConfirmation(false);
+    setWaitingConfirmation(false);
+  };
+
+  // Selecionar uma opção pré-definida
+  const handleOptionSelect = (option) => {
+    setCurrentMessage(option);
+    handleSendMessage();
+  };
+
+  // Exibir indicador de carregamento enquanto inicializa
+  if (initializing) {
+    return (
+      <SafeAreaView style={styles.chatContainer}>
+        <StatusBar barStyle="dark-content" backgroundColor={Colors.dark} />
+        <View style={styles.chatHeader}>
+          <TouchableOpacity
+            style={styles.chatBackButton}
+            onPress={() => navigation.goBack()}
+          >
+            <Text style={styles.chatBackButtonText}>‹</Text>
+          </TouchableOpacity>
+          <Text style={styles.chatHeaderTitle}>CurriculoBot</Text>
+          <View style={{ width: 80 }} />
+        </View>
+        <View style={{
+          flex: 1,
+          justifyContent: 'center',
+          alignItems: 'center',
+          backgroundColor: '#f5f7fa'
+        }}>
+          <ActivityIndicator size="large" color={Colors.primary} />
+          <Text style={{ marginTop: 20, color: Colors.dark }}>
+            Preparando o assistente...
+          </Text>
+        </View>
+      </SafeAreaView>
+    );
+  }
+
+  // Renderizar chatbot
+  return (
+    <SafeAreaView style={styles.chatContainer}>
+      <StatusBar barStyle="dark-content" backgroundColor={Colors.dark} />
+
+      <View style={styles.chatHeader}>
+        <TouchableOpacity
+          style={styles.chatBackButton}
+          onPress={() => {
+            // Se há progresso significativo, confirmar antes de voltar
+            if (messages.length > 1 && currentStep !== 'boas_vindas' && currentStep !== 'concluido') {
+              Alert.alert(
+                "Sair da criação?",
+                "Seu progresso será salvo e você poderá continuar depois. Deseja sair?",
+                [
+                  { text: "Cancelar", style: "cancel" },
+                  {
+                    text: "Sair",
+                    onPress: () => navigation.goBack()
+                  }
+                ]
+              );
+            } else {
+              navigation.goBack();
+            }
+          }}
+        >
+          <Text style={styles.chatBackButtonText}>‹</Text>
+        </TouchableOpacity>
+        <Text style={styles.chatHeaderTitle}>CurriculoBot</Text>
+        <TouchableOpacity
+          style={styles.previewToggle}
+          onPress={() => setShowPreview(!showPreview)}
+        >
+          <Text style={styles.previewToggleText}>
+            {showPreview ? 'Esconder Prévia' : 'Ver Prévia'}
+          </Text>
+        </TouchableOpacity>
+      </View>
+
+      <View style={styles.chatContent}>
+        {showPreview ? (
+          <ScrollView style={styles.previewScroll}>
+            <CurriculumPreview data={cvData} />
+          </ScrollView>
+        ) : (
+          <>
+            <FlatList
+              ref={flatListRef}
+              data={messages}
+              keyExtractor={(item) => item.id}
+              renderItem={({ item }) => (
+                <ChatMessage
+                  message={item.text}
+                  isUser={item.isUser}
+                  time={item.time}
+                />
+              )}
+              contentContainerStyle={styles.messagesContainer}
+              onContentSizeChange={() => {
+                if (flatListRef.current) {
+                  flatListRef.current.scrollToEnd({ animated: true });
+                }
+              }}
+              onLayout={() => {
+                if (flatListRef.current) {
+                  flatListRef.current.scrollToEnd({ animated: false });
+                }
+              }}
+              ListFooterComponent={
+                isTyping ? (
+                  <View style={styles.typingContainer}>
+                    <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+                      <View style={[styles.typingDot, { opacity: 0.7 }]} />
+                      <View style={[styles.typingDot, { opacity: 0.8, marginHorizontal: 4 }]} />
+                      <View style={[styles.typingDot, { opacity: 0.9 }]} />
+                    </View>
+                    <Text style={styles.typingText}>Bot está digitando...</Text>
+                  </View>
+                ) : null
+              }
+            />
+
+            {showConfirmation && (
+              <ConfirmationButtons 
+                onConfirm={handleConfirmResponse} 
+                onCorrect={handleCorrectResponse} 
+              />
+            )}
+
+            {options && options.length > 0 && !waitingConfirmation && (
+              <ChatOptions options={options} onSelect={handleOptionSelect} />
+            )}
+          </>
+        )}
+      </View>
+
+      <KeyboardAvoidingView
+        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+        keyboardVerticalOffset={Platform.OS === 'ios' ? 10 : 0}
+        style={{ width: '100%' }}
+      >
+        <View style={styles.chatInputContainer}>
+          <TextInput
+            style={styles.improvedChatInput}
+            placeholder="Digite sua mensagem..."
+            value={currentMessage}
+            onChangeText={setCurrentMessage}
+            onSubmitEditing={handleSendMessage}
+            returnKeyType="send"
+            multiline={true}
+            numberOfLines={3}
+          />
+          <TouchableOpacity
+            style={[
+              styles.improvedSendButton,
+              {
+                opacity: currentMessage.trim() === '' ? 0.5 : 1,
+              }
+            ]}
+            onPress={handleSendMessage}
+            disabled={currentMessage.trim() === ''}
+          >
+            <Text style={styles.improvedSendButtonText}>Enviar</Text>
+          </TouchableOpacity>
+        </View>
+      </KeyboardAvoidingView>
+    </SafeAreaView>
+  );
+};
+
+const EditarCurriculoScreen = ({ route, navigation }) => {
+  const { curriculoData } = route.params;
+  const { user } = useAuth();
+  const [loading, setLoading] = useState(false);
+  const [saving, setSaving] = useState(false);
+  const [editData, setEditData] = useState(curriculoData ? { ...curriculoData.data } : null);
+  const [activeSection, setActiveSection] = useState('informacoes_pessoais');
+  
+  // Seções disponíveis para edição
+  const sections = [
+    { id: 'informacoes_pessoais', title: 'Informações Pessoais', icon: '👤' },
+    { id: 'resumo_profissional', title: 'Resumo Profissional', icon: '📝' },
+    { id: 'formacoes_academicas', title: 'Formação Acadêmica', icon: '🎓' },
+    { id: 'experiencias', title: 'Experiência Profissional', icon: '💼' },
+    { id: 'cursos', title: 'Cursos e Certificados', icon: '📚' },
+    { id: 'projetos', title: 'Projetos', icon: '🚀' },
+    { id: 'idiomas', title: 'Idiomas', icon: '🌐' }
+  ];
+  
+  // Salvar as alterações feitas
+  const handleSaveChanges = async () => {
+    try {
+      setSaving(true);
+      
+      // Buscar currículos existentes
+      const cvs = await AsyncStorage.getItem(`curriculos_${user.id}`);
+      const curriculos = cvs ? JSON.parse(cvs) : [];
+      
+      // Encontrar e atualizar o currículo atual
+      const index = curriculos.findIndex(cv => cv.id === curriculoData.id);
+      
+      if (index !== -1) {
+        // Criar cópia atualizada
+        const updatedCurriculo = {
+          ...curriculos[index],
+          data: editData,
+          dataAtualizacao: new Date().toISOString()
+        };
+        
+        // Atualizar array de currículos
+        curriculos[index] = updatedCurriculo;
+        
+        // Salvar no AsyncStorage
+        await AsyncStorage.setItem(`curriculos_${user.id}`, JSON.stringify(curriculos));
+        
+        Alert.alert(
+          'Sucesso',
+          'Currículo atualizado com sucesso!',
+          [{ text: 'OK', onPress: () => navigation.goBack() }]
+        );
+      } else {
+        throw new Error('Currículo não encontrado');
+      }
+    } catch (error) {
+      console.error('Erro ao salvar alterações:', error);
+      Alert.alert('Erro', 'Não foi possível salvar as alterações.');
+    } finally {
+      setSaving(false);
+    }
+  };
+  
+  // Renderizar editor de informações pessoais
+  const renderPersonalInfoEditor = () => {
+    const pessoal = editData.informacoes_pessoais || {};
+    
+    return (
+      <View style={styles.editorSection}>
+        <Text style={styles.editorSectionTitle}>Informações Pessoais</Text>
+        
+        <View style={styles.inputGroup}>
+          <Text style={styles.inputLabel}>Nome:</Text>
+          <TextInput
+            style={styles.input}
+            value={pessoal.nome || ''}
+            onChangeText={(text) => {
+              setEditData({
+                ...editData,
+                informacoes_pessoais: { ...pessoal, nome: text }
+              });
+            }}
+            placeholder="Nome"
+          />
+        </View>
+        
+        <View style={styles.inputGroup}>
+          <Text style={styles.inputLabel}>Sobrenome:</Text>
+          <TextInput
+            style={styles.input}
+            value={pessoal.sobrenome || ''}
+            onChangeText={(text) => {
+              setEditData({
+                ...editData,
+                informacoes_pessoais: { ...pessoal, sobrenome: text }
+              });
+            }}
+            placeholder="Sobrenome"
+          />
+        </View>
+        
+        <View style={styles.inputGroup}>
+          <Text style={styles.inputLabel}>Email:</Text>
+          <TextInput
+            style={styles.input}
+            value={pessoal.email || ''}
+            onChangeText={(text) => {
+              setEditData({
+                ...editData,
+                informacoes_pessoais: { ...pessoal, email: text }
+              });
+            }}
+            placeholder="Email"
+            keyboardType="email-address"
+          />
+        </View>
+        
+        <View style={styles.inputGroup}>
+          <Text style={styles.inputLabel}>Endereço:</Text>
+          <TextInput
+            style={styles.input}
+            value={pessoal.endereco || ''}
+            onChangeText={(text) => {
+              setEditData({
+                ...editData,
+                informacoes_pessoais: { ...pessoal, endereco: text }
+              });
+            }}
+            placeholder="Endereço"
+          />
+        </View>
+        
+        <View style={styles.inputGroup}>
+          <Text style={styles.inputLabel}>CEP:</Text>
+          <TextInput
+            style={styles.input}
+            value={pessoal.cep || ''}
+            onChangeText={(text) => {
+              setEditData({
+                ...editData,
+                informacoes_pessoais: { ...pessoal, cep: text }
+              });
+            }}
+            placeholder="CEP"
+            keyboardType="numeric"
+          />
+        </View>
+        
+        <View style={styles.inputGroup}>
+          <Text style={styles.inputLabel}>Área:</Text>
+          <TextInput
+            style={styles.input}
+            value={pessoal.area || ''}
+            onChangeText={(text) => {
+              setEditData({
+                ...editData,
+                informacoes_pessoais: { ...pessoal, area: text }
+              });
+            }}
+            placeholder="Área de atuação"
+          />
+        </View>
+        
+        <View style={styles.inputGroup}>
+          <Text style={styles.inputLabel}>LinkedIn:</Text>
+          <TextInput
+            style={styles.input}
+            value={pessoal.linkedin || ''}
+            onChangeText={(text) => {
+              setEditData({
+                ...editData,
+                informacoes_pessoais: { ...pessoal, linkedin: text }
+              });
+            }}
+            placeholder="Perfil LinkedIn"
+          />
+        </View>
+        
+        <View style={styles.inputGroup}>
+          <Text style={styles.inputLabel}>GitHub:</Text>
+          <TextInput
+            style={styles.input}
+            value={pessoal.github || ''}
+            onChangeText={(text) => {
+              setEditData({
+                ...editData,
+                informacoes_pessoais: { ...pessoal, github: text }
+              });
+            }}
+            placeholder="Perfil GitHub"
+          />
+        </View>
+      </View>
+    );
+  };
+  
+  // Renderizar editor de resumo profissional
+  const renderResumeEditor = () => {
+    return (
+      <View style={styles.editorSection}>
+        <Text style={styles.editorSectionTitle}>Resumo Profissional</Text>
+        
+        <TextInput
+          style={[styles.input, styles.textArea]}
+          value={editData.resumo_profissional || ''}
+          onChangeText={(text) => {
+            setEditData({
+              ...editData,
+              resumo_profissional: text
+            });
+          }}
+          placeholder="Descreva brevemente sua trajetória e objetivos profissionais"
+          multiline
+          numberOfLines={6}
+          textAlignVertical="top"
+        />
+      </View>
+    );
+  };
+  
+  // Renderizar editor de formação acadêmica
+  const renderEducationEditor = () => {
+    const formacoes = editData.formacoes_academicas || [];
+    
+    return (
+      <View style={styles.editorSection}>
+        <Text style={styles.editorSectionTitle}>Formação Acadêmica</Text>
+        
+        {formacoes.map((formacao, index) => (
+          <View key={index} style={styles.itemCard}>
+            <View style={styles.itemHeader}>
+              <Text style={styles.itemTitle}>{formacao.diploma || 'Formação'} em {formacao.area_estudo || 'Área'}</Text>
+              
+              <TouchableOpacity
+                style={styles.deleteButton}
+                onPress={() => {
+                  const newFormacoes = [...formacoes];
+                  newFormacoes.splice(index, 1);
+                  setEditData({
+                    ...editData,
+                    formacoes_academicas: newFormacoes
+                  });
+                }}
+              >
+                <Text style={styles.deleteButtonText}>✕</Text>
+              </TouchableOpacity>
+            </View>
+            
+            <View style={styles.inputGroup}>
+              <Text style={styles.inputLabel}>Instituição:</Text>
+              <TextInput
+                style={styles.input}
+                value={formacao.instituicao || ''}
+                onChangeText={(text) => {
+                  const newFormacoes = [...formacoes];
+                  newFormacoes[index] = { ...formacao, instituicao: text };
+                  setEditData({
+                    ...editData,
+                    formacoes_academicas: newFormacoes
+                  });
+                }}
+                placeholder="Instituição de ensino"
+              />
+            </View>
+            
+            <View style={styles.inputGroup}>
+              <Text style={styles.inputLabel}>Diploma:</Text>
+              <TextInput
+                style={styles.input}
+                value={formacao.diploma || ''}
+                onChangeText={(text) => {
+                  const newFormacoes = [...formacoes];
+                  newFormacoes[index] = { ...formacao, diploma: text };
+                  setEditData({
+                    ...editData,
+                    formacoes_academicas: newFormacoes
+                  });
+                }}
+                placeholder="Tipo de diploma"
+              />
+            </View>
+            
+            <View style={styles.inputGroup}>
+              <Text style={styles.inputLabel}>Área de Estudo:</Text>
+              <TextInput
+                style={styles.input}
+                value={formacao.area_estudo || ''}
+                onChangeText={(text) => {
+                  const newFormacoes = [...formacoes];
+                  newFormacoes[index] = { ...formacao, area_estudo: text };
+                  setEditData({
+                    ...editData,
+                    formacoes_academicas: newFormacoes
+                  });
+                }}
+                placeholder="Área de estudo"
+              />
+            </View>
+            
+            <View style={styles.rowInputs}>
+              <View style={[styles.inputGroup, { flex: 1, marginRight: 5 }]}>
+                <Text style={styles.inputLabel}>Data Início:</Text>
+                <TextInput
+                  style={styles.input}
+                  value={formacao.data_inicio || ''}
+                  onChangeText={(text) => {
+                    const newFormacoes = [...formacoes];
+                    newFormacoes[index] = { ...formacao, data_inicio: text };
+                    setEditData({
+                      ...editData,
+                      formacoes_academicas: newFormacoes
+                    });
+                  }}
+                  placeholder="MM/AAAA"
+                />
+              </View>
+              
+              <View style={[styles.inputGroup, { flex: 1, marginLeft: 5 }]}>
+                <Text style={styles.inputLabel}>Data Fim:</Text>
+                <TextInput
+                  style={styles.input}
+                  value={formacao.data_fim || ''}
+                  onChangeText={(text) => {
+                    const newFormacoes = [...formacoes];
+                    newFormacoes[index] = { ...formacao, data_fim: text };
+                    setEditData({
+                      ...editData,
+                      formacoes_academicas: newFormacoes
+                    });
+                  }}
+                  placeholder="MM/AAAA ou Atual"
+                />
+              </View>
+            </View>
+          </View>
+        ))}
+        
+        <TouchableOpacity
+          style={styles.addButton}
+          onPress={() => {
+            setEditData({
+              ...editData,
+              formacoes_academicas: [
+                ...(editData.formacoes_academicas || []),
+                { instituicao: '', diploma: '', area_estudo: '', data_inicio: '', data_fim: '' }
+              ]
+            });
+          }}
+        >
+          <Text style={styles.addButtonText}>+ Adicionar Formação</Text>
+        </TouchableOpacity>
+      </View>
+    );
+  };
+  
+  // Renderizar editor de experiências
+  const renderExperienceEditor = () => {
+    const experiencias = editData.experiencias || [];
+    
+    return (
+      <View style={styles.editorSection}>
+        <Text style={styles.editorSectionTitle}>Experiência Profissional</Text>
+        
+        {experiencias.map((experiencia, index) => (
+          <View key={index} style={styles.itemCard}>
+            <View style={styles.itemHeader}>
+              <Text style={styles.itemTitle}>{experiencia.cargo || 'Cargo'} - {experiencia.empresa || 'Empresa'}</Text>
+              
+              <TouchableOpacity
+                style={styles.deleteButton}
+                onPress={() => {
+                  const newExperiencias = [...experiencias];
+                  newExperiencias.splice(index, 1);
+                  setEditData({
+                    ...editData,
+                    experiencias: newExperiencias
+                  });
+                }}
+              >
+                <Text style={styles.deleteButtonText}>✕</Text>
+              </TouchableOpacity>
+            </View>
+            
+            <View style={styles.inputGroup}>
+              <Text style={styles.inputLabel}>Cargo:</Text>
+              <TextInput
+                style={styles.input}
+                value={experiencia.cargo || ''}
+                onChangeText={(text) => {
+                  const newExperiencias = [...experiencias];
+                  newExperiencias[index] = { ...experiencia, cargo: text };
+                  setEditData({
+                    ...editData,
+                    experiencias: newExperiencias
+                  });
+                }}
+                placeholder="Cargo ou posição"
+              />
+            </View>
+            
+            <View style={styles.inputGroup}>
+              <Text style={styles.inputLabel}>Empresa:</Text>
+              <TextInput
+                style={styles.input}
+                value={experiencia.empresa || ''}
+                onChangeText={(text) => {
+                  const newExperiencias = [...experiencias];
+                  newExperiencias[index] = { ...experiencia, empresa: text };
+                  setEditData({
+                    ...editData,
+                    experiencias: newExperiencias
+                  });
+                }}
+                placeholder="Nome da empresa"
+              />
+            </View>
+            
+            <View style={styles.rowInputs}>
+              <View style={[styles.inputGroup, { flex: 1, marginRight: 5 }]}>
+                <Text style={styles.inputLabel}>Data Início:</Text>
+                <TextInput
+                  style={styles.input}
+                  value={experiencia.data_inicio || ''}
+                  onChangeText={(text) => {
+                    const newExperiencias = [...experiencias];
+                    newExperiencias[index] = { ...experiencia, data_inicio: text };
+                    setEditData({
+                      ...editData,
+                      experiencias: newExperiencias
+                    });
+                  }}
+                  placeholder="MM/AAAA"
+                />
+              </View>
+              
+              <View style={[styles.inputGroup, { flex: 1, marginLeft: 5 }]}>
+                <Text style={styles.inputLabel}>Data Fim:</Text>
+                <TextInput
+                  style={styles.input}
+                  value={experiencia.data_fim || ''}
+                  onChangeText={(text) => {
+                    const newExperiencias = [...experiencias];
+                    newExperiencias[index] = { ...experiencia, data_fim: text };
+                    setEditData({
+                      ...editData,
+                      experiencias: newExperiencias
+                    });
+                  }}
+                  placeholder="MM/AAAA ou Atual"
+                />
+              </View>
+            </View>
+            
+            <View style={styles.inputGroup}>
+              <Text style={styles.inputLabel}>Descrição:</Text>
+              <TextInput
+                style={[styles.input, styles.textArea]}
+                value={experiencia.descricao || ''}
+                onChangeText={(text) => {
+                  const newExperiencias = [...experiencias];
+                  newExperiencias[index] = { ...experiencia, descricao: text };
+                  setEditData({
+                    ...editData,
+                    experiencias: newExperiencias
+                  });
+                }}
+                placeholder="Descreva suas responsabilidades e realizações"
+                multiline
+                numberOfLines={4}
+                textAlignVertical="top"
+              />
+            </View>
+          </View>
+        ))}
+        
+        <TouchableOpacity
+          style={styles.addButton}
+          onPress={() => {
+            setEditData({
+              ...editData,
+              experiencias: [
+                ...(editData.experiencias || []),
+                { cargo: '', empresa: '', data_inicio: '', data_fim: '', descricao: '' }
+              ]
+            });
+          }}
+        >
+          <Text style={styles.addButtonText}>+ Adicionar Experiência</Text>
+        </TouchableOpacity>
+      </View>
+    );
+  };
+  
+  // Renderizar seção ativa
+  const renderActiveSection = () => {
+    switch (activeSection) {
+      case 'informacoes_pessoais':
+        return renderPersonalInfoEditor();
+      case 'resumo_profissional':
+        return renderResumeEditor();
+      case 'formacoes_academicas':
+        return renderEducationEditor();
+      case 'experiencias':
+        return renderExperienceEditor();
+      // Implementar outras seções seguindo o mesmo padrão
+      default:
+        return <Text>Selecione uma seção para editar</Text>;
+    }
+  };
+  
+  return (
+    <SafeAreaView style={styles.container}>
+      <StatusBar barStyle="dark-content" backgroundColor={Colors.dark} />
+      
+      <View style={styles.header}>
+        <TouchableOpacity
+          style={styles.backButton}
+          onPress={() => {
+            Alert.alert(
+              'Sair da edição',
+              'Todas as alterações não salvas serão perdidas. Deseja sair?',
+              [
+                { text: 'Cancelar', style: 'cancel' },
+                { text: 'Sair', onPress: () => navigation.goBack() }
+              ]
+            );
+          }}
+        >
+          <Text style={styles.backButtonText}>‹</Text>
+        </TouchableOpacity>
+        <Text style={styles.headerTitle}>Editar Currículo</Text>
+        
+        <TouchableOpacity
+          style={styles.saveButton}
+          onPress={handleSaveChanges}
+          disabled={saving}
+        >
+          {saving ? (
+            <ActivityIndicator size="small" color={Colors.white} />
+          ) : (
+            <Text style={styles.saveButtonText}>Salvar</Text>
+          )}
+        </TouchableOpacity>
+      </View>
+      
+      <View style={styles.editorContainer}>
+        <ScrollView
+          horizontal
+          showsHorizontalScrollIndicator={false}
+          style={styles.sectionsScroll}
+          contentContainerStyle={styles.sectionsScrollContent}
+        >
+          {sections.map(section => (
+            <TouchableOpacity
+              key={section.id}
+              style={[
+                styles.sectionTab,
+                activeSection === section.id && styles.activeSectionTab
+              ]}
+              onPress={() => setActiveSection(section.id)}
+            >
+              <Text style={styles.sectionTabIcon}>{section.icon}</Text>
+              <Text
+                style={[
+                  styles.sectionTabText,
+                  activeSection === section.id && styles.activeSectionTabText
+                ]}
+              >
+                {section.title}
+              </Text>
+            </TouchableOpacity>
+          ))}
+        </ScrollView>
+        
+        <ScrollView
+          style={styles.editorScroll}
+          contentContainerStyle={styles.editorScrollContent}
+        >
+          {renderActiveSection()}
+        </ScrollView>
+      </View>
+    </SafeAreaView>
+  );
+};
+
+const melhorarCurriculoComIA = async (curriculoData) => {
+  try {
+    // Obter API key do Gemini ou outro provedor disponível
+    const apiKey = await getIAAPIKey('GEMINI');
+    
+    if (!apiKey) {
+      throw new Error("API key do Gemini não configurada");
+    }
+    
+    // Formatar o currículo para envio à IA
+    const cvFormatado = formatarCurriculo(curriculoData);
+    
+    // Construir o prompt para a IA
+    const promptText = `
+Você é um especialista em recrutamento e elaboração de currículos profissionais. Sua tarefa é melhorar o currículo abaixo, mantendo todas as informações verdadeiras, mas tornando-o mais atrativo, profissional e eficaz.
+
+- Melhore o resumo profissional para destacar competências e realizações
+- Reformule as descrições de experiência para enfatizar resultados e impacto
+- Padronize a formatação e estrutura 
+- Mantenha todas as informações factuais e datas inalteradas
+- Use linguagem mais dinâmica e verbos de ação
+- Elimine repetições e informações desnecessárias
+- Inclua palavras-chave relevantes para a área
+
+NÃO INVENTE informações falsas ou exageradas. Mantenha-se fiel ao conteúdo original.
+
+CURRÍCULO ORIGINAL:
+${cvFormatado}
+
+Retorne o currículo melhorado no formato JSON com a mesma estrutura do original, mas com conteúdo aprimorado. Mantenha os nomes das propriedades exatamente iguais.
+    `;
+    
+    // Chamar a API do Gemini
+    const endpoint = `${IA_APIS.GEMINI.endpoint}?key=${apiKey}`;
+    const requestBody = {
+      contents: [{ parts: [{ text: promptText }] }],
+      generationConfig: {
+        temperature: 0.3,
+        maxOutputTokens: 4000,
+        topP: 0.8,
+        topK: 40
+      }
+    };
+    
+    const response = await axios.post(endpoint, requestBody, {
+      headers: { 'Content-Type': 'application/json' },
+      timeout: 30000
+    });
+    
+    if (response.data?.candidates?.[0]?.content?.parts?.[0]?.text) {
+      const resultText = response.data.candidates[0].content.parts[0].text;
+      
+      // Extrair o JSON da resposta
+      const jsonMatch = resultText.match(/\{[\s\S]*\}/);
+      if (jsonMatch) {
+        try {
+          // Converter o texto JSON em objeto
+          const melhoradoData = JSON.parse(jsonMatch[0]);
+          
+          return {
+            success: true,
+            curriculoMelhorado: melhoradoData
+          };
+        } catch (jsonError) {
+          console.error('Erro ao parsear JSON da resposta:', jsonError);
+          throw new Error('Formato de resposta inválido');
+        }
+      } else {
+        throw new Error('Não foi possível extrair currículo melhorado da resposta');
+      }
+    } else {
+      throw new Error('Formato de resposta inesperado do Gemini');
+    }
+  } catch (error) {
+    console.error('Erro ao melhorar currículo com IA:', error);
+    return {
+      success: false,
+      error: error.message || 'Erro ao processar o currículo'
+    };
+  }
+};
+
+const MelhorarComIAButton = ({ curriculoData, onMelhoria }) => {
+  const [loading, setLoading] = useState(false);
+  
+  const handleMelhorarComIA = async () => {
+    try {
+      setLoading(true);
+      
+      // Confirmar antes de proceder
+      Alert.alert(
+        "Melhorar com IA",
+        "A IA irá melhorar a redação e apresentação do seu currículo, mantendo todas as informações verdadeiras. Deseja continuar?",
+        [
+          { text: "Cancelar", style: "cancel" },
+          { 
+            text: "Continuar", 
+            onPress: async () => {
+              // Chamar a função de melhoria
+              const resultado = await melhorarCurriculoComIA(curriculoData.data);
+              
+              if (resultado.success) {
+                // Chamar a função de callback com os dados melhorados
+                onMelhoria(resultado.curriculoMelhorado);
+              } else {
+                Alert.alert("Erro", resultado.error || "Não foi possível melhorar o currículo.");
+              }
+              
+              setLoading(false);
+            }
+          }
+        ]
+      );
+    } catch (error) {
+      console.error('Erro ao melhorar currículo:', error);
+      Alert.alert("Erro", "Ocorreu um erro ao tentar melhorar o currículo.");
+      setLoading(false);
+    }
+  };
+  
+  return (
+    <TouchableOpacity
+      style={{
+        backgroundColor: Colors.info,
+        paddingVertical: 12,
+        paddingHorizontal: 20,
+        borderRadius: 8,
+        flexDirection: 'row',
+        alignItems: 'center',
+        justifyContent: 'center',
+        marginVertical: 10,
+      }}
+      onPress={handleMelhorarComIA}
+      disabled={loading}
+    >
+      {loading ? (
+        <ActivityIndicator size="small" color={Colors.white} />
+      ) : (
+        <>
+          <Text style={{ color: Colors.white, fontWeight: 'bold', marginRight: 5 }}>✨</Text>
+          <Text style={{ color: Colors.white, fontWeight: 'bold' }}>
+            Melhorar com IA
+          </Text>
+        </>
+      )}
+    </TouchableOpacity>
+  );
+};
+
+const PreviewCVScreen = ({ route, navigation }) => {
+  const { curriculoData } = route.params;
+  const [templateStyle, setTemplateStyle] = useState('modern');
+  const [showTemplateSelector, setShowTemplateSelector] = useState(false);
+  const [generatingPDF, setGeneratingPDF] = useState(false);
+  const [currentData, setCurrentData] = useState(curriculoData); // Para armazenar versão atual (original ou melhorada)
+  const [showComparison, setShowComparison] = useState(false); // Para mostrar comparação antes/depois
+  const { user } = useAuth();
+  
+  const handleShare = async () => {
+    try {
+      await Share.share({
+        message: `Currículo de ${curriculoData.nome || 'Usuário'}`,
+        title: `Currículo - ${curriculoData.nome || 'Usuário'}`
+      });
+    } catch (error) {
+      console.error('Erro ao compartilhar:', error);
+      Alert.alert('Erro', 'Não foi possível compartilhar o currículo.');
+    }
+  };
+
+  // Emular criação de PDF (já que não temos a biblioteca)
+  const handleExportPDF = async () => {
+    setGeneratingPDF(true);
+
+    try {
+      // Simular processo de geração de PDF
+      await new Promise(resolve => setTimeout(resolve, 2000));
+
+      // Exibir alerta com opções de ação
+      Alert.alert(
+        'PDF Gerado com Sucesso!',
+        'O que você gostaria de fazer com o PDF?',
+        [
+          {
+            text: 'Compartilhar',
+            onPress: () => handleShare(),
+          },
+          {
+            text: 'Salvar na Galeria',
+            onPress: () => {
+              Alert.alert(
+                'Salvando na Galeria...',
+                'Funcionalidade simulada. Em um app real, o PDF seria salvo na galeria.',
+                [{ text: 'OK' }]
+              );
+            },
+          },
+          {
+            text: 'Cancelar',
+            style: 'cancel',
+          },
+        ]
+      );
+    } catch (error) {
+      console.error('Erro ao gerar PDF:', error);
+      Alert.alert('Erro', 'Não foi possível gerar o PDF.');
+    } finally {
+      setGeneratingPDF(false);
+    }
+  };
+  
+  // Função para salvar o currículo melhorado
+  const handleSalvarMelhorado = async (dadosMelhorados) => {
+    try {
+      // Buscar currículos existentes
+      const cvs = await AsyncStorage.getItem(`curriculos_${user.id}`);
+      const curriculos = cvs ? JSON.parse(cvs) : [];
+      
+      // Criar uma nova entrada para o currículo melhorado
+      const novoCurriculo = {
+        id: getUniqueId(),
+        nome: `${curriculoData.nome || 'Currículo'} (Melhorado)`,
+        data: dadosMelhorados,
+        dataCriacao: new Date().toISOString()
+      };
+      
+      // Adicionar ao array e salvar
+      curriculos.push(novoCurriculo);
+      await AsyncStorage.setItem(`curriculos_${user.id}`, JSON.stringify(curriculos));
+      
+      Alert.alert(
+        "Sucesso",
+        "Currículo melhorado salvo com sucesso!",
+        [{ text: "OK" }]
+      );
+      
+      // Atualizar dados na tela
+      setCurrentData({
+        ...novoCurriculo
+      });
+      
+    } catch (error) {
+      console.error('Erro ao salvar currículo melhorado:', error);
+      Alert.alert("Erro", "Não foi possível salvar o currículo melhorado.");
+    }
+  };
+  
+  // Lidar com melhoria de currículo
+  const handleCurriculoMelhorado = (dadosMelhorados) => {
+    // Mostrar alerta com opções
+    Alert.alert(
+      "Currículo Melhorado",
+      "Seu currículo foi melhorado com sucesso! O que deseja fazer?",
+      [
+        { 
+          text: "Visualizar Melhorias", 
+          onPress: () => {
+            // Mostrar comparação
+            setShowComparison(true);
+            setCurrentData({
+              ...curriculoData,
+              data: dadosMelhorados
+            });
+          }
+        },
+        { 
+          text: "Salvar como Novo", 
+          onPress: () => handleSalvarMelhorado(dadosMelhorados)
+        },
+        { 
+          text: "Cancelar", 
+          style: "cancel" 
+        }
+      ]
+    );
+  };
+
+  const templateOptions = [
+    { id: 'modern', name: 'Moderno', category: 'Moderno', color: Colors.primary },
+    // Clássicos
+    { id: 'classic', name: 'Clássico', category: 'Clássico', color: Colors.dark },
+    { id: 'traditional', name: 'Tradicional', category: 'Clássico', color: '#333333' },
+    // Criativos
+    { id: 'consulting', name: 'Consultoria', category: 'Profissional', color: '#1a237e' },
+  ];
+
+  return (
+    <SafeAreaView style={styles.container}>
+      <StatusBar barStyle="dark-content" backgroundColor={Colors.dark} />
+
+      <View style={styles.header}>
+        <TouchableOpacity
+          style={styles.backButton}
+          onPress={() => navigation.goBack()}
+        >
+          <Text style={styles.backButtonText}>‹</Text>
+        </TouchableOpacity>
+        <Text style={styles.headerTitle}>Visualizar Currículo</Text>
+      </View>
+
+      {/* Barra de ferramentas */}
+      <View style={{
+        flexDirection: 'row',
+        backgroundColor: '#f0f0f0',
+        padding: 10,
+        borderBottomWidth: 1,
+        borderBottomColor: Colors.mediumGray,
+      }}>
+        <TouchableOpacity
+          style={{
+            flex: 1,
+            flexDirection: 'row',
+            alignItems: 'center',
+            justifyContent: 'center',
+            paddingVertical: 8,
+            borderRightWidth: 1,
+            borderRightColor: Colors.mediumGray,
+          }}
+          onPress={() => setShowTemplateSelector(!showTemplateSelector)}
+        >
+          <Text style={{ marginRight: 5 }}>Template: {templateOptions.find(t => t.id === templateStyle)?.name}</Text>
+          <Text>▼</Text>
+        </TouchableOpacity>
+
+        <TouchableOpacity
+          style={{
+            flex: 1,
+            flexDirection: 'row',
+            alignItems: 'center',
+            justifyContent: 'center',
+            paddingVertical: 8,
+          }}
+          onPress={handleExportPDF}
+          disabled={generatingPDF}
+        >
+          {generatingPDF ? (
+            <ActivityIndicator size="small" color={Colors.primary} />
+          ) : (
+            <>
+              <Text style={{ marginRight: 5 }}>Exportar PDF</Text>
+              <Text>📄</Text>
+            </>
+          )}
+        </TouchableOpacity>
+      </View>
+
+      {/* Template selector overlay (em vez de Modal) */}
+      {showTemplateSelector && (
+        <View style={{
+          position: 'absolute',
+          top: 0,
+          left: 0,
+          right: 0,
+          bottom: 0,
+          backgroundColor: 'rgba(0, 0, 0, 0.5)',
+          zIndex: 100,
+        }}>
+          <TouchableOpacity
+            style={{ flex: 1 }}
+            onPress={() => setShowTemplateSelector(false)}
+          />
+
+          <View style={{
+            backgroundColor: Colors.white,
+            borderTopLeftRadius: 20,
+            borderTopRightRadius: 20,
+            padding: 20,
+          }}>
+            <View style={{
+              flexDirection: 'row',
+              justifyContent: 'space-between',
+              alignItems: 'center',
+              marginBottom: 15,
+            }}>
+              <Text style={{
+                fontSize: 18,
+                fontWeight: 'bold',
+                color: Colors.dark,
+              }}>
+                Escolher Template
+              </Text>
+
+              <TouchableOpacity
+                onPress={() => setShowTemplateSelector(false)}
+              >
+                <Text style={{
+                  fontSize: 22,
+                  color: Colors.lightText,
+                  paddingHorizontal: 5,
+                }}>
+                  ×
+                </Text>
+              </TouchableOpacity>
+            </View>
+
+            {templateOptions.map(template => (
+              <TouchableOpacity
+                key={template.id}
+                style={{
+                  flexDirection: 'row',
+                  alignItems: 'center',
+                  padding: 15,
+                  borderBottomWidth: 1,
+                  borderBottomColor: Colors.mediumGray,
+                  backgroundColor: templateStyle === template.id ? '#e3f2fd' : 'transparent',
+                }}
+                onPress={() => {
+                  setTemplateStyle(template.id);
+                  setShowTemplateSelector(false);
+                }}
+              >
+                <View style={{
+                  width: 24,
+                  height: 24,
+                  borderRadius: 12,
+                  backgroundColor: template.color,
+                  marginRight: 15,
+                }} />
+
+                <View style={{ flex: 1 }}>
+                  <Text style={{
+                    fontSize: 16,
+                    fontWeight: templateStyle === template.id ? 'bold' : 'normal',
+                    color: Colors.dark,
+                  }}>
+                    {template.name}
+                  </Text>
+                </View>
+
+                {templateStyle === template.id && (
+                  <Text style={{ fontSize: 18, color: Colors.primary }}>✓</Text>
+                )}
+              </TouchableOpacity>
+            ))}
+          </View>
+        </View>
+      )}
+
+      <ScrollView style={styles.previewScreenScroll}>
+        <View style={styles.previewScreenCard}>
+          <CurriculumPreview data={currentData.data} templateStyle={templateStyle} />
+        </View>
+        
+        {/* Adicionar o botão de melhoria com IA */}
+        <View style={{ padding: 15 }}>
+          <MelhorarComIAButton 
+            curriculoData={curriculoData}
+            onMelhoria={handleCurriculoMelhorado}
+          />
+        </View>
+      </ScrollView>
+
+      <View style={styles.previewActions}>
+        <TouchableOpacity
+          style={styles.previewActionButton}
+          onPress={handleShare}
+        >
+          <Text style={styles.previewActionButtonText}>Compartilhar</Text>
+        </TouchableOpacity>
+
+        <TouchableOpacity
+          style={[styles.previewActionButton, { backgroundColor: Colors.secondary }]}
+          onPress={() => navigation.navigate('AnaliseCV', { curriculoData })}
+        >
+          <Text style={styles.previewActionButtonText}>Analisar com IA</Text>
+        </TouchableOpacity>
+        
+        {/* Adicionar botão de edição */}
+        <TouchableOpacity
+          style={[styles.previewActionButton, { backgroundColor: Colors.info }]}
+          onPress={() => navigation.navigate('EditarCurriculo', { curriculoData: currentData })}
+        >
+          <Text style={styles.previewActionButtonText}>Editar Currículo</Text>
+        </TouchableOpacity>
+      </View>
+      
+      {/* Modal de comparação antes/depois */}
+      {showComparison && (
+        <View style={styles.comparisonModal}>
+          <View style={styles.comparisonContainer}>
+            <View style={styles.comparisonHeader}>
+              <Text style={styles.comparisonTitle}>Antes e Depois</Text>
+              <TouchableOpacity
+                style={styles.comparisonCloseButton}
+                onPress={() => setShowComparison(false)}
+              >
+                <Text style={styles.comparisonCloseText}>✕</Text>
+              </TouchableOpacity>
+            </View>
+            
+            <ScrollView style={styles.comparisonScroll}>
+              {/* Exemplo de comparação - resumo profissional */}
+              <View style={styles.comparisonSection}>
+                <Text style={styles.comparisonSectionTitle}>Resumo Profissional</Text>
+                
+                <View style={styles.comparisonItem}>
+                  <Text style={styles.comparisonLabel}>Antes:</Text>
+                  <Text style={styles.comparisonOriginalText}>
+                    {curriculoData.data.resumo_profissional || 'Sem resumo profissional'}
+                  </Text>
+                </View>
+                
+                <View style={styles.comparisonItem}>
+                  <Text style={styles.comparisonLabel}>Depois:</Text>
+                  <Text style={styles.comparisonImprovedText}>
+                    {currentData.data.resumo_profissional || 'Sem resumo profissional'}
+                  </Text>
+                </View>
+              </View>
+              
+              {/* Outras comparações podem ser adicionadas para experiências, etc. */}
+            </ScrollView>
+            
+            <View style={styles.comparisonActions}>
+              <TouchableOpacity
+                style={styles.comparisonButton}
+                onPress={() => setShowComparison(false)}
+              >
+                <Text style={styles.comparisonButtonText}>Fechar</Text>
+              </TouchableOpacity>
+              
+              <TouchableOpacity
+                style={[styles.comparisonButton, { backgroundColor: Colors.success }]}
+                onPress={() => {
+                  handleSalvarMelhorado(currentData.data);
+                  setShowComparison(false);
+                }}
+              >
+                <Text style={styles.comparisonButtonText}>Salvar Melhorias</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        </View>
+      )}
+    </SafeAreaView>
+  );
+};
+
+const DocumentIcon = ({ style }) => {
+  return (
+    <View style={[{
+      width: 80,
+      height: 80,
+      justifyContent: 'center',
+      alignItems: 'center',
+      backgroundColor: 'rgba(78, 115, 223, 0.1)',
+      borderRadius: 40,
+    }, style]}>
+      <Text style={{ fontSize: 40 }}>📄</Text>
+    </View>
+  );
+};
+
+const CurriculosAnaliseScreen = ({ navigation }) => {
+  const { user } = useAuth();
+  const [curriculos, setCurriculos] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [fadeValue, setFadeValue] = useState(0); // Usar um valor numérico em vez de Animated.Value
+
+  const loadCurriculos = async () => {
+    try {
+      setLoading(true);
+      const cvs = await AsyncStorage.getItem(`curriculos_${user.id}`);
+      const curriculosData = cvs ? JSON.parse(cvs) : [];
+      setCurriculos(curriculosData);
+
+      // Atualizamos para 1 após carregar os dados
+      setTimeout(() => {
+        setFadeValue(1);
+      }, 100);
+    } catch (error) {
+      console.error('Erro ao carregar currículos:', error);
+      Alert.alert('Erro', 'Não foi possível carregar seus currículos.');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    loadCurriculos();
+  }, []);
+
+  // Função para extrair informações do currículo para exibição
+  const getResumoCurriculo = (curriculo) => {
+    const cv = curriculo.data;
+    const experiencias = cv.experiencias?.length || 0;
+    const formacoes = cv.formacoes_academicas?.length || 0;
+    const projetos = cv.projetos?.length || 0;
+    const idiomas = cv.idiomas?.length || 0;
+    const area = cv.informacoes_pessoais?.area || 'Não especificada';
+
+    return { experiencias, formacoes, projetos, idiomas, area };
+  };
+
+  // Formatar data de maneira mais legível
+  const formatDate = (dateString) => {
+    try {
+      if (!dateString) return 'Data não disponível';
+      const date = new Date(dateString);
+      return `${date.getDate().toString().padStart(2, '0')}/${(date.getMonth() + 1).toString().padStart(2, '0')}/${date.getFullYear()}`;
+    } catch (error) {
+      return 'Data inválida';
+    }
+  };
+
+  if (loading) {
+    return (
+      <SafeAreaView style={curriculoAnaliseStyles.container}>
+        <View style={curriculoAnaliseStyles.header}>
+          <TouchableOpacity
+            style={curriculoAnaliseStyles.backButton}
+            onPress={() => navigation.goBack()}
+          >
+            <Text style={curriculoAnaliseStyles.backButtonText}>‹</Text>
+          </TouchableOpacity>
+          <Text style={curriculoAnaliseStyles.headerTitle}>Analisar Currículo</Text>
+        </View>
+        <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}>
+          <ActivityIndicator size="large" color={ProfessionalColors.primary} />
+          <Text style={{ marginTop: 16, color: ProfessionalColors.textMedium, fontSize: 16 }}>
+            Carregando currículos...
+          </Text>
+        </View>
+      </SafeAreaView>
+    );
+  }
+
+  if (curriculos.length === 0) {
+    return (
+      <SafeAreaView style={curriculoAnaliseStyles.container}>
+        <View style={curriculoAnaliseStyles.header}>
+          <TouchableOpacity
+            style={curriculoAnaliseStyles.backButton}
+            onPress={() => navigation.goBack()}
+          >
+            <Text style={curriculoAnaliseStyles.backButtonText}>‹</Text>
+          </TouchableOpacity>
+          <Text style={curriculoAnaliseStyles.headerTitle}>Analisar Currículo</Text>
+        </View>
+        <View style={curriculoAnaliseStyles.emptyState}>
+          <DocumentIcon style={curriculoAnaliseStyles.emptyStateIcon} />
+          <Text style={curriculoAnaliseStyles.emptyStateTitle}>Nenhum Currículo Encontrado</Text>
+          <Text style={curriculoAnaliseStyles.emptyStateText}>
+            Você precisa criar um currículo antes de usar nossa poderosa análise de IA para aprimorá-lo.
+          </Text>
+          <TouchableOpacity
+            style={curriculoAnaliseStyles.emptyStateButton}
+            onPress={() => navigation.navigate('Chatbot')}
+          >
+            <Text style={curriculoAnaliseStyles.emptyStateButtonText}>Criar Meu Currículo</Text>
+          </TouchableOpacity>
+        </View>
+      </SafeAreaView>
+    );
+  }
+
+  return (
+    <SafeAreaView style={curriculoAnaliseStyles.container}>
+      <StatusBar barStyle="dark-content" backgroundColor={ProfessionalColors.cardBackground} />
+
+      <View style={curriculoAnaliseStyles.header}>
+        <TouchableOpacity
+          style={curriculoAnaliseStyles.backButton}
+          onPress={() => navigation.goBack()}
+        >
+          <Text style={curriculoAnaliseStyles.backButtonText}>‹</Text>
+        </TouchableOpacity>
+        <Text style={curriculoAnaliseStyles.headerTitle}>Analisar Currículo</Text>
+      </View>
+
+      <ScrollView contentContainerStyle={{ paddingBottom: 20 }}>
+        <View style={curriculoAnaliseStyles.introContainer}>
+          <Text style={curriculoAnaliseStyles.introTitle}>Análise Profissional com IA</Text>
+          <Text style={curriculoAnaliseStyles.introText}>
+            Nossa tecnologia de IA avançada analisará seu currículo e fornecerá feedback detalhado,
+            identificará pontos fortes e fracos, e sugerirá melhorias personalizadas para aumentar
+            suas chances de sucesso.
+          </Text>
+        </View>
+
+        <Text style={curriculoAnaliseStyles.sectionTitle}>Selecione um currículo para analisar:</Text>
+
+        {/* Não usamos a propriedade opacity com Animated aqui */}
+        <FlatList
+          data={curriculos}
+          keyExtractor={(item) => item.id}
+          contentContainerStyle={{ paddingBottom: 20 }}
+          style={{ opacity: fadeValue }} // Usamos um valor numérico normal
+          renderItem={({ item }) => {
+            const resumo = getResumoCurriculo(item);
+
+            return (
+              <View style={curriculoAnaliseStyles.curriculoCard}>
+                <View style={curriculoAnaliseStyles.curriculoCardContent}>
+                  <View style={curriculoAnaliseStyles.curriculoCardHeader}>
+                    <View>
+                      <Text style={curriculoAnaliseStyles.curriculoCardTitle}>
+                        {item.nome || 'Currículo sem nome'}
+                      </Text>
+                      <Text style={curriculoAnaliseStyles.curriculoCardDate}>
+                        Criado em {formatDate(item.dataCriacao)}
+                      </Text>
+                    </View>
+
+                    <TouchableOpacity
+                      style={curriculoAnaliseStyles.curriculoCardBadge}
+                    >
+                      <Text style={curriculoAnaliseStyles.curriculoCardBadgeText}>
+                        Selecionar
+                      </Text>
+                    </TouchableOpacity>
+                  </View>
+
+                  <View style={curriculoAnaliseStyles.curriculoCardStats}>
+                    <View style={curriculoAnaliseStyles.curriculoCardStatItem}>
+                      <Text style={curriculoAnaliseStyles.curriculoCardStatText}>
+                        Área: {resumo.area}
+                      </Text>
+                    </View>
+
+                    {resumo.experiencias > 0 && (
+                      <View style={curriculoAnaliseStyles.curriculoCardStatItem}>
+                        <Text style={curriculoAnaliseStyles.curriculoCardStatText}>
+                          {resumo.experiencias} experiência(s)
+                        </Text>
+                      </View>
+                    )}
+
+                    {resumo.formacoes > 0 && (
+                      <View style={curriculoAnaliseStyles.curriculoCardStatItem}>
+                        <Text style={curriculoAnaliseStyles.curriculoCardStatText}>
+                          {resumo.formacoes} formação(ões)
+                        </Text>
+                      </View>
+                    )}
+
+                    {resumo.projetos > 0 && (
+                      <View style={curriculoAnaliseStyles.curriculoCardStatItem}>
+                        <Text style={curriculoAnaliseStyles.curriculoCardStatText}>
+                          {resumo.projetos} projeto(s)
+                        </Text>
+                      </View>
+                    )}
+
+                    {resumo.idiomas > 0 && (
+                      <View style={curriculoAnaliseStyles.curriculoCardStatItem}>
+                        <Text style={curriculoAnaliseStyles.curriculoCardStatText}>
+                          {resumo.idiomas} idioma(s)
+                        </Text>
+                      </View>
+                    )}
+                  </View>
+                </View>
+
+                <View style={curriculoAnaliseStyles.curriculoCardFooter}>
+                  <TouchableOpacity
+                    style={curriculoAnaliseStyles.curriculoCardButton}
+                    onPress={() => navigation.navigate('PreviewCV', { curriculoData: item })}
+                  >
+                    <Text style={curriculoAnaliseStyles.curriculoCardButtonText}>
+                      <Text>🔍</Text> Visualizar
+                    </Text>
+                  </TouchableOpacity>
+
+                  <View style={curriculoAnaliseStyles.curriculoCardButtonDivider} />
+
+                  <TouchableOpacity
+                    style={curriculoAnaliseStyles.curriculoCardButton}
+                    onPress={() => navigation.navigate('AnaliseCV', { curriculoData: item })}
+                  >
+                    <Text style={curriculoAnaliseStyles.curriculoCardButtonText}>
+                      <Text>📊</Text> Analisar
+                    </Text>
+                  </TouchableOpacity>
+                </View>
+              </View>
+            );
+          }}
+        />
+
+        <TouchableOpacity
+          style={curriculoAnaliseStyles.analyzeButton}
+          onPress={() => navigation.navigate('AnaliseCV', { curriculoData: curriculos[0] })}
+        >
+          <Text>🧠</Text>
+          <Text style={curriculoAnaliseStyles.analyzeButtonText}>
+            Análise Completa com IA
+          </Text>
+        </TouchableOpacity>
+      </ScrollView>
+    </SafeAreaView>
+  );
+};
+
+const MeusCurriculosScreen = ({ navigation }) => {
+  const { user } = useAuth();
+  const [curriculos, setCurriculos] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [searchText, setSearchText] = useState('');
+  const [filteredCurriculos, setFilteredCurriculos] = useState([]);
+  const [showMenu, setShowMenu] = useState(false);
+  const [selectedCurriculoId, setSelectedCurriculoId] = useState(null);
+  const [fadeValue, setFadeValue] = useState(0); // Valor numérico para fade
+
+  // Referência para posição do menu
+  const menuPosition = useRef({ x: 0, y: 0 });
+
+  const loadCurriculos = async () => {
+    try {
+      setLoading(true);
+      const cvs = await AsyncStorage.getItem(`curriculos_${user.id}`);
+      const curriculosData = cvs ? JSON.parse(cvs) : [];
+      setCurriculos(curriculosData);
+      setFilteredCurriculos(curriculosData);
+
+      // Usando um valor numérico para fade
+      setTimeout(() => {
+        setFadeValue(1);
+      }, 100);
+    } catch (error) {
+      console.error('Erro ao carregar currículos:', error);
+      Alert.alert('Erro', 'Não foi possível carregar seus currículos.');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    loadCurriculos();
+
+    // Atualizar quando a tela ganhar foco
+    const unsubscribe = navigation.addListener('focus', () => {
+      loadCurriculos();
+    });
+
+    return unsubscribe;
+  }, [navigation]);
+
+  // Filtrar currículos com base no texto de pesquisa
+  useEffect(() => {
+    if (searchText.trim() === '') {
+      setFilteredCurriculos(curriculos);
+    } else {
+      const filtered = curriculos.filter(cv =>
+        cv.nome?.toLowerCase().includes(searchText.toLowerCase())
+      );
+      setFilteredCurriculos(filtered);
+    }
+  }, [searchText, curriculos]);
+
+  const handleDeleteCV = (id) => {
+    setShowMenu(false);
+
+    Alert.alert(
+      "Excluir Currículo",
+      "Tem certeza que deseja excluir este currículo?",
+      [
+        {
+          text: "Cancelar",
+          style: "cancel"
+        },
+        {
+          text: "Excluir",
+          style: "destructive",
+          onPress: async () => {
+            try {
+              const updatedCurriculos = curriculos.filter(cv => cv.id !== id);
+              await AsyncStorage.setItem(`curriculos_${user.id}`, JSON.stringify(updatedCurriculos));
+              setCurriculos(updatedCurriculos);
+              setFilteredCurriculos(
+                filteredCurriculos.filter(cv => cv.id !== id)
+              );
+
+              // Adicionar mensagem de sucesso
+              Alert.alert(
+                "Sucesso",
+                "Currículo excluído com sucesso!"
+              );
+            } catch (error) {
+              console.error('Erro ao excluir currículo:', error);
+              Alert.alert('Erro', 'Não foi possível excluir o currículo.');
+            }
+          }
+        }
+      ]
+    );
+  };
+
+  const handleViewCV = (cv) => {
+    navigation.navigate('PreviewCV', { curriculoData: cv });
+  };
+
+  // Nova função para editar currículo
+  const handleEditCV = (cv) => {
+    navigation.navigate('EditarCurriculo', { curriculoData: cv });
+  };
+
+  const handleAnalyzeCV = (cv) => {
+    navigation.navigate('AnaliseCV', { curriculoData: cv });
+  };
+
+  const handleShareCV = (cv) => {
+    // Simular compartilhamento
+    Share.share({
+      message: `Currículo de ${cv.nome || 'Usuário'} - ${formatDate(cv.dataCriacao)}`,
+      title: `Currículo - ${cv.nome || 'Usuário'}`
+    }).catch(error => {
+      console.error('Erro ao compartilhar:', error);
+    });
+  };
+
+  const showContextMenu = (id, event) => {
+    // Salvar a posição para o menu
+    menuPosition.current = {
+      x: event.nativeEvent.pageX - 180,  // Ajustar para o menu não ficar fora da tela
+      y: event.nativeEvent.pageY
+    };
+    setSelectedCurriculoId(id);
+    setShowMenu(true);
+  };
+
+  const formatDate = (dateString) => {
+    try {
+      if (!dateString) return 'Data não disponível';
+      const date = new Date(dateString);
+      return `${date.getDate().toString().padStart(2, '0')}/${(date.getMonth() + 1).toString().padStart(2, '0')}/${date.getFullYear()}`;
+    } catch (error) {
+      return 'Data inválida';
+    }
+  };
+
+  // Obter resumo do currículo
+  const getCurriculoDetails = (curriculo) => {
+    const cv = curriculo.data;
+    const area = cv.informacoes_pessoais?.area || 'Não especificada';
+    const experiencias = cv.experiencias?.length || 0;
+    const ultimaExperiencia = cv.experiencias?.length > 0
+      ? cv.experiencias[0].cargo + ' em ' + cv.experiencias[0].empresa
+      : 'Nenhuma experiência';
+    const formacoes = cv.formacoes_academicas?.length || 0;
+    const ultimaFormacao = cv.formacoes_academicas?.length > 0
+      ? cv.formacoes_academicas[0].diploma + ' em ' + cv.formacoes_academicas[0].area_estudo
+      : 'Nenhuma formação';
+
+    return { area, experiencias, ultimaExperiencia, formacoes, ultimaFormacao };
+  };
+
+  if (loading) {
+    return (
+      <SafeAreaView style={meusCurriculosStyles.container}>
+        <View style={meusCurriculosStyles.header}>
+          <TouchableOpacity
+            style={meusCurriculosStyles.backButton}
+            onPress={() => navigation.goBack()}
+          >
+            <Text style={meusCurriculosStyles.backButtonText}>‹</Text>
+          </TouchableOpacity>
+          <Text style={meusCurriculosStyles.headerTitle}>Gerenciar Currículos</Text>
+        </View>
+        <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}>
+          <ActivityIndicator size="large" color={ProfessionalColors.primary} />
+          <Text style={{ marginTop: 16, color: ProfessionalColors.textMedium, fontSize: 16 }}>
+            Carregando currículos...
+          </Text>
+        </View>
+      </SafeAreaView>
+    );
+  }
+
+  if (curriculos.length === 0) {
+    return (
+      <SafeAreaView style={meusCurriculosStyles.container}>
+        <View style={meusCurriculosStyles.header}>
+          <TouchableOpacity
+            style={meusCurriculosStyles.backButton}
+            onPress={() => navigation.goBack()}
+          >
+            <Text style={meusCurriculosStyles.backButtonText}>‹</Text>
+          </TouchableOpacity>
+          <Text style={meusCurriculosStyles.headerTitle}>Gerenciar Currículos</Text>
+        </View>
+        <View style={meusCurriculosStyles.emptyState}>
+          <DocumentIcon style={meusCurriculosStyles.emptyStateIcon} />
+          <Text style={meusCurriculosStyles.emptyStateTitle}>Nenhum Currículo Encontrado</Text>
+          <Text style={meusCurriculosStyles.emptyStateText}>
+            Você ainda não criou nenhum currículo. Crie seu primeiro currículo profissional agora mesmo!
+          </Text>
+          <TouchableOpacity
+            style={meusCurriculosStyles.emptyStateButton}
+            onPress={() => navigation.navigate('Chatbot')}
+          >
+            <Text style={meusCurriculosStyles.emptyStateButtonText}>Criar Currículo</Text>
+          </TouchableOpacity>
+        </View>
+      </SafeAreaView>
+    );
+  }
+
+  return (
+    <SafeAreaView style={meusCurriculosStyles.container}>
+      <StatusBar barStyle="dark-content" backgroundColor={ProfessionalColors.cardBackground} />
+
+      <View style={meusCurriculosStyles.header}>
+        <TouchableOpacity
+          style={meusCurriculosStyles.backButton}
+          onPress={() => navigation.goBack()}
+        >
+          <Text style={meusCurriculosStyles.backButtonText}>‹</Text>
+        </TouchableOpacity>
+        <Text style={meusCurriculosStyles.headerTitle}>Gerenciar Currículos</Text>
+
+        <View style={meusCurriculosStyles.headerActions}>
+          <TouchableOpacity style={meusCurriculosStyles.headerActionButton}>
+            <Text style={meusCurriculosStyles.headerActionIcon}>⚙️</Text>
+          </TouchableOpacity>
+        </View>
+      </View>
+
+      {/* Barra de pesquisa */}
+      <View style={meusCurriculosStyles.searchContainer}>
+        <Text style={meusCurriculosStyles.searchIcon}>🔍</Text>
+        <TextInput
+          style={meusCurriculosStyles.searchInput}
+          placeholder="Buscar currículos..."
+          value={searchText}
+          onChangeText={setSearchText}
+        />
+      </View>
+
+      {/* Header da seção */}
+      <View style={meusCurriculosStyles.sectionHeader}>
+        <Text style={meusCurriculosStyles.sectionTitle}>
+          Seus Currículos ({filteredCurriculos.length})
+        </Text>
+        <TouchableOpacity>
+          <Text style={meusCurriculosStyles.sectionActionText}>Ordenar</Text>
+        </TouchableOpacity>
+      </View>
+
+      <FlatList
+        data={filteredCurriculos}
+        keyExtractor={(item) => item.id}
+        contentContainerStyle={{ paddingBottom: 80 }}
+        style={{ opacity: fadeValue }} // Usando valor numérico
+        renderItem={({ item }) => {
+          const details = getCurriculoDetails(item);
+
+          return (
+            <View style={meusCurriculosStyles.curriculoCard}>
+              <TouchableOpacity
+                style={meusCurriculosStyles.curriculoCardContent}
+                onPress={() => handleViewCV(item)}
+                onLongPress={(event) => showContextMenu(item.id, event)}
+              >
+                <View style={meusCurriculosStyles.curriculoCardHeader}>
+                  <Text style={meusCurriculosStyles.curriculoCardTitle}>
+                    {item.nome || 'Currículo sem nome'}
+                  </Text>
+
+                  {/* Menu de contexto */}
+                  <TouchableOpacity
+                    onPress={(event) => showContextMenu(item.id, event)}
+                    hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+                  >
+                    <Text>⋮</Text>
+                  </TouchableOpacity>
+                </View>
+
+                <View style={meusCurriculosStyles.curriculoCardMeta}>
+                  <Text style={meusCurriculosStyles.curriculoCardMetaIcon}>📅</Text>
+                  <Text style={meusCurriculosStyles.curriculoCardMetaText}>
+                    Criado em {formatDate(item.dataCriacao)}
+                  </Text>
+                </View>
+
+                <View style={meusCurriculosStyles.curriculoCardDetails}>
+                  <View style={meusCurriculosStyles.curriculoCardDetailsRow}>
+                    <Text style={meusCurriculosStyles.curriculoCardDetailsLabel}>Área:</Text>
+                    <Text style={meusCurriculosStyles.curriculoCardDetailsValue}>
+                      {details.area}
+                    </Text>
+                  </View>
+
+                  <View style={meusCurriculosStyles.curriculoCardDetailsRow}>
+                    <Text style={meusCurriculosStyles.curriculoCardDetailsLabel}>Experiência:</Text>
+                    <Text style={meusCurriculosStyles.curriculoCardDetailsValue}>
+                      {details.ultimaExperiencia}
+                    </Text>
+                  </View>
+
+                  <View style={meusCurriculosStyles.curriculoCardDetailsRow}>
+                    <Text style={meusCurriculosStyles.curriculoCardDetailsLabel}>Formação:</Text>
+                    <Text style={meusCurriculosStyles.curriculoCardDetailsValue}>
+                      {details.ultimaFormacao}
+                    </Text>
+                  </View>
+                </View>
+
+                <View style={meusCurriculosStyles.curriculoCardTagsContainer}>
+                  <View style={meusCurriculosStyles.curriculoCardTag}>
+                    <Text style={meusCurriculosStyles.curriculoCardTagText}>
+                      {details.experiencias} experiência(s)
+                    </Text>
+                  </View>
+
+                  <View style={meusCurriculosStyles.curriculoCardTag}>
+                    <Text style={meusCurriculosStyles.curriculoCardTagText}>
+                      {details.formacoes} formação(ões)
+                    </Text>
+                  </View>
+                </View>
+              </TouchableOpacity>
+
+              <View style={meusCurriculosStyles.curriculoCardActions}>
+                <TouchableOpacity
+                  style={meusCurriculosStyles.curriculoCardAction}
+                  onPress={() => handleViewCV(item)}
+                >
+                  <Text style={[
+                    meusCurriculosStyles.curriculoCardActionText,
+                    meusCurriculosStyles.curriculoCardActionPrimary
+                  ]}>
+                    <Text>👁️</Text> Visualizar
+                  </Text>
+                </TouchableOpacity>
+
+                <View style={meusCurriculosStyles.curriculoCardDivider} />
+                
+                {/* Novo botão de edição */}
+                <TouchableOpacity
+                  style={meusCurriculosStyles.curriculoCardAction}
+                  onPress={() => handleEditCV(item)}
+                >
+                  <Text style={[
+                    meusCurriculosStyles.curriculoCardActionText,
+                    meusCurriculosStyles.curriculoCardActionPrimary
+                  ]}>
+                    <Text>✏️</Text> Editar
+                  </Text>
+                </TouchableOpacity>
+
+                <View style={meusCurriculosStyles.curriculoCardDivider} />
+
+                <TouchableOpacity
+                  style={meusCurriculosStyles.curriculoCardAction}
+                  onPress={() => handleAnalyzeCV(item)}
+                >
+                  <Text style={[
+                    meusCurriculosStyles.curriculoCardActionText,
+                    meusCurriculosStyles.curriculoCardActionSecondary
+                  ]}>
+                    <Text>📊</Text> Analisar
+                  </Text>
+                </TouchableOpacity>
+
+                <View style={meusCurriculosStyles.curriculoCardDivider} />
+
+                <TouchableOpacity
+                  style={meusCurriculosStyles.curriculoCardAction}
+                  onPress={() => handleDeleteCV(item.id)}
+                >
+                  <Text style={[
+                    meusCurriculosStyles.curriculoCardActionText,
+                    meusCurriculosStyles.curriculoCardActionDanger
+                  ]}>
+                    <Text>🗑️</Text> Excluir
+                  </Text>
+                </TouchableOpacity>
+              </View>
+            </View>
+          );
+        }}
+      />
+
+      {/* Menu de contexto */}
+      {showMenu && (
+        <TouchableOpacity
+          style={meusCurriculosStyles.modalOverlay}
+          activeOpacity={1}
+          onPress={() => setShowMenu(false)}
+        >
+          <View style={[
+            meusCurriculosStyles.menuOptions,
+            {
+              position: 'absolute',
+              top: menuPosition.current.y,
+              left: menuPosition.current.x
+            }
+          ]}>
+            <TouchableOpacity
+              style={meusCurriculosStyles.menuOption}
+              onPress={() => {
+                setShowMenu(false);
+                const cv = curriculos.find(c => c.id === selectedCurriculoId);
+                if (cv) handleViewCV(cv);
+              }}
+            >
+              <Text>👁️</Text>
+              <Text style={meusCurriculosStyles.menuOptionText}>Visualizar</Text>
+            </TouchableOpacity>
+            
+            {/* Adicionar opção de edição no menu de contexto também */}
+            <TouchableOpacity
+              style={meusCurriculosStyles.menuOption}
+              onPress={() => {
+                setShowMenu(false);
+                const cv = curriculos.find(c => c.id === selectedCurriculoId);
+                if (cv) handleEditCV(cv);
+              }}
+            >
+              <Text>✏️</Text>
+              <Text style={meusCurriculosStyles.menuOptionText}>Editar</Text>
+            </TouchableOpacity>
+
+            <TouchableOpacity
+              style={meusCurriculosStyles.menuOption}
+              onPress={() => {
+                setShowMenu(false);
+                const cv = curriculos.find(c => c.id === selectedCurriculoId);
+                if (cv) handleAnalyzeCV(cv);
+              }}
+            >
+              <Text>📊</Text>
+              <Text style={meusCurriculosStyles.menuOptionText}>Analisar</Text>
+            </TouchableOpacity>
+
+            <TouchableOpacity
+              style={meusCurriculosStyles.menuOption}
+              onPress={() => {
+                setShowMenu(false);
+                const cv = curriculos.find(c => c.id === selectedCurriculoId);
+                if (cv) handleShareCV(cv);
+              }}
+            >
+              <Text>📤</Text>
+              <Text style={meusCurriculosStyles.menuOptionText}>Compartilhar</Text>
+            </TouchableOpacity>
+
+            <TouchableOpacity
+              style={meusCurriculosStyles.menuOption}
+              onPress={() => {
+                if (selectedCurriculoId) handleDeleteCV(selectedCurriculoId);
+              }}
+            >
+              <Text>🗑️</Text>
+              <Text style={[meusCurriculosStyles.menuOptionText, meusCurriculosStyles.menuOptionDanger]}>
+                Excluir
+              </Text>
+            </TouchableOpacity>
+          </View>
+        </TouchableOpacity>
+      )}
+
+      <TouchableOpacity
+        style={meusCurriculosStyles.fabButton}
+        onPress={() => navigation.navigate('Chatbot')}
+      >
+        <Text style={meusCurriculosStyles.fabButtonText}>+</Text>
+      </TouchableOpacity>
+    </SafeAreaView>
+  );
+};
+
+const PerfilFotoScreen = ({ navigation, route }) => {
+  const { user, updateUser } = useAuth();
+  const [selectedImage, setSelectedImage] = useState(user?.foto || null);
+  const [loading, setLoading] = useState(false);
+  const [showImageOptions, setShowImageOptions] = useState(false);
+
+  // Cores predefinidas para avatares caso não haja foto
+  const colorOptions = [
+    '#3498db', '#2ecc71', '#e74c3c', '#f39c12',
+    '#9b59b6', '#1abc9c', '#d35400', '#c0392b'
+  ];
+
+  // Imagens de exemplo para simular a galeria
+  const exampleImages = [
+    { id: 'img1', uri: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=200&h=200&fit=crop' },
+    { id: 'img2', uri: 'https://images.unsplash.com/photo-1506794778202-cad84cf45f1d?w=200&h=200&fit=crop' },
+    { id: 'img3', uri: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=200&h=200&fit=crop' },
+    { id: 'img4', uri: 'https://images.unsplash.com/photo-1438761681033-6461ffad8d80?w=200&h=200&fit=crop' },
+    { id: 'img5', uri: 'https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=200&h=200&fit=crop' },
+    { id: 'img6', uri: 'https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=200&h=200&fit=crop' },
+    { id: 'img7', uri: 'https://randomuser.me/api/portraits/men/1.jpg' },
+    { id: 'img8', uri: 'https://randomuser.me/api/portraits/women/1.jpg' },
+    { id: 'img9', uri: 'https://randomuser.me/api/portraits/men/32.jpg' },
+    { id: 'img10', uri: 'https://randomuser.me/api/portraits/women/44.jpg' },
+    { id: 'img11', uri: 'https://randomuser.me/api/portraits/men/85.jpg' },
+    { id: 'img12', uri: 'https://randomuser.me/api/portraits/women/63.jpg' },
+  ];
+
+  // Estado para controlar o avatar de cor selecionado (caso não use foto)
+  const [selectedColorIndex, setSelectedColorIndex] = useState(
+    user?.avatarColorIndex !== undefined ? user.avatarColorIndex : Math.floor(Math.random() * colorOptions.length)
+  );
+
+  // Função para salvar a foto do perfil
+  const saveProfileImage = async () => {
+    try {
+      setLoading(true);
+
+      // Buscar dados atuais do usuário
+      const usuariosStr = await AsyncStorage.getItem('usuarios');
+      const usuarios = JSON.parse(usuariosStr) || [];
+
+      // Encontrar índice do usuário atual
+      const userIndex = usuarios.findIndex(u => u.id === user.id);
+      if (userIndex === -1) {
+        throw new Error('Usuário não encontrado');
+      }
+
+      // Atualizar usuário com a nova foto e índice de cor do avatar
+      const updatedUser = {
+        ...usuarios[userIndex],
+        foto: selectedImage,
+        avatarColorIndex: selectedColorIndex,
+        dataAtualizacao: new Date().toISOString()
+      };
+
+      usuarios[userIndex] = updatedUser;
+
+      // Salvar usuários atualizados
+      await AsyncStorage.setItem('usuarios', JSON.stringify(usuarios));
+
+      // Atualizar usuário atual
+      await AsyncStorage.setItem('currentUser', JSON.stringify(updatedUser));
+
+      // Se o contexto de autenticação tiver uma função para atualizar o usuário, use-a
+      if (updateUser) {
+        updateUser(updatedUser);
+      }
+
+      Alert.alert('Sucesso', 'Foto de perfil atualizada com sucesso!');
+
+      // Navegar de volta se veio de uma rota específica
+      if (route.params?.returnTo) {
+        navigation.navigate(route.params.returnTo);
+      } else {
+        navigation.goBack();
+      }
+
+    } catch (error) {
+      console.error('Erro ao salvar foto de perfil:', error);
+      Alert.alert('Erro', 'Não foi possível salvar a foto de perfil.');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Função para simular a captura de foto com a câmera
+  const handleTakePhoto = () => {
+    setShowImageOptions(false);
+
+    // Simular o processo de tirar uma foto
+    setLoading(true);
+    setTimeout(() => {
+      // Seleciona uma imagem aleatória da galeria para simular uma foto
+      const randomIndex = Math.floor(Math.random() * exampleImages.length);
+      setSelectedImage(exampleImages[randomIndex].uri);
+      setLoading(false);
+
+      Alert.alert('Foto Capturada', 'A foto foi capturada com sucesso! (Simulação)');
+    }, 1500);
+  };
+
+  // Função para remover a foto de perfil
+  const handleRemovePhoto = () => {
+    Alert.alert(
+      'Remover Foto',
+      'Tem certeza que deseja remover sua foto de perfil?',
+      [
+        { text: 'Cancelar', style: 'cancel' },
+        {
+          text: 'Remover',
+          style: 'destructive',
+          onPress: () => {
+            setSelectedImage(null);
+            setShowImageOptions(false);
+          }
+        }
+      ]
+    );
+  };
+
+  // Renderiza o avatar com iniciais caso não haja foto
+  const renderInitialsAvatar = () => {
+    const initials = user?.nome ? user.nome.charAt(0).toUpperCase() : 'U';
+    const backgroundColor = colorOptions[selectedColorIndex];
+
+    return (
+      <View style={{
+        width: 150,
+        height: 150,
+        borderRadius: 75,
+        backgroundColor,
+        justifyContent: 'center',
+        alignItems: 'center',
+      }}>
+        <Text style={{
+          fontSize: 60,
+          color: Colors.white,
+          fontWeight: 'bold',
+        }}>
+          {initials}
+        </Text>
+      </View>
+    );
+  };
+
+  return (
+    <SafeAreaView style={styles.container}>
+      <StatusBar barStyle="dark-content" backgroundColor={Colors.dark} />
+
+      <View style={styles.header}>
+        <TouchableOpacity
+          style={styles.backButton}
+          onPress={() => navigation.goBack()}
+        >
+          <Text style={styles.backButtonText}>‹</Text>
+        </TouchableOpacity>
+        <Text style={styles.headerTitle}>Foto de Perfil</Text>
+      </View>
+
+      <ScrollView style={{ flex: 1 }}>
+        <View style={{
+          padding: 20,
+          alignItems: 'center',
+        }}>
+          {/* Avatar ou foto do perfil */}
+          <TouchableOpacity
+            style={{
+              marginVertical: 20,
+              borderWidth: 3,
+              borderColor: Colors.primary,
+              borderRadius: 75,
+              padding: 3,
+            }}
+            onPress={() => setShowImageOptions(true)}
+            disabled={loading}
+          >
+            {selectedImage ? (
+              <Image
+                source={{ uri: selectedImage }}
+                style={{
+                  width: 150,
+                  height: 150,
+                  borderRadius: 75,
+                }}
+              />
+            ) : (
+              renderInitialsAvatar()
+            )}
+
+            {/* Ícone de câmera sobreposto */}
+            <View style={{
+              position: 'absolute',
+              bottom: 0,
+              right: 0,
+              backgroundColor: Colors.primary,
+              borderRadius: 20,
+              width: 40,
+              height: 40,
+              justifyContent: 'center',
+              alignItems: 'center',
+              borderWidth: 2,
+              borderColor: Colors.white,
+            }}>
+              <Text style={{ fontSize: 18, color: Colors.white }}>📷</Text>
+            </View>
+          </TouchableOpacity>
+
+          <Text style={{
+            fontSize: 20,
+            fontWeight: 'bold',
+            marginVertical: 10,
+          }}>
+            {user?.nome || 'Usuário'}
+          </Text>
+
+          <Text style={{
+            fontSize: 16,
+            color: Colors.lightText,
+            marginBottom: 20,
+            textAlign: 'center',
+          }}>
+            Selecione ou tire uma foto para seu perfil, ou escolha uma cor para o avatar com suas iniciais.
+          </Text>
+
+          {/* Seletor de cores para o avatar */}
+          {!selectedImage && (
+            <View style={{ marginVertical: 20 }}>
+              <Text style={{
+                fontSize: 16,
+                fontWeight: 'bold',
+                marginBottom: 10,
+                textAlign: 'center',
+              }}>
+                Escolha uma cor para seu avatar
+              </Text>
+
+              <View style={{
+                flexDirection: 'row',
+                flexWrap: 'wrap',
+                justifyContent: 'center',
+              }}>
+                {colorOptions.map((color, index) => (
+                  <TouchableOpacity
+                    key={index}
+                    style={{
+                      width: 40,
+                      height: 40,
+                      borderRadius: 20,
+                      backgroundColor: color,
+                      margin: 5,
+                      justifyContent: 'center',
+                      alignItems: 'center',
+                      borderWidth: selectedColorIndex === index ? 3 : 0,
+                      borderColor: Colors.white,
+                      elevation: selectedColorIndex === index ? 5 : 0,
+                      shadowColor: '#000',
+                      shadowOffset: { width: 0, height: 2 },
+                      shadowOpacity: selectedColorIndex === index ? 0.3 : 0,
+                      shadowRadius: selectedColorIndex === index ? 4 : 0,
+                    }}
+                    onPress={() => setSelectedColorIndex(index)}
+                  >
+                    {selectedColorIndex === index && (
+                      <Text style={{ color: Colors.white, fontWeight: 'bold' }}>✓</Text>
+                    )}
+                  </TouchableOpacity>
+                ))}
+              </View>
+            </View>
+          )}
+
+          {/* Galeria de fotos de exemplo */}
+          {showImageOptions && (
+            <View style={{ marginTop: 20, width: '100%' }}>
+              <View style={{
+                flexDirection: 'row',
+                justifyContent: 'space-between',
+                alignItems: 'center',
+                marginBottom: 15,
+                paddingHorizontal: 10,
+              }}>
+                <Text style={{
+                  fontSize: 18,
+                  fontWeight: 'bold',
+                }}>
+                  Escolha uma Foto
+                </Text>
+
+                <TouchableOpacity
+                  onPress={() => setShowImageOptions(false)}
+                >
+                  <Text style={{
+                    fontSize: 22,
+                    color: Colors.lightText,
+                    paddingHorizontal: 5,
+                  }}>
+                    ×
+                  </Text>
+                </TouchableOpacity>
+              </View>
+
+              <View style={{
+                flexDirection: 'row',
+                justifyContent: 'space-around',
+                marginBottom: 20,
+              }}>
+                <TouchableOpacity
+                  style={{
+                    alignItems: 'center',
+                    backgroundColor: Colors.primary,
+                    padding: 12,
+                    borderRadius: 8,
+                    width: '45%',
+                  }}
+                  onPress={handleTakePhoto}
+                >
+                  <Text style={{ color: Colors.white }}>Tirar Foto</Text>
+                </TouchableOpacity>
+
+                <TouchableOpacity
+                  style={{
+                    alignItems: 'center',
+                    backgroundColor: Colors.danger,
+                    padding: 12,
+                    borderRadius: 8,
+                    width: '45%',
+                  }}
+                  onPress={handleRemovePhoto}
+                >
+                  <Text style={{ color: Colors.white }}>Remover Foto</Text>
+                </TouchableOpacity>
+              </View>
+
+              <Text style={{
+                fontSize: 16,
+                fontWeight: 'bold',
+                marginBottom: 10,
+                paddingHorizontal: 10,
+              }}>
+                Selecione da Galeria:
+              </Text>
+
+              <View style={{
+                flexDirection: 'row',
+                flexWrap: 'wrap',
+                justifyContent: 'space-between',
+                paddingHorizontal: 5,
+              }}>
+                {exampleImages.map((img, index) => (
+                  <TouchableOpacity
+                    key={img.id}
+                    style={{
+                      width: '30%',
+                      aspectRatio: 1,
+                      marginBottom: 10,
+                      borderWidth: 2,
+                      borderColor: selectedImage === img.uri ? Colors.primary : 'transparent',
+                      borderRadius: 8,
+                    }}
+                    onPress={() => setSelectedImage(img.uri)}
+                  >
+                    <Image
+                      source={{ uri: img.uri }}
+                      style={{
+                        width: '100%',
+                        height: '100%',
+                        borderRadius: 6,
+                      }}
+                    />
+                  </TouchableOpacity>
+                ))}
+              </View>
+            </View>
+          )}
+
+          <TouchableOpacity
+            style={{
+              backgroundColor: Colors.primary,
+              paddingVertical: 12,
+              paddingHorizontal: 30,
+              borderRadius: 8,
+              marginTop: 30,
+              width: '80%',
+              alignItems: 'center',
+            }}
+            onPress={saveProfileImage}
+            disabled={loading}
+          >
+            {loading ? (
+              <ActivityIndicator size="small" color={Colors.white} />
+            ) : (
+              <Text style={{
+                color: Colors.white,
+                fontWeight: 'bold',
+                fontSize: 16,
+              }}>
+                Salvar
+              </Text>
+            )}
+          </TouchableOpacity>
+        </View>
+      </ScrollView>
+    </SafeAreaView>
+  );
+};
+
+const AnaliseCVScreen = ({ route, navigation }) => {
+  const { curriculoData } = route.params;
+  const [activeTab, setActiveTab] = useState('pontuacao');
+  const [analiseResultado, setAnaliseResultado] = useState(null);
+  const [providerInfo, setProviderInfo] = useState(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
+  const [usingOfflineMode, setUsingOfflineMode] = useState(false);
+  const [preferOffline, setPreferOffline] = useState(false);
+  const [selectedIA, setSelectedIA] = useState('GEMINI');
+  const [iaOptions, setIaOptions] = useState([]);
+  const [detalhado, setDetalhado] = useState(false); // Estado para controlar análise detalhada
+  const [showCharts, setShowCharts] = useState(false); // Estado para mostrar/esconder gráficos
+
+  // Alteração: Adicionar um ID de currículo atual para controle
+  const [currentCurriculoId, setCurrentCurriculoId] = useState(null);
+
+  useEffect(() => {
+    carregarIAsConfiguradas();
+  }, []);
+
+  // Alteração: Atualizar o ID do currículo atual quando mudar
+  useEffect(() => {
+    if (curriculoData && curriculoData.id !== currentCurriculoId) {
+      setCurrentCurriculoId(curriculoData.id);
+      fetchAnalise(true); // Forçar nova análise quando currículo mudar
+    }
+  }, [curriculoData]);
+
+  useEffect(() => {
+    fetchAnalise();
+  }, [activeTab, preferOffline, selectedIA, detalhado]); // Adicionei 'detalhado' como dependência
+
+  const carregarIAsConfiguradas = async () => {
+    try {
+      // Carregar IA padrão
+      const defaultIA = await AsyncStorage.getItem('ia_padrao');
+      if (defaultIA && IA_APIS[defaultIA] && defaultIA !== 'OPENAI') {
+        setSelectedIA(defaultIA);
+      }
+
+      // Verificar quais IAs estão configuradas
+      const options = [];
+      for (const [key, value] of Object.entries(IA_APIS)) {
+        // Alteração: Excluir OPENAI (ChatGPT) das opções
+        if (key !== 'OPENAI') {
+          const apiKey = await getIAAPIKey(key);
+          if (!value.chaveNecessaria || apiKey) {
+            options.push({
+              id: key,
+              nome: value.nome
+            });
+          }
+        }
+      }
+
+      setIaOptions(options);
+    } catch (error) {
+      console.error('Erro ao carregar IAs configuradas:', error);
+    }
+  };
+
+  // Função para gerar dados de gráficos com base no currículo
+  const gerarDadosGraficos = () => {
+    if (!curriculoData || !curriculoData.data) {
+      return null;
+    }
+
+    // Dados do currículo
+    const cv = curriculoData.data;
+
+    // Gerar dados para o gráfico de habilidades
+    const gerarDadosHabilidades = () => {
+      // Conjunto para armazenar habilidades únicas
+      const habilidadesSet = new Set();
+
+      // Extrair habilidades de projetos
+      if (cv.projetos && cv.projetos.length > 0) {
+        cv.projetos.forEach(projeto => {
+          if (projeto.habilidades) {
+            projeto.habilidades.split(',').forEach(hab => {
+              habilidadesSet.add(hab.trim());
+            });
+          }
+        });
+      }
+
+      // Converter para array de objetos para o gráfico
+      const habilidadesArray = Array.from(habilidadesSet).map(habilidade => ({
+        nome: habilidade,
+        valor: Math.floor(Math.random() * 5) + 5 // Valor aleatório entre 5-10 (demo)
+      }));
+
+      return habilidadesArray.slice(0, 8); // Limitar a 8 habilidades para o gráfico
+    };
+
+    // Gerar dados para o gráfico de experiência
+    const gerarDadosExperiencia = () => {
+      if (!cv.experiencias || cv.experiencias.length === 0) {
+        return [];
+      }
+
+      return cv.experiencias.map(exp => {
+        // Calcular duração aproximada em meses
+        let inicio = exp.data_inicio ? new Date(exp.data_inicio) : new Date();
+        let fim = exp.data_fim && exp.data_fim.toLowerCase() !== 'atual'
+          ? new Date(exp.data_fim)
+          : new Date();
+
+        // Se as datas não são objetos Date válidos, usar valores padrão
+        if (isNaN(inicio.getTime())) inicio = new Date('2020-01-01');
+        if (isNaN(fim.getTime())) fim = new Date();
+
+        const diferencaMeses = (fim.getFullYear() - inicio.getFullYear()) * 12 +
+          (fim.getMonth() - inicio.getMonth());
+
+        return {
+          empresa: exp.empresa || 'Empresa',
+          cargo: exp.cargo || 'Cargo',
+          duracao: Math.max(1, diferencaMeses || 6) // Pelo menos 1 mês
+        };
+      });
+    };
+
+    // Gerar dados para pontuação por área
+    const gerarDadosPontuacao = () => {
+      const pontuacoes = {
+        'Experiência': cv.experiencias && cv.experiencias.length > 0 ? Math.min(10, cv.experiencias.length * 2) : 3,
+        'Formação': cv.formacoes_academicas && cv.formacoes_academicas.length > 0 ? Math.min(10, cv.formacoes_academicas.length * 3) : 4,
+        'Projetos': cv.projetos && cv.projetos.length > 0 ? Math.min(10, cv.projetos.length * 2.5) : 2,
+        'Cursos': cv.cursos && cv.cursos.length > 0 ? Math.min(10, cv.cursos.length * 2) : 3,
+        'Idiomas': cv.idiomas && cv.idiomas.length > 0 ? Math.min(10, cv.idiomas.length * 3) : 5
+      };
+
+      return Object.entries(pontuacoes).map(([area, valor]) => ({ area, valor }));
+    };
+
+    return {
+      habilidades: gerarDadosHabilidades(),
+      experiencia: gerarDadosExperiencia(),
+      pontuacao: gerarDadosPontuacao()
+    };
+  };
+
+  // Alteração: Melhorar a função fetchAnalise para incluir modo detalhado e aceitar parâmetro forceRefresh
+  const fetchAnalise = async (forceRefresh = false) => {
+    // Não recarrega se já estiver carregando, a menos que seja forçado
+    if (loading && !forceRefresh) return;
+
+    setLoading(true);
+    setError(null);
+    setUsingOfflineMode(false);
+    setProviderInfo(null);
+
+    // Limpar resultado anterior se for um currículo diferente ou forçar refresh
+    if (forceRefresh) {
+      setAnaliseResultado(null);
+    }
+
+    try {
+      const tipoIA = selectedIA === 'OFFLINE' ? 'OFFLINE' : selectedIA;
+
+      // Verificar se curriculoData existe e tem dados
+      if (!curriculoData || !curriculoData.data) {
+        throw new Error("Dados do currículo inválidos");
+      }
+
+      // Configurar objeto com parâmetros adicionais para análise detalhada
+      const opcoesAnalise = {
+        analiseDetalhada: detalhado,  // Nova opção para controlar nível de detalhe
+        tipoAnalise: activeTab,
+        maxTokens: detalhado ? 1500 : 800  // Aumenta o limite de tokens para análises detalhadas
+      };
+
+      // Passar as opções adicionais para a função de análise
+      const resultado = await analisarCurriculoComIA(
+        curriculoData.data,
+        activeTab,
+        tipoIA,
+        preferOffline,
+        opcoesAnalise  // Novo parâmetro com opções adicionais
+      );
+
+      if (resultado.offline || tipoIA === 'OFFLINE') {
+        setUsingOfflineMode(true);
+      }
+
+      if (resultado.success) {
+        setAnaliseResultado(resultado.analise);
+        setProviderInfo(resultado.provider || 'IA Não Identificada');
+      } else {
+        setError(resultado.message || 'Erro ao analisar currículo');
+      }
+    } catch (error) {
+      console.error('Erro ao buscar análise:', error);
+      setError('Ocorreu um erro ao analisar o currículo. ' + error.message);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const toggleOfflineMode = () => {
+    setPreferOffline(!preferOffline);
+  };
+
+  // Toggle para modo detalhado
+  const toggleModoDetalhado = () => {
+    setDetalhado(!detalhado);
+    // A análise será atualizada automaticamente pelo useEffect
+  };
+
+  // Toggle para mostrar/esconder gráficos
+  const toggleShowCharts = () => {
+    setShowCharts(!showCharts);
+  };
+
+  // Render do seletor de IA
+  const renderIASelector = () => (
+    <View style={styles.iaSelectorContainer}>
+      <View style={{
+        flexDirection: 'row',
+        justifyContent: 'space-between',
+        alignItems: 'center',
+        marginBottom: 8,
+      }}>
+        <Text style={styles.iaSelectorLabel}>Analisar com:</Text>
+
+        {/* Alteração: Adicionar botão de atualizar */}
+        <TouchableOpacity
+          style={{
+            backgroundColor: Colors.secondary,
+            paddingVertical: 6,
+            paddingHorizontal: 12,
+            borderRadius: 5,
+            flexDirection: 'row',
+            alignItems: 'center',
+          }}
+          onPress={() => fetchAnalise(true)}
+          disabled={loading}
+        >
+          {loading ? (
+            <ActivityIndicator size="small" color={Colors.white} />
+          ) : (
+            <Text style={{
+              color: Colors.white,
+              fontSize: 14,
+              fontWeight: '500',
+            }}>Atualizar</Text>
+          )}
+        </TouchableOpacity>
+      </View>
+
+      <ScrollView
+        horizontal
+        showsHorizontalScrollIndicator={false}
+        contentContainerStyle={styles.iaOptionsContainer}
+      >
+        {iaOptions.map(option => (
+          <TouchableOpacity
+            key={option.id}
+            style={[
+              styles.iaOptionButton,
+              selectedIA === option.id && styles.iaOptionButtonSelected
+            ]}
+            onPress={() => setSelectedIA(option.id)}
+          >
+            <Text
+              style={[
+                styles.iaOptionText,
+                selectedIA === option.id && styles.iaOptionTextSelected
+              ]}
+            >
+              {option.nome}
+            </Text>
+          </TouchableOpacity>
+        ))}
+      </ScrollView>
+
+      {/* Nova linha com opções adicionais */}
+      <View style={{
+        flexDirection: 'row',
+        justifyContent: 'space-between',
+        marginTop: 10,
+      }}>
+        {/* Toggle para modo detalhado */}
+        <TouchableOpacity
+          style={{
+            flexDirection: 'row',
+            alignItems: 'center',
+            backgroundColor: detalhado ? Colors.primary : 'transparent',
+            borderWidth: 1,
+            borderColor: Colors.primary,
+            borderRadius: 5,
+            paddingHorizontal: 10,
+            paddingVertical: 6,
+          }}
+          onPress={toggleModoDetalhado}
+        >
+          <Text
+            style={{
+              color: detalhado ? Colors.white : Colors.primary,
+              fontSize: 14,
+            }}
+          >
+            {detalhado ? 'Análise Detalhada ✓' : 'Análise Simples'}
+          </Text>
+        </TouchableOpacity>
+
+        {/* Botão para visualização de gráficos */}
+        <TouchableOpacity
+          style={{
+            flexDirection: 'row',
+            alignItems: 'center',
+            backgroundColor: showCharts ? Colors.info : 'transparent',
+            borderWidth: 1,
+            borderColor: Colors.info,
+            borderRadius: 5,
+            paddingHorizontal: 10,
+            paddingVertical: 6,
+          }}
+          onPress={toggleShowCharts}
+        >
+          <Text
+            style={{
+              color: showCharts ? Colors.white : Colors.info,
+              fontSize: 14,
+            }}
+          >
+            {showCharts ? 'Esconder Gráficos' : 'Visualizar Gráficos'}
+          </Text>
+        </TouchableOpacity>
+      </View>
+
+      {providerInfo && (
+        <Text style={styles.providerInfo}>
+          Análise fornecida por: {providerInfo}
+        </Text>
+      )}
+    </View>
+  );
+
+  // Renderização dos gráficos
+  const renderCharts = () => {
+    const dadosGraficos = gerarDadosGraficos();
+
+    if (!dadosGraficos) {
+      return (
+        <View style={{ padding: 15, alignItems: 'center' }}>
+          <Text>Não foi possível gerar gráficos com os dados atuais.</Text>
+        </View>
+      );
+    }
+
+    return (
+      <View style={{
+        backgroundColor: '#f9f9f9',
+        marginHorizontal: 15,
+        marginBottom: 20,
+        borderRadius: 10,
+        padding: 15,
+        elevation: 2,
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 1 },
+        shadowOpacity: 0.1,
+        shadowRadius: 2,
+      }}>
+        <Text style={{
+          fontSize: 18,
+          fontWeight: 'bold',
+          marginBottom: 15,
+          color: Colors.dark,
+          textAlign: 'center',
+        }}>
+          Visualização Gráfica do Currículo
+        </Text>
+
+        {/* Gráfico de Pontuação por Área */}
+        <View style={{ marginBottom: 20 }}>
+          <Text style={{
+            fontSize: 16,
+            fontWeight: 'bold',
+            marginBottom: 10,
+            color: Colors.dark,
+          }}>
+            Pontuação por Área
+          </Text>
+
+          {/* Renderização do gráfico de barras horizontal */}
+          {dadosGraficos.pontuacao.map((item, index) => (
+            <View key={index} style={{ marginBottom: 8 }}>
+              <View style={{ flexDirection: 'row', justifyContent: 'space-between' }}>
+                <Text>{item.area}</Text>
+                <Text>{item.valor.toFixed(1)}/10</Text>
+              </View>
+              <View style={{
+                height: 10,
+                backgroundColor: Colors.mediumGray,
+                borderRadius: 5,
+                marginTop: 5,
+              }}>
+                <View style={{
+                  width: `${item.valor * 10}%`,
+                  height: '100%',
+                  backgroundColor: getBarColor(item.valor),
+                  borderRadius: 5,
+                }} />
+              </View>
+            </View>
+          ))}
+        </View>
+
+        {/* Gráfico de Habilidades */}
+        {dadosGraficos.habilidades.length > 0 && (
+          <View style={{ marginBottom: 20 }}>
+            <Text style={{
+              fontSize: 16,
+              fontWeight: 'bold',
+              marginBottom: 10,
+              color: Colors.dark,
+            }}>
+              Principais Habilidades
+            </Text>
+
+            <View style={{ flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'space-between' }}>
+              {dadosGraficos.habilidades.map((item, index) => (
+                <View key={index} style={{
+                  width: '48%',
+                  backgroundColor: Colors.white,
+                  padding: 10,
+                  borderRadius: 5,
+                  marginBottom: 10,
+                  borderLeftWidth: 3,
+                  borderLeftColor: Colors.primary,
+                  elevation: 1,
+                  shadowColor: '#000',
+                  shadowOffset: { width: 0, height: 1 },
+                  shadowOpacity: 0.1,
+                  shadowRadius: 1,
+                }}>
+                  <Text style={{ fontWeight: 'bold' }}>{item.nome}</Text>
+                  <View style={{ flexDirection: 'row', marginTop: 5 }}>
+                    {Array(10).fill(0).map((_, i) => (
+                      <View
+                        key={i}
+                        style={{
+                          width: 8,
+                          height: 8,
+                          borderRadius: 4,
+                          backgroundColor: i < item.valor ? Colors.primary : Colors.mediumGray,
+                          marginRight: 2,
+                        }}
+                      />
+                    ))}
+                  </View>
+                </View>
+              ))}
+            </View>
+          </View>
+        )}
+
+        {/* Gráfico de Experiência Profissional */}
+        {dadosGraficos.experiencia.length > 0 && (
+          <View>
+            <Text style={{
+              fontSize: 16,
+              fontWeight: 'bold',
+              marginBottom: 10,
+              color: Colors.dark,
+            }}>
+              Experiência Profissional
+            </Text>
+
+            {dadosGraficos.experiencia.map((item, index) => (
+              <View key={index} style={{ marginBottom: 10 }}>
+                <Text style={{ fontWeight: 'bold' }}>{item.cargo} - {item.empresa}</Text>
+                <View style={{
+                  flexDirection: 'row',
+                  alignItems: 'center',
+                  marginTop: 5,
+                }}>
+                  <View style={{
+                    width: `${Math.min(100, item.duracao * 2)}%`,
+                    maxWidth: '80%',
+                    height: 20,
+                    backgroundColor: Colors.primary,
+                    borderRadius: 5,
+                    justifyContent: 'center',
+                    paddingHorizontal: 5,
+                  }}>
+                    <Text style={{
+                      color: Colors.white,
+                      fontSize: 12,
+                      textAlign: 'center',
+                    }}>
+                      {item.duracao} {item.duracao === 1 ? 'mês' : 'meses'}
+                    </Text>
+                  </View>
+                </View>
+              </View>
+            ))}
+          </View>
+        )}
+      </View>
+    );
+  };
+
+  // Função para determinar a cor da barra com base no valor
+  const getBarColor = (valor) => {
+    if (valor >= 8) return Colors.success;
+    if (valor >= 5) return Colors.primary;
+    if (valor >= 3) return Colors.warning;
+    return Colors.danger;
+  };
+
+  return (
+    <SafeAreaView style={styles.container}>
+      <StatusBar barStyle="dark-content" backgroundColor={Colors.dark} />
+
+      <View style={styles.header}>
+        <TouchableOpacity
+          style={styles.backButton}
+          onPress={() => navigation.goBack()}
+        >
+          <Text style={styles.backButtonText}>‹</Text>
+        </TouchableOpacity>
+        <Text style={styles.headerTitle}>Análise com IA</Text>
+
+        <TouchableOpacity
+          style={styles.modeToggleButton}
+          onPress={toggleOfflineMode}
+        >
+          <Text style={styles.modeToggleText}>
+            {preferOffline ? 'Usar Online' : 'Usar Offline'}
+          </Text>
+        </TouchableOpacity>
+      </View>
+
+      <View style={styles.cvAnalysisHeader}>
+        <Text style={styles.cvAnalysisTitle}>
+          Análise do currículo: {curriculoData.nome || 'Sem nome'}
+        </Text>
+      </View>
+
+      <ScrollView
+        horizontal
+        showsHorizontalScrollIndicator={false}
+        style={styles.analysisTabs}
+        contentContainerStyle={styles.analysisTabsContent}
+      >
+        <TouchableOpacity
+          style={[
+            styles.analysisTab,
+            activeTab === 'pontuacao' && styles.activeAnalysisTab
+          ]}
+          onPress={() => setActiveTab('pontuacao')}
+        >
+          <Text
+            style={[
+              styles.analysisTabText,
+              activeTab === 'pontuacao' && styles.activeAnalysisTabText
+            ]}
+          >
+            Pontuação
+          </Text>
+        </TouchableOpacity>
+
+        <TouchableOpacity
+          style={[
+            styles.analysisTab,
+            activeTab === 'melhorias' && styles.activeAnalysisTab
+          ]}
+          onPress={() => setActiveTab('melhorias')}
+        >
+          <Text
+            style={[
+              styles.analysisTabText,
+              activeTab === 'melhorias' && styles.activeAnalysisTabText
+            ]}
+          >
+            Melhorias
+          </Text>
+        </TouchableOpacity>
+
+        <TouchableOpacity
+          style={[
+            styles.analysisTab,
+            activeTab === 'dicas' && styles.activeAnalysisTab
+          ]}
+          onPress={() => setActiveTab('dicas')}
+        >
+          <Text
+            style={[
+              styles.analysisTabText,
+              activeTab === 'dicas' && styles.activeAnalysisTabText
+            ]}
+          >
+            Dicas
+          </Text>
+        </TouchableOpacity>
+
+        <TouchableOpacity
+          style={[
+            styles.analysisTab,
+            activeTab === 'cursos' && styles.activeAnalysisTab
+          ]}
+          onPress={() => setActiveTab('cursos')}
+        >
+          <Text
+            style={[
+              styles.analysisTabText,
+              activeTab === 'cursos' && styles.activeAnalysisTabText
+            ]}
+          >
+            Cursos
+          </Text>
+        </TouchableOpacity>
+
+        <TouchableOpacity
+          style={[
+            styles.analysisTab,
+            activeTab === 'vagas' && styles.activeAnalysisTab
+          ]}
+          onPress={() => setActiveTab('vagas')}
+        >
+          <Text
+            style={[
+              styles.analysisTabText,
+              activeTab === 'vagas' && styles.activeAnalysisTabText
+            ]}
+          >
+            Vagas
+          </Text>
+        </TouchableOpacity>
+      </ScrollView>
+
+      {/* Selector de IA */}
+      {renderIASelector()}
+
+      {usingOfflineMode && (
+        <View style={styles.offlineBanner}>
+          <Text style={styles.offlineBannerText}>
+            Usando análise offline - Algumas funcionalidades podem estar limitadas.
+          </Text>
+        </View>
+      )}
+
+      {detalhado && !usingOfflineMode && (
+        <View style={{
+          backgroundColor: '#e1f5fe',
+          padding: 10,
+          borderRadius: 5,
+          marginHorizontal: 15,
+          marginBottom: 10,
+          borderLeftWidth: 3,
+          borderLeftColor: Colors.info,
+        }}>
+          <Text style={{ color: '#01579b', fontSize: 14 }}>
+            Modo detalhado ativado - Análise mais completa e aprofundada
+          </Text>
+        </View>
+      )}
+
+      {/* Visualização de gráficos */}
+      {showCharts && !loading && !error && renderCharts()}
+
+      {loading ? (
+        <View style={styles.loadingAnalysisContainer}>
+          <ActivityIndicator size="large" color={Colors.primary} />
+          <Text style={styles.loadingAnalysisText}>
+            {detalhado
+              ? 'Realizando análise detalhada do currículo...'
+              : 'Analisando seu currículo...'}
+          </Text>
+        </View>
+      ) : error ? (
+        <View style={styles.errorContainer}>
+          <Text style={styles.errorText}>{error}</Text>
+          <TouchableOpacity
+            style={styles.retryButton}
+            onPress={() => fetchAnalise(true)}
+          >
+            <Text style={styles.retryButtonText}>Tentar Novamente</Text>
+          </TouchableOpacity>
+        </View>
+      ) : (
+        <ScrollView style={styles.analysisResultContainer}>
+          {/* Use o componente Markdown para renderizar o texto formatado */}
+          <Markdown
+            style={{
+              body: styles.analysisResultText,
+              heading1: {
+                fontSize: 22,
+                fontWeight: 'bold',
+                marginBottom: 10,
+                color: Colors.dark,
+                borderBottomWidth: 1,
+                borderBottomColor: Colors.mediumGray,
+                paddingBottom: 5,
+              },
+              heading2: {
+                fontSize: 20,
+                fontWeight: 'bold',
+                marginBottom: 10,
+                marginTop: 15,
+                color: Colors.dark
+              },
+              heading3: {
+                fontSize: 18,
+                fontWeight: 'bold',
+                marginTop: 10,
+                marginBottom: 5,
+                color: Colors.dark
+              },
+              paragraph: {
+                fontSize: 16,
+                lineHeight: 24,
+                marginBottom: 10,
+                color: Colors.dark
+              },
+              list_item: {
+                marginBottom: 5,
+                flexDirection: 'row',
+                alignItems: 'flex-start',
+              },
+              bullet_list: {
+                marginVertical: 10,
+              },
+              strong: {
+                fontWeight: 'bold',
+              },
+              em: {
+                fontStyle: 'italic',
+              },
+              ordered_list: {
+                marginVertical: 10,
+              },
+              hr: {
+                backgroundColor: Colors.mediumGray,
+                height: 1,
+                marginVertical: 15,
+              },
+              blockquote: {
+                borderLeftWidth: 3,
+                borderLeftColor: Colors.primary,
+                paddingLeft: 10,
+                marginVertical: 10,
+                backgroundColor: Colors.lightGray,
+                padding: 10,
+                borderRadius: 5,
+              },
+            }}
+          >
+            {analiseResultado}
+          </Markdown>
+
+          {/* Adicione também um botão para compartilhar a análise */}
+          <TouchableOpacity
+            style={[styles.shareAnalysisButton, { marginTop: 20 }]}
+            onPress={() => {
+              Share.share({
+                message: analiseResultado,
+                title: `Análise do Currículo - ${curriculoData.nome || 'Sem nome'}`
+              });
+            }}
+          >
+            <Text style={styles.shareAnalysisButtonText}>Compartilhar Análise</Text>
+          </TouchableOpacity>
+        </ScrollView>
+      )}
+    </SafeAreaView>
+  );
+};
+
+const AuthNavigator = () => (
+  <AuthStack.Navigator
+    screenOptions={{
+      headerShown: false,
+    }}
+  >
+    <AuthStack.Screen name="Login" component={LoginScreen} />
+    <AuthStack.Screen name="Register" component={RegisterScreen} />
+  </AuthStack.Navigator>
+);
+
+const SobreAppScreen = ({ navigation }) => {
+  const [activeSection, setActiveSection] = useState('sobre');
+
+  // Funções para lidar com links externos
+  const handleOpenWebsite = () => {
+    Linking.openURL('https://curriculobot.app');
+  };
+
+  const handleContactSupport = () => {
+    Linking.openURL('mailto:suporte@curriculobot.app');
+  };
+
+  const handleSocialMedia = (platform) => {
+    let url = '';
+    switch (platform) {
+      case 'linkedin':
+        url = 'https://linkedin.com/company/curriculobot';
+        break;
+      case 'twitter':
+        url = 'https://twitter.com/curriculobot';
+        break;
+      case 'instagram':
+        url = 'https://instagram.com/curriculobot';
+        break;
+    }
+
+    if (url) Linking.openURL(url);
+  };
+
+  // Renderização das seções de conteúdo
+  const renderSectionIndicator = () => (
+    <View style={styles.sectionIndicator}>
+      <TouchableOpacity
+        style={[
+          styles.sectionTab,
+          activeSection === 'sobre' && styles.activeSection
+        ]}
+        onPress={() => setActiveSection('sobre')}
+      >
+        <Text style={[
+          styles.sectionTabText,
+          activeSection === 'sobre' && styles.activeSectionText
+        ]}>
+          Sobre
+        </Text>
+      </TouchableOpacity>
+
+      <TouchableOpacity
+        style={[
+          styles.sectionTab,
+          activeSection === 'recursos' && styles.activeSection
+        ]}
+        onPress={() => setActiveSection('recursos')}
+      >
+        <Text style={[
+          styles.sectionTabText,
+          activeSection === 'recursos' && styles.activeSectionText
+        ]}>
+          Recursos
+        </Text>
+      </TouchableOpacity>
+
+      <TouchableOpacity
+        style={[
+          styles.sectionTab,
+          activeSection === 'versao' && styles.activeSection
+        ]}
+        onPress={() => setActiveSection('versao')}
+      >
+        <Text style={[
+          styles.sectionTabText,
+          activeSection === 'versao' && styles.activeSectionText
+        ]}>
+          Versão
+        </Text>
+      </TouchableOpacity>
+    </View>
+  );
+
+  return (
+    <SafeAreaView style={styles.container}>
+      <StatusBar barStyle="dark-content" backgroundColor={Colors.primary} />
+
+      <ScrollView style={styles.scrollView}>
+        {/* Cabeçalho Principal */}
+        <View style={styles.header}>
+          <TouchableOpacity
+            style={styles.backButtonTop}
+            onPress={() => navigation.goBack()}
+          >
+            <Text style={styles.backButtonTopText}>‹</Text>
+          </TouchableOpacity>
+        </View>
+
+        {/* Hero Section */}
+        <View style={styles.heroContainer}>
+          <View style={styles.logoContainer}>
+            <View style={styles.logoBackground}>
+              <Text style={styles.logoIcon}>📝</Text>
+            </View>
+          </View>
+          <Text style={styles.appTitle}>CurriculoBot Premium</Text>
+          <Text style={styles.appSubtitle}>Versão 1.2.0</Text>
+          <View style={styles.premiumBadge}>
+            <Text style={styles.premiumBadgeText}>PREMIUM</Text>
+          </View>
+        </View>
+
+        {/* Indicador de seções */}
+        {renderSectionIndicator()}
+
+        {/* Conteúdo principal */}
+        <View style={styles.contentContainer}>
+          {activeSection === 'sobre' && (
+            <View style={styles.sectionContent}>
+              <Text style={styles.sectionTitle}>O que é o CurriculoBot?</Text>
+              <Text style={styles.sectionDescription}>
+                CurriculoBot é um assistente inteligente que ajuda você a criar, gerenciar e analisar
+                currículos profissionais utilizando inteligência artificial de múltiplos provedores.
+              </Text>
+
+              <Text style={styles.sectionDescription}>
+                Desenvolvido por uma equipe de especialistas da Estacio de Florianopolis, o CurriculoBot utiliza
+                algoritmos avançados para personalizar seu currículo de acordo com as melhores práticas
+                do mercado de trabalho atual.
+              </Text>
+
+              <View style={styles.infoCardContainer}>
+                <View style={styles.infoCard}>
+                  <Text style={styles.infoCardNumber}>1+</Text>
+                  <Text style={styles.infoCardText}>Usuários</Text>
+                </View>
+
+                <View style={styles.infoCard}>
+                  <Text style={styles.infoCardNumber}>10+</Text>
+                  <Text style={styles.infoCardText}>Currículos</Text>
+                </View>
+
+                <View style={styles.infoCard}>
+                  <Text style={styles.infoCardNumber}>98%</Text>
+                  <Text style={styles.infoCardText}>Satisfação</Text>
+                </View>
+              </View>
+            </View>
+          )}
+
+          {activeSection === 'recursos' && (
+            <View style={styles.sectionContent}>
+              <Text style={styles.sectionTitle}>Recursos Premium</Text>
+
+              <View style={styles.featureItem}>
+                <View style={styles.featureIconContainer}>
+                  <Text style={styles.featureIcon}>🤖</Text>
+                </View>
+                <View style={styles.featureTextContainer}>
+                  <Text style={styles.featureTitle}>Criação Guiada por IA</Text>
+                  <Text style={styles.featureDescription}>
+                    Interface conversacional intuitiva que simplifica a criação do seu currículo profissional.
+                  </Text>
+                </View>
+              </View>
+
+              <View style={styles.featureItem}>
+                <View style={styles.featureIconContainer}>
+                  <Text style={styles.featureIcon}>📊</Text>
+                </View>
+                <View style={styles.featureTextContainer}>
+                  <Text style={styles.featureTitle}>Análise Avançada</Text>
+                  <Text style={styles.featureDescription}>
+                    Análise profissional do seu currículo usando inteligência artificial de várias fontes.
+                  </Text>
+                </View>
+              </View>
+
+              <View style={styles.featureItem}>
+                <View style={styles.featureIconContainer}>
+                  <Text style={styles.featureIcon}>🌟</Text>
+                </View>
+                <View style={styles.featureTextContainer}>
+                  <Text style={styles.featureTitle}>Dicas Personalizadas</Text>
+                  <Text style={styles.featureDescription}>
+                    Recomendações de melhorias, cursos e vagas personalizadas ao seu perfil.
+                  </Text>
+                </View>
+              </View>
+
+              <View style={styles.featureItem}>
+                <View style={styles.featureIconContainer}>
+                  <Text style={styles.featureIcon}>📝</Text>
+                </View>
+                <View style={styles.featureTextContainer}>
+                  <Text style={styles.featureTitle}>Múltiplos Templates</Text>
+                  <Text style={styles.featureDescription}>
+                    Escolha entre diversos modelos profissionais para personalizar seu currículo.
+                  </Text>
+                </View>
+              </View>
+
+              <View style={styles.featureItem}>
+                <View style={styles.featureIconContainer}>
+                  <Text style={styles.featureIcon}>🔎</Text>
+                </View>
+                <View style={styles.featureTextContainer}>
+                  <Text style={styles.featureTitle}>Busca de Vagas</Text>
+                  <Text style={styles.featureDescription}>
+                    Encontre oportunidades alinhadas com seu perfil profissional.
+                  </Text>
+                </View>
+              </View>
+            </View>
+          )}
+
+          {activeSection === 'versao' && (
+            <View style={styles.sectionContent}>
+              <Text style={styles.sectionTitle}>Detalhes da Versão</Text>
+
+              <View style={styles.versionCard}>
+                <View style={styles.versionHeader}>
+                  <Text style={styles.versionNumber}>1.2.0</Text>
+                  <Text style={styles.versionDate}>Maio 2025</Text>
+                </View>
+
+                <View style={styles.versionFeatureList}>
+                  <Text style={styles.versionFeatureTitle}>Novos recursos:</Text>
+
+                  <View style={styles.versionFeatureItem}>
+                    <View style={styles.versionFeatureDot} />
+                    <Text style={styles.versionFeatureText}>
+                      Análise avançada de carreira com visualização gráfica
+                    </Text>
+                  </View>
+
+                  <View style={styles.versionFeatureItem}>
+                    <View style={styles.versionFeatureDot} />
+                    <Text style={styles.versionFeatureText}>
+                      Integração com novas IAs (Claude, Perplexity, DeepSeek)
+                    </Text>
+                  </View>
+
+                  <View style={styles.versionFeatureItem}>
+                    <View style={styles.versionFeatureDot} />
+                    <Text style={styles.versionFeatureText}>
+                      Busca de vagas com compatibilidade por perfil
+                    </Text>
+                  </View>
+
+                  <View style={styles.versionFeatureItem}>
+                    <View style={styles.versionFeatureDot} />
+                    <Text style={styles.versionFeatureText}>
+                      Novos templates de currículo
+                    </Text>
+                  </View>
+
+                  <View style={styles.versionFeatureItem}>
+                    <View style={styles.versionFeatureDot} />
+                    <Text style={styles.versionFeatureText}>
+                      Interface redesenhada para melhor experiência
+                    </Text>
+                  </View>
+                </View>
+              </View>
+
+              <View style={styles.versionPrevious}>
+                <Text style={styles.versionPreviousTitle}>Versões anteriores</Text>
+
+                <View style={styles.versionPreviousItem}>
+                  <Text style={styles.versionPreviousNumber}>1.1.0</Text>
+                  <Text style={styles.versionPreviousDate}>Maior 2025</Text>
+                </View>
+
+                <View style={styles.versionPreviousItem}>
+                  <Text style={styles.versionPreviousNumber}>1.0.0</Text>
+                  <Text style={styles.versionPreviousDate}>Maio 2024</Text>
+                </View>
+              </View>
+            </View>
+          )}
+
+          {/* Informações de contato */}
+          <View style={styles.contactSection}>
+            <Text style={styles.contactTitle}>Entre em Contato</Text>
+
+            <TouchableOpacity
+              style={styles.contactButton}
+              onPress={handleOpenWebsite}
+            >
+              <Text style={styles.contactButtonIcon}>🌐</Text>
+              <Text style={styles.contactButtonText}>www.curriculobot.app</Text>
+            </TouchableOpacity>
+
+            <TouchableOpacity
+              style={styles.contactButton}
+              onPress={handleContactSupport}
+            >
+              <Text style={styles.contactButtonIcon}>✉️</Text>
+              <Text style={styles.contactButtonText}>suporte@curriculobot.app</Text>
+            </TouchableOpacity>
+
+            <View style={styles.socialMediaContainer}>
+              <TouchableOpacity
+                style={styles.socialButton}
+                onPress={() => handleSocialMedia('linkedin')}
+              >
+                <Text style={styles.socialButtonText}>in</Text>
+              </TouchableOpacity>
+
+              <TouchableOpacity
+                style={styles.socialButton}
+                onPress={() => handleSocialMedia('twitter')}
+              >
+                <Text style={styles.socialButtonText}>𝕏</Text>
+              </TouchableOpacity>
+
+              <TouchableOpacity
+                style={styles.socialButton}
+                onPress={() => handleSocialMedia('instagram')}
+              >
+                <Text style={styles.socialButtonText}>📷</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+
+          {/* Rodapé */}
+          <View style={styles.footer}>
+            <Text style={styles.footerText}>© 2025 CurriculoBot Premium</Text>
+            <Text style={styles.footerText}>Todos os direitos reservados</Text>
+          </View>
+        </View>
+      </ScrollView>
+    </SafeAreaView>
+  );
+};
+
+const SelecionarCurriculoScreen = ({ navigation }) => {
+  const { user } = useAuth();
+  const [curriculos, setCurriculos] = useState([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    carregarCurriculos();
+  }, []);
+
+  const carregarCurriculos = async () => {
+    try {
+      setLoading(true);
+      const cvs = await AsyncStorage.getItem(`curriculos_${user.id}`);
+      setCurriculos(cvs ? JSON.parse(cvs) : []);
+    } catch (error) {
+      console.error('Erro ao carregar currículos:', error);
+      Alert.alert('Erro', 'Não foi possível carregar seus currículos.');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleSelecionarCurriculo = (curriculo) => {
+    navigation.navigate('BuscaVagas', { curriculoData: curriculo });
+  };
+
+  const formatDate = (dateString) => {
+    try {
+      if (!dateString) return 'Data não disponível';
+      const date = new Date(dateString);
+      return `${date.getDate().toString().padStart(2, '0')}/${(date.getMonth() + 1).toString().padStart(2, '0')}/${date.getFullYear()}`;
+    } catch (error) {
+      return 'Data inválida';
+    }
+  };
+
+  // Extrair informações do currículo para exibição
+  const getResumoCurriculo = (curriculo) => {
+    const cv = curriculo.data;
+    const experiencias = cv.experiencias?.length || 0;
+    const formacoes = cv.formacoes_academicas?.length || 0;
+    const projetos = cv.projetos?.length || 0;
+    const area = cv.informacoes_pessoais?.area || 'Não especificada';
+
+    return { experiencias, formacoes, projetos, area };
+  };
+
+  return (
+    <SafeAreaView style={styles.container}>
+      <StatusBar barStyle="dark-content" backgroundColor={Colors.dark} />
+
+      <View style={styles.header}>
+        <TouchableOpacity
+          style={styles.backButton}
+          onPress={() => navigation.goBack()}
+        >
+          <Text style={styles.backButtonText}>‹</Text>
+        </TouchableOpacity>
+        <Text style={styles.headerTitle}>Selecionar Currículo</Text>
+      </View>
+
+      {loading ? (
+        <View style={styles.loadingContainer}>
+          <ActivityIndicator size="large" color={Colors.primary} />
+          <Text style={{ marginTop: 10 }}>Carregando currículos...</Text>
+        </View>
+      ) : curriculos.length === 0 ? (
+        <View style={styles.emptyState}>
+          <Text style={styles.emptyStateTitle}>Nenhum Currículo Encontrado</Text>
+          <Text style={styles.emptyStateText}>
+            Você precisa criar um currículo antes de buscar vagas.
+          </Text>
+          <TouchableOpacity
+            style={styles.primaryButton}
+            onPress={() => navigation.navigate('Chatbot')}
+          >
+            <Text style={styles.primaryButtonText}>Criar Currículo</Text>
+          </TouchableOpacity>
+        </View>
+      ) : (
+        <View style={{ flex: 1, padding: 15 }}>
+          <View style={{
+            backgroundColor: '#e8f5e9',
+            padding: 15,
+            borderRadius: 10,
+            marginBottom: 20,
+            borderLeftWidth: 4,
+            borderLeftColor: Colors.success,
+          }}>
+            <Text style={{
+              fontSize: 16,
+              fontWeight: 'bold',
+              marginBottom: 5,
+              color: Colors.dark,
+            }}>
+              Buscar Vagas Personalizadas
+            </Text>
+            <Text style={{
+              fontSize: 14,
+              color: '#2e7d32',
+            }}>
+              Selecione o currículo que deseja usar como base para a busca de vagas. Nossa IA encontrará oportunidades de emprego alinhadas ao seu perfil profissional.
+            </Text>
+          </View>
+
+          <Text style={{
+            fontSize: 16,
+            fontWeight: 'bold',
+            marginBottom: 10,
+            color: Colors.dark,
+          }}>
+            Selecione um currículo:
+          </Text>
+
+          <FlatList
+            data={curriculos}
+            keyExtractor={(item) => item.id}
+            renderItem={({ item }) => {
+              const resumo = getResumoCurriculo(item);
+
+              return (
+                <TouchableOpacity
+                  style={{
+                    backgroundColor: Colors.white,
+                    borderRadius: 10,
+                    marginBottom: 15,
+                    padding: 16,
+                    ...Platform.select({
+                      ios: {
+                        shadowColor: '#000',
+                        shadowOffset: { width: 0, height: 2 },
+                        shadowOpacity: 0.1,
+                        shadowRadius: 3,
+                      },
+                      android: {
+                        elevation: 2,
+                      },
+                    }),
+                    borderLeftWidth: 4,
+                    borderLeftColor: Colors.primary,
+                  }}
+                  onPress={() => handleSelecionarCurriculo(item)}
+                >
+                  <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
+                    <Text style={{
+                      fontSize: 18,
+                      fontWeight: 'bold',
+                      color: Colors.dark,
+                      marginBottom: 5,
+                    }}>
+                      {item.nome || 'Currículo sem nome'}
+                    </Text>
+
+                    <View style={{
+                      backgroundColor: Colors.primary,
+                      paddingVertical: 4,
+                      paddingHorizontal: 8,
+                      borderRadius: 15,
+                    }}>
+                      <Text style={{ color: Colors.white, fontSize: 12 }}>
+                        Selecionar
+                      </Text>
+                    </View>
+                  </View>
+
+                  <Text style={{
+                    fontSize: 14,
+                    color: Colors.lightText,
+                    marginBottom: 10,
+                  }}>
+                    Criado em: {formatDate(item.dataCriacao)}
+                  </Text>
+
+                  <View style={{
+                    backgroundColor: '#f5f5f5',
+                    padding: 10,
+                    borderRadius: 5,
+                    marginTop: 5,
+                  }}>
+                    <Text style={{ color: Colors.dark }}>
+                      <Text style={{ fontWeight: 'bold' }}>Área: </Text>
+                      {resumo.area}
+                    </Text>
+
+                    <View style={{ flexDirection: 'row', marginTop: 5, flexWrap: 'wrap' }}>
+                      <View style={{
+                        backgroundColor: Colors.primary,
+                        paddingVertical: 3,
+                        paddingHorizontal: 8,
+                        borderRadius: 12,
+                        marginRight: 8,
+                        marginBottom: 5,
+                      }}>
+                        <Text style={{ color: Colors.white, fontSize: 12 }}>
+                          {resumo.experiencias} experiência(s)
+                        </Text>
+                      </View>
+
+                      <View style={{
+                        backgroundColor: Colors.secondary,
+                        paddingVertical: 3,
+                        paddingHorizontal: 8,
+                        borderRadius: 12,
+                        marginRight: 8,
+                        marginBottom: 5,
+                      }}>
+                        <Text style={{ color: Colors.white, fontSize: 12 }}>
+                          {resumo.formacoes} formação(ões)
+                        </Text>
+                      </View>
+
+                      <View style={{
+                        backgroundColor: '#673AB7',
+                        paddingVertical: 3,
+                        paddingHorizontal: 8,
+                        borderRadius: 12,
+                        marginBottom: 5,
+                      }}>
+                        <Text style={{ color: Colors.white, fontSize: 12 }}>
+                          {resumo.projetos} projeto(s)
+                        </Text>
+                      </View>
+                    </View>
+                  </View>
+                </TouchableOpacity>
+              );
+            }}
+          />
+        </View>
+      )}
     </SafeAreaView>
   );
 };
@@ -13457,5812 +18572,6 @@ ${content.substring(0, 1500)}...
     </>
   );
 };
-
-const SimularEntrevistaScreen = ({ navigation }) => {
-  const { user } = useAuth();
-  const [curriculos, setCurriculos] = useState([]);
-  const [loading, setLoading] = useState(true);
-
-  useEffect(() => {
-    carregarCurriculos();
-  }, []);
-
-  const carregarCurriculos = async () => {
-    try {
-      setLoading(true);
-      const cvs = await AsyncStorage.getItem(`curriculos_${user.id}`);
-      setCurriculos(cvs ? JSON.parse(cvs) : []);
-    } catch (error) {
-      console.error('Erro ao carregar currículos:', error);
-      Alert.alert('Erro', 'Não foi possível carregar seus currículos.');
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const handleIniciarEntrevista = (curriculo) => {
-    navigation.navigate('EntrevistaSimulada', { curriculoData: curriculo });
-  };
-
-  const handleEntrevistaGenerica = () => {
-    navigation.navigate('EntrevistaSimulada', { curriculoData: null });
-  };
-
-  const formatDate = (dateString) => {
-    try {
-      if (!dateString) return 'Data não disponível';
-      const date = new Date(dateString);
-      return `${date.getDate().toString().padStart(2, '0')}/${(date.getMonth() + 1).toString().padStart(2, '0')}/${date.getFullYear()}`;
-    } catch (error) {
-      return 'Data inválida';
-    }
-  };
-
-  // Extrair informações do currículo para exibição
-  const getResumoCurriculo = (curriculo) => {
-    const cv = curriculo.data;
-    const experiencias = cv.experiencias?.length || 0;
-    const formacoes = cv.formacoes_academicas?.length || 0;
-    const area = cv.informacoes_pessoais?.area || 'Não especificada';
-
-    return { experiencias, formacoes, area };
-  };
-
-  return (
-    <SafeAreaView style={styles.container}>
-      <StatusBar barStyle="dark-content" backgroundColor={Colors.dark} />
-
-      <View style={styles.header}>
-        <TouchableOpacity
-          style={styles.backButton}
-          onPress={() => navigation.goBack()}
-        >
-          <Text style={styles.backButtonText}>‹</Text>
-        </TouchableOpacity>
-        <Text style={styles.headerTitle}>Simular Entrevista</Text>
-      </View>
-
-      {loading ? (
-        <View style={styles.loadingContainer}>
-          <ActivityIndicator size="large" color={Colors.primary} />
-          <Text style={{ marginTop: 10 }}>Carregando currículos...</Text>
-        </View>
-      ) : (
-        <View style={{ flex: 1, padding: 15 }}>
-          <View style={{
-            backgroundColor: '#e1f5fe',
-            padding: 15,
-            borderRadius: 10,
-            marginBottom: 20,
-            borderLeftWidth: 4,
-            borderLeftColor: Colors.info,
-          }}>
-            <Text style={{
-              fontSize: 18,
-              fontWeight: 'bold',
-              marginBottom: 5,
-              color: Colors.dark,
-            }}>
-              Simulador de Entrevista com IA
-            </Text>
-            <Text style={{
-              fontSize: 14,
-              color: '#01579b',
-              lineHeight: 22,
-            }}>
-              Prepare-se para suas entrevistas de emprego com nosso simulador inteligente. A IA fará perguntas baseadas no seu currículo ou em um formato genérico, avaliará suas respostas e fornecerá feedback para melhorar seu desempenho.
-            </Text>
-          </View>
-
-          {curriculos.length > 0 ? (
-            <>
-              <Text style={{
-                fontSize: 16,
-                fontWeight: 'bold',
-                marginBottom: 10,
-                color: Colors.dark,
-              }}>
-                Selecione um currículo para uma entrevista personalizada:
-              </Text>
-
-              <FlatList
-                data={curriculos}
-                keyExtractor={(item) => item.id}
-                renderItem={({ item }) => {
-                  const resumo = getResumoCurriculo(item);
-
-                  return (
-                    <TouchableOpacity
-                      style={{
-                        backgroundColor: Colors.white,
-                        borderRadius: 10,
-                        marginBottom: 15,
-                        padding: 16,
-                        ...Platform.select({
-                          ios: {
-                            shadowColor: '#000',
-                            shadowOffset: { width: 0, height: 2 },
-                            shadowOpacity: 0.1,
-                            shadowRadius: 3,
-                          },
-                          android: {
-                            elevation: 2,
-                          },
-                        }),
-                        borderLeftWidth: 4,
-                        borderLeftColor: Colors.primary,
-                      }}
-                      onPress={() => handleIniciarEntrevista(item)}
-                    >
-                      <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
-                        <Text style={{
-                          fontSize: 18,
-                          fontWeight: 'bold',
-                          color: Colors.dark,
-                          marginBottom: 5,
-                        }}>
-                          {item.nome || 'Currículo sem nome'}
-                        </Text>
-
-                        <View style={{
-                          backgroundColor: Colors.primary,
-                          paddingVertical: 4,
-                          paddingHorizontal: 8,
-                          borderRadius: 15,
-                        }}>
-                          <Text style={{ color: Colors.white, fontSize: 12 }}>
-                            Selecionar
-                          </Text>
-                        </View>
-                      </View>
-
-                      <Text style={{
-                        fontSize: 14,
-                        color: Colors.lightText,
-                        marginBottom: 10,
-                      }}>
-                        Criado em: {formatDate(item.dataCriacao)}
-                      </Text>
-
-                      <View style={{
-                        backgroundColor: '#f5f5f5',
-                        padding: 10,
-                        borderRadius: 5,
-                        marginTop: 5,
-                      }}>
-                        <Text style={{ color: Colors.dark }}>
-                          <Text style={{ fontWeight: 'bold' }}>Área: </Text>
-                          {resumo.area}
-                        </Text>
-
-                        <View style={{ flexDirection: 'row', marginTop: 5, flexWrap: 'wrap' }}>
-                          <View style={{
-                            backgroundColor: Colors.primary,
-                            paddingVertical: 3,
-                            paddingHorizontal: 8,
-                            borderRadius: 12,
-                            marginRight: 8,
-                            marginBottom: 5,
-                          }}>
-                            <Text style={{ color: Colors.white, fontSize: 12 }}>
-                              {resumo.experiencias} experiência(s)
-                            </Text>
-                          </View>
-
-                          <View style={{
-                            backgroundColor: Colors.secondary,
-                            paddingVertical: 3,
-                            paddingHorizontal: 8,
-                            borderRadius: 12,
-                            marginRight: 8,
-                            marginBottom: 5,
-                          }}>
-                            <Text style={{ color: Colors.white, fontSize: 12 }}>
-                              {resumo.formacoes} formação(ões)
-                            </Text>
-                          </View>
-                        </View>
-                      </View>
-                    </TouchableOpacity>
-                  );
-                }}
-              />
-            </>
-          ) : (
-            <View style={{ alignItems: 'center', marginTop: 20 }}>
-              <Text style={{ textAlign: 'center', marginBottom: 20 }}>
-                Você ainda não tem currículos cadastrados. Crie um currículo primeiro ou use o modo de entrevista genérica.
-              </Text>
-              <TouchableOpacity
-                style={{
-                  backgroundColor: Colors.primary,
-                  paddingVertical: 12,
-                  paddingHorizontal: 20,
-                  borderRadius: 8,
-                  marginBottom: 15,
-                }}
-                onPress={() => navigation.navigate('Chatbot')}
-              >
-                <Text style={{ color: Colors.white, fontWeight: 'bold' }}>
-                  Criar Novo Currículo
-                </Text>
-              </TouchableOpacity>
-            </View>
-          )}
-
-          <View style={{
-            backgroundColor: '#f9fbe7',
-            padding: 15,
-            borderRadius: 10,
-            marginTop: 10,
-            marginBottom: 20,
-            borderLeftWidth: 4,
-            borderLeftColor: '#9e9d24',
-          }}>
-            <Text style={{
-              fontSize: 16,
-              fontWeight: 'bold',
-              marginBottom: 5,
-              color: Colors.dark,
-            }}>
-              Entrevista Genérica
-            </Text>
-            <Text style={{
-              fontSize: 14,
-              color: '#616161',
-              marginBottom: 10,
-            }}>
-              Prefere uma entrevista sem vínculo com um currículo específico? Faça uma simulação com perguntas genéricas para qualquer cargo.
-            </Text>
-            <TouchableOpacity
-              style={{
-                backgroundColor: '#9e9d24',
-                paddingVertical: 10,
-                paddingHorizontal: 15,
-                borderRadius: 8,
-                alignSelf: 'flex-start',
-              }}
-              onPress={handleEntrevistaGenerica}
-            >
-              <Text style={{ color: Colors.white, fontWeight: 'bold' }}>
-                Iniciar Entrevista Genérica
-              </Text>
-            </TouchableOpacity>
-          </View>
-        </View>
-      )}
-    </SafeAreaView>
-  );
-};
-
-const EntrevistaSimuladaScreen = ({ route, navigation }) => {
-  const { curriculoData } = route.params;
-  const { user } = useAuth();
-  const [entrevistaIniciada, setEntrevistaIniciada] = useState(false);
-  const [carregando, setCarregando] = useState(false);
-  const [perguntaAtual, setPerguntaAtual] = useState(null);
-  const [resposta, setResposta] = useState('');
-  const [historico, setHistorico] = useState([]);
-  const [numeroPergunta, setNumeroPergunta] = useState(0);
-  const [totalPerguntas, setTotalPerguntas] = useState(0);
-  const [feedbackVisible, setFeedbackVisible] = useState(false);
-  const [feedback, setFeedback] = useState('');
-  const [finalizando, setFinalizando] = useState(false);
-  const [concluido, setConcluido] = useState(false);
-  const [avaliacaoFinal, setAvaliacaoFinal] = useState(null);
-  const [tipoCargo, setTipoCargo] = useState('');
-  const [area, setArea] = useState('');
-  
-  const flatListRef = useRef();
-  const respostaInputRef = useRef();
-
-  // Função para iniciar a entrevista
-  const iniciarEntrevista = async () => {
-    try {
-      setCarregando(true);
-      
-      // Verificar se é uma entrevista baseada em currículo ou genérica
-      if (curriculoData) {
-        // Extrair a área e cargo do currículo para personalizar a entrevista
-        const cv = curriculoData.data;
-        const areaDoCV = cv.informacoes_pessoais?.area || '';
-        setArea(areaDoCV);
-        
-        // Determinar o cargo com base na experiência mais recente, se disponível
-        if (cv.experiencias && cv.experiencias.length > 0) {
-          setTipoCargo(cv.experiencias[0].cargo || '');
-        }
-      } else {
-        // Para entrevista genérica, solicitar informações
-        Alert.prompt(
-          "Informações para Entrevista",
-          "Qual cargo ou área você está buscando?",
-          [
-            {
-              text: "Cancelar",
-              onPress: () => navigation.goBack(),
-              style: "cancel"
-            },
-            {
-              text: "Continuar",
-              onPress: input => {
-                setArea(input || "Área não especificada");
-                prepararEntrevista(input);
-              }
-            }
-          ],
-          "plain-text"
-        );
-        return; // Aguardar input do usuário
-      }
-      
-      // Se temos currículo, continuar diretamente
-      prepararEntrevista();
-      
-    } catch (error) {
-      console.error('Erro ao iniciar entrevista:', error);
-      Alert.alert('Erro', 'Não foi possível iniciar a entrevista. Tente novamente.');
-      setCarregando(false);
-    }
-  };
-  
-  // Função para preparar o conjunto de perguntas da entrevista
-  const prepararEntrevista = async (areaInput = null) => {
-    try {
-      setCarregando(true);
-      
-      // Usar área do input para entrevista genérica, ou do currículo para específica
-      const areaFinal = areaInput || area;
-      
-      // Obter API key da IA
-      const apiKey = await getIAAPIKey('GEMINI');
-      
-      if (!apiKey) {
-        throw new Error("API key do Gemini não configurada");
-      }
-      
-      // Construir prompt para gerar perguntas de entrevista
-      let promptText = "";
-      
-      if (curriculoData) {
-        // Formatamos os dados do currículo
-        const cv = curriculoData.data;
-        const experiencias = cv.experiencias?.map(exp => 
-          `${exp.cargo} em ${exp.empresa} (${exp.data_inicio || ''} - ${exp.data_fim || 'atual'}): ${exp.descricao || ''}`
-        ).join('\n') || 'Sem experiências profissionais';
-        
-        const formacoes = cv.formacoes_academicas?.map(form => 
-          `${form.diploma} em ${form.area_estudo} pela ${form.instituicao} (${form.data_inicio || ''} - ${form.data_fim || ''})`
-        ).join('\n') || 'Sem formação acadêmica';
-        
-        const habilidades = cv.projetos?.map(proj => proj.habilidades).filter(Boolean).join(', ') || 'Não especificadas';
-        
-        promptText = `
-Você é um recrutador experiente especializado em entrevistas para a área de ${areaFinal}. Conduza uma entrevista simulada de emprego detalhada e realista para um candidato à posição de ${tipoCargo || areaFinal}.
-
-CURRÍCULO DO CANDIDATO:
-Nome: ${cv.informacoes_pessoais?.nome || ''} ${cv.informacoes_pessoais?.sobrenome || ''}
-Área: ${areaFinal}
-
-Experiências:
-${experiencias}
-
-Formação:
-${formacoes}
-
-Habilidades:
-${habilidades}
-
-INSTRUÇÕES PARA A ENTREVISTA:
-1. Crie exatamente 10 perguntas desafiadoras e realistas baseadas no currículo do candidato
-2. As perguntas devem incluir:
-   - Perguntas comportamentais (situações específicas)
-   - Perguntas técnicas relevantes para a área
-   - Perguntas sobre experiências anteriores
-   - Perguntas sobre soft skills e trabalho em equipe
-   - Pelo menos uma pergunta situacional de resolução de problemas
-   - Pelo menos uma pergunta de motivação profissional
-
-3. Elabore perguntas que um recrutador real faria, usando linguagem profissional
-4. Foque em perguntas que extraiam informações sobre competências, experiências e fit cultural
-5. Use as informações do currículo para personalizar as perguntas
-6. Inclua perguntas sobre possíveis gaps no currículo ou áreas de melhoria
-
-FORMATO DE RESPOSTA:
-Forneça apenas um array JSON de objetos, cada um representando uma pergunta, na seguinte estrutura:
-[
-  {
-    "pergunta": "texto da pergunta 1",
-    "context": "contexto breve sobre por que essa pergunta está sendo feita",
-    "tipo": "comportamental/técnica/experiência/motivacional/situacional"
-  },
-  {
-    "pergunta": "texto da pergunta 2",
-    "context": "contexto breve sobre por que essa pergunta está sendo feita",
-    "tipo": "comportamental/técnica/experiência/motivacional/situacional"
-  }
-]
-
-Apenas retorne o JSON puro, sem texto introdutório ou explicações.
-`;
-      } else {
-        // Prompt para entrevista genérica
-        promptText = `
-Você é um recrutador experiente especializado em entrevistas para a área de ${areaFinal}. Conduza uma entrevista simulada de emprego detalhada e realista para um candidato.
-
-INSTRUÇÕES PARA A ENTREVISTA GENÉRICA:
-1. Crie exatamente 10 perguntas desafiadoras e realistas para uma entrevista de emprego na área de ${areaFinal}
-2. As perguntas devem incluir:
-   - Perguntas comportamentais (situações específicas)
-   - Perguntas técnicas relevantes para a área
-   - Perguntas sobre experiências anteriores
-   - Perguntas sobre soft skills e trabalho em equipe
-   - Pelo menos uma pergunta situacional de resolução de problemas
-   - Pelo menos uma pergunta de motivação profissional
-
-3. Elabore perguntas que um recrutador real faria, usando linguagem profissional
-4. Foque em perguntas que extraiam informações sobre competências, experiências e fit cultural
-5. As perguntas devem ser genéricas o suficiente para qualquer pessoa na área, mas específicas o suficiente para avaliar conhecimentos relevantes
-6. Inclua perguntas típicas de entrevistas para ${areaFinal} baseadas nas melhores práticas do mercado
-
-FORMATO DE RESPOSTA:
-Forneça apenas um array JSON de objetos, cada um representando uma pergunta, na seguinte estrutura:
-[
-  {
-    "pergunta": "texto da pergunta 1",
-    "context": "contexto breve sobre por que essa pergunta está sendo feita",
-    "tipo": "comportamental/técnica/experiência/motivacional/situacional"
-  },
-  {
-    "pergunta": "texto da pergunta 2",
-    "context": "contexto breve sobre por que essa pergunta está sendo feita",
-    "tipo": "comportamental/técnica/experiência/motivacional/situacional"
-  }
-]
-
-Apenas retorne o JSON puro, sem texto introdutório ou explicações.
-`;
-      }
-      
-      // Chamar a API do Gemini para gerar perguntas
-      const endpoint = `${IA_APIS.GEMINI.endpoint}?key=${apiKey}`;
-      const requestBody = {
-        contents: [{ parts: [{ text: promptText }] }],
-        generationConfig: {
-          temperature: 0.2,
-          maxOutputTokens: 4000,
-          topP: 0.8,
-          topK: 40
-        }
-      };
-      
-      const response = await axios.post(endpoint, requestBody, {
-        headers: { 'Content-Type': 'application/json' },
-        timeout: 30000
-      });
-      
-      if (response.data?.candidates?.[0]?.content?.parts?.[0]?.text) {
-        const resultText = response.data.candidates[0].content.parts[0].text;
-        
-        // Extrair o JSON da resposta
-        const jsonMatch = resultText.match(/\[[\s\S]*\]/);
-        if (jsonMatch) {
-          try {
-            const perguntas = JSON.parse(jsonMatch[0]);
-            setTotalPerguntas(perguntas.length);
-            setNumeroPergunta(1);
-            setPerguntaAtual(perguntas[0]);
-            
-            // Adicionar primeira pergunta ao histórico
-            setHistorico([{
-              id: '0',
-              texto: perguntas[0].pergunta,
-              isUser: false,
-              context: perguntas[0].context,
-              tipo: perguntas[0].tipo
-            }]);
-            
-            // Salvar perguntas restantes no estado
-            setEntrevistaIniciada(true);
-            
-            // Armazenar perguntas em AsyncStorage para recuperação caso a app feche
-            await AsyncStorage.setItem(`entrevista_perguntas_${user.id}`, 
-              JSON.stringify({
-                perguntas,
-                timestampInicio: new Date().toISOString(),
-                curriculoId: curriculoData?.id || null,
-                area: areaFinal,
-                tipoCargo: tipoCargo
-              })
-            );
-          } catch (jsonError) {
-            console.error('Erro ao parsear JSON da resposta:', jsonError);
-            throw new Error('Formato de resposta inválido');
-          }
-        } else {
-          throw new Error('Não foi possível extrair perguntas da resposta');
-        }
-      } else {
-        throw new Error('Formato de resposta inesperado do Gemini');
-      }
-    } catch (error) {
-      console.error('Erro ao preparar entrevista:', error);
-      Alert.alert('Erro', 'Não foi possível preparar a entrevista. Tente novamente mais tarde.');
-    } finally {
-      setCarregando(false);
-    }
-  };
-  
-  // Função para processar a resposta do usuário e fornecer feedback
-  const enviarResposta = async () => {
-    if (resposta.trim() === '') return;
-    
-    try {
-      // Adicionar a resposta do usuário ao histórico
-      const novoHistorico = [...historico, {
-        id: `u-${numeroPergunta}`,
-        texto: resposta,
-        isUser: true
-      }];
-      
-      setHistorico(novoHistorico);
-      setResposta('');
-      setCarregando(true);
-      
-      // Obter API key da IA
-      const apiKey = await getIAAPIKey('GEMINI');
-      
-      if (!apiKey) {
-        throw new Error("API key do Gemini não configurada");
-      }
-      
-      // Obter entrevista armazenada
-      const entrevistaJson = await AsyncStorage.getItem(`entrevista_perguntas_${user.id}`);
-      if (!entrevistaJson) {
-        throw new Error("Dados da entrevista não encontrados");
-      }
-      
-      const entrevistaData = JSON.parse(entrevistaJson);
-      const perguntas = entrevistaData.perguntas;
-      
-      // Construir prompt para feedback da resposta
-      const promptText = `
-Você é um recrutador experiente especializado em entrevistas para a área de ${area || entrevistaData.area}.
-
-PERGUNTA DA ENTREVISTA:
-"${perguntaAtual.pergunta}"
-
-Contexto da pergunta: ${perguntaAtual.context}
-Tipo de pergunta: ${perguntaAtual.tipo}
-
-RESPOSTA DO CANDIDATO:
-"${resposta}"
-
-TAREFA:
-Analise a resposta do candidato à pergunta de entrevista acima e forneça um feedback detalhado:
-
-1. Avalie a qualidade da resposta (escala de 1-10)
-2. Identifique pontos fortes da resposta
-3. Identifique pontos fracos ou informações faltantes
-4. Forneça sugestões específicas para melhorar a resposta
-5. Explique o que um recrutador buscaria neste tipo de resposta
-
-FORMATO DE RESPOSTA:
-{
-  "pontuacao": 7,
-  "pontos_fortes": ["ponto forte 1", "ponto forte 2"],
-  "pontos_fracos": ["ponto fraco 1", "ponto fraco 2"],
-  "sugestoes": ["sugestão 1", "sugestão 2"],
-  "explicacao": "Explicação sobre o que um recrutador busca nesta resposta",
-  "resumo": "Um resumo conciso do feedback em um parágrafo"
-}
-
-Retorne apenas o JSON puro, sem texto adicional.
-`;
-      
-      // Chamar a API do Gemini para gerar feedback
-      const endpoint = `${IA_APIS.GEMINI.endpoint}?key=${apiKey}`;
-      const requestBody = {
-        contents: [{ parts: [{ text: promptText }] }],
-        generationConfig: {
-          temperature: 0.3,
-          maxOutputTokens: 2000,
-          topP: 0.8,
-          topK: 40
-        }
-      };
-      
-      const response = await axios.post(endpoint, requestBody, {
-        headers: { 'Content-Type': 'application/json' },
-        timeout: 30000
-      });
-      
-      if (response.data?.candidates?.[0]?.content?.parts?.[0]?.text) {
-        const resultText = response.data.candidates[0].content.parts[0].text;
-        
-        // Extrair o JSON da resposta
-        const jsonMatch = resultText.match(/\{[\s\S]*\}/);
-        if (jsonMatch) {
-          try {
-            const feedbackData = JSON.parse(jsonMatch[0]);
-            
-            // Formatar feedback para exibição
-            const feedbackFormatado = `## Feedback sobre sua resposta
-
-**Pontuação:** ${feedbackData.pontuacao}/10
-
-**Pontos fortes:**
-${feedbackData.pontos_fortes.map(ponto => `- ${ponto}`).join('\n')}
-
-**Pontos a melhorar:**
-${feedbackData.pontos_fracos.map(ponto => `- ${ponto}`).join('\n')}
-
-**Sugestões:**
-${feedbackData.sugestoes.map(sugestao => `- ${sugestao}`).join('\n')}
-
-**O que o recrutador busca:**
-${feedbackData.explicacao}
-
-**Resumo:**
-${feedbackData.resumo}`;
-            
-            setFeedback(feedbackFormatado);
-            setFeedbackVisible(true);
-            
-            // Salvar feedback no histórico de entrevista
-            await AsyncStorage.setItem(`entrevista_feedback_${user.id}_${numeroPergunta}`, 
-              JSON.stringify({
-                pergunta: perguntaAtual.pergunta,
-                resposta: resposta,
-                feedback: feedbackData
-              })
-            );
-            
-          } catch (jsonError) {
-            console.error('Erro ao parsear JSON do feedback:', jsonError);
-            setFeedback("Não foi possível gerar o feedback para sua resposta. Vamos continuar com a próxima pergunta.");
-            setFeedbackVisible(true);
-          }
-        } else {
-          setFeedback("Não foi possível gerar o feedback para sua resposta. Vamos continuar com a próxima pergunta.");
-          setFeedbackVisible(true);
-        }
-      } else {
-        setFeedback("Não foi possível gerar o feedback para sua resposta. Vamos continuar com a próxima pergunta.");
-        setFeedbackVisible(true);
-      }
-    } catch (error) {
-      console.error('Erro ao processar resposta:', error);
-      Alert.alert('Erro', 'Não foi possível processar sua resposta. Tente novamente.');
-    } finally {
-      setCarregando(false);
-    }
-  };
-  
-  // Função para prosseguir para a próxima pergunta
-  const proximaPergunta = async () => {
-    try {
-      setFeedbackVisible(false);
-      setFeedback('');
-      
-      // Obter entrevista armazenada
-      const entrevistaJson = await AsyncStorage.getItem(`entrevista_perguntas_${user.id}`);
-      if (!entrevistaJson) {
-        throw new Error("Dados da entrevista não encontrados");
-      }
-      
-      const entrevistaData = JSON.parse(entrevistaJson);
-      const perguntas = entrevistaData.perguntas;
-      
-      // Verificar se ainda há perguntas
-      if (numeroPergunta < perguntas.length) {
-        // Próxima pergunta
-        const proximoNumero = numeroPergunta + 1;
-        const proximaPergunta = perguntas[proximoNumero - 1];
-        
-        setNumeroPergunta(proximoNumero);
-        setPerguntaAtual(proximaPergunta);
-        
-        // Adicionar próxima pergunta ao histórico
-        setHistorico(prev => [...prev, {
-          id: `${proximoNumero}`,
-          texto: proximaPergunta.pergunta,
-          isUser: false,
-          context: proximaPergunta.context,
-          tipo: proximaPergunta.tipo
-        }]);
-        
-        // Rolar para o fim da lista
-        if (flatListRef.current) {
-          setTimeout(() => {
-            flatListRef.current.scrollToEnd({ animated: true });
-          }, 200);
-        }
-      } else {
-        // Finalizar entrevista
-        setFinalizando(true);
-        gerarAvaliacaoFinal();
-      }
-    } catch (error) {
-      console.error('Erro ao avançar para próxima pergunta:', error);
-      Alert.alert('Erro', 'Não foi possível carregar a próxima pergunta. Tente novamente.');
-    }
-  };
-  
-  // Função para gerar avaliação final da entrevista
-  const gerarAvaliacaoFinal = async () => {
-    try {
-      setCarregando(true);
-      
-      // Obter API key da IA
-      const apiKey = await getIAAPIKey('GEMINI');
-      
-      if (!apiKey) {
-        throw new Error("API key do Gemini não configurada");
-      }
-      
-      // Recuperar todos os feedbacks armazenados
-      const entrevistaJson = await AsyncStorage.getItem(`entrevista_perguntas_${user.id}`);
-      if (!entrevistaJson) {
-        throw new Error("Dados da entrevista não encontrados");
-      }
-      
-      const entrevistaData = JSON.parse(entrevistaJson);
-      const perguntas = entrevistaData.perguntas;
-      
-      // Construir lista de perguntas e respostas
-      let perguntasRespostas = [];
-      
-      for (let i = 1; i <= perguntas.length; i++) {
-        const feedbackJson = await AsyncStorage.getItem(`entrevista_feedback_${user.id}_${i}`);
-        if (feedbackJson) {
-          const feedbackData = JSON.parse(feedbackJson);
-          perguntasRespostas.push({
-            pergunta: feedbackData.pergunta,
-            resposta: feedbackData.resposta,
-            feedback: feedbackData.feedback
-          });
-        }
-      }
-      
-      // Construir prompt para avaliação final
-      const promptText = `
-Você é um recrutador experiente especializado em entrevistas para a área de ${entrevistaData.area || area}.
-
-CONTEXTO:
-Foi conduzida uma entrevista simulada com um candidato para uma posição na área de ${entrevistaData.area || area}${entrevistaData.tipoCargo ? `, com foco em ${entrevistaData.tipoCargo}` : ''}.
-
-RESUMO DA ENTREVISTA:
-${perguntasRespostas.map((item, index) => `
-Pergunta ${index + 1}: "${item.pergunta}"
-Resposta: "${item.resposta}"
-Pontuação: ${item.feedback.pontuacao}/10
-`).join('\n')}
-
-TAREFA:
-Baseado nas respostas do candidato, faça uma avaliação completa de seu desempenho na entrevista:
-
-1. Calcule a pontuação global (média das pontuações individuais)
-2. Identifique os 3-5 principais pontos fortes demonstrados
-3. Identifique as 3-5 principais áreas de melhoria
-4. Forneça 3-5 recomendações específicas para melhorar em futuras entrevistas
-5. Avalie as habilidades de comunicação, estruturação de respostas e confiança do candidato
-6. Dê uma avaliação geral sobre as chances do candidato neste processo seletivo (baixa/média/alta)
-
-FORMATO DE RESPOSTA:
-{
-  "pontuacao_global": 7.5,
-  "pontos_fortes": [
-    {"ponto": "Descrição do ponto forte 1", "exemplo": "Exemplo específico da entrevista"},
-    {"ponto": "Descrição do ponto forte 2", "exemplo": "Exemplo específico da entrevista"}
-  ],
-  "areas_melhoria": [
-    {"area": "Descrição da área 1", "sugestao": "Sugestão específica"},
-    {"area": "Descrição da área 2", "sugestao": "Sugestão específica"}
-  ],
-  "recomendacoes": ["Recomendação 1", "Recomendação 2", "Recomendação 3"],
-  "avaliacao_comunicacao": "Análise da comunicação",
-  "avaliacao_estrutura": "Análise da estrutura das respostas",
-  "avaliacao_confianca": "Análise da confiança demonstrada",
-  "chance_sucesso": "média",
-  "conclusao": "Conclusão geral sobre o desempenho em um parágrafo"
-}
-
-Retorne apenas o JSON puro, sem texto adicional.
-`;
-      
-      // Chamar a API do Gemini para gerar avaliação final
-      const endpoint = `${IA_APIS.GEMINI.endpoint}?key=${apiKey}`;
-      const requestBody = {
-        contents: [{ parts: [{ text: promptText }] }],
-        generationConfig: {
-          temperature: 0.2,
-          maxOutputTokens: 4000,
-          topP: 0.8,
-          topK: 40
-        }
-      };
-      
-      const response = await axios.post(endpoint, requestBody, {
-        headers: { 'Content-Type': 'application/json' },
-        timeout: 30000
-      });
-      
-      if (response.data?.candidates?.[0]?.content?.parts?.[0]?.text) {
-        const resultText = response.data.candidates[0].content.parts[0].text;
-        
-        // Extrair o JSON da resposta
-        const jsonMatch = resultText.match(/\{[\s\S]*\}/);
-        if (jsonMatch) {
-          try {
-            const avaliacaoData = JSON.parse(jsonMatch[0]);
-            setAvaliacaoFinal(avaliacaoData);
-            setConcluido(true);
-            
-            // Salvar avaliação final
-            await AsyncStorage.setItem(`entrevista_avaliacao_${user.id}`, 
-              JSON.stringify({
-                avaliacao: avaliacaoData,
-                timestamp: new Date().toISOString(),
-                area: entrevistaData.area || area,
-                tipoCargo: entrevistaData.tipoCargo || tipoCargo
-              })
-            );
-            
-          } catch (jsonError) {
-            console.error('Erro ao parsear JSON da avaliação final:', jsonError);
-            throw new Error('Formato de resposta inválido');
-          }
-        } else {
-          throw new Error('Não foi possível extrair avaliação final da resposta');
-        }
-      } else {
-        throw new Error('Formato de resposta inesperado do Gemini');
-      }
-    } catch (error) {
-      console.error('Erro ao gerar avaliação final:', error);
-      Alert.alert('Erro', 'Não foi possível gerar a avaliação final da entrevista. Tente novamente mais tarde.');
-    } finally {
-      setCarregando(false);
-    }
-  };
-  
-  // Hook para iniciar a entrevista quando o componente for montado
-  useEffect(() => {
-    if (!entrevistaIniciada && !carregando) {
-      iniciarEntrevista();
-    }
-  }, []);
-  
-  // Função para mapear o nível de chance de sucesso para uma cor
-  const getChanceColor = (chance) => {
-    switch(chance.toLowerCase()) {
-      case 'alta':
-        return Colors.success;
-      case 'média':
-        return Colors.warning;
-      case 'baixa':
-        return Colors.danger;
-      default:
-        return Colors.primary;
-    }
-  };
-  
-  // Renderizar mensagem de entrevista
-  const renderMensagem = ({ item }) => (
-    <View style={[
-      styles.mensagemEntrevista,
-      item.isUser ? styles.mensagemUsuario : styles.mensagemRecrutador
-    ]}>
-      <Text style={[
-        styles.textoMensagem,
-        item.isUser ? styles.textoMensagemUsuario : styles.textoMensagemRecrutador
-      ]}>
-        {item.texto}
-      </Text>
-      {!item.isUser && item.tipo && (
-        <View style={styles.tipoPerguntaBadge}>
-          <Text style={styles.tipoPerguntaTexto}>
-            {item.tipo}
-          </Text>
-        </View>
-      )}
-    </View>
-  );
-  
-  // Renderizar avaliação final
-  const renderAvaliacaoFinal = () => {
-    if (!avaliacaoFinal) return null;
-    
-    return (
-      <ScrollView style={styles.avaliacaoFinalContainer}>
-        <View style={styles.avaliacaoHeader}>
-          <Text style={styles.avaliacaoTitulo}>Avaliação Final da Entrevista</Text>
-          
-          <View style={styles.pontuacaoContainer}>
-            <Text style={styles.pontuacaoLabel}>Pontuação Global</Text>
-            <View style={styles.pontuacaoCircle}>
-              <Text style={styles.pontuacaoValor}>
-                {avaliacaoFinal.pontuacao_global.toFixed(1)}
-              </Text>
-              <Text style={styles.pontuacaoMax}>/10</Text>
-            </View>
-          </View>
-          
-          <View style={[
-            styles.chanceSucessoContainer,
-            { backgroundColor: getChanceColor(avaliacaoFinal.chance_sucesso) }
-          ]}>
-            <Text style={styles.chanceSucessoTexto}>
-              Chance de sucesso: {avaliacaoFinal.chance_sucesso.toUpperCase()}
-            </Text>
-          </View>
-        </View>
-        
-        <View style={styles.secaoAvaliacao}>
-          <Text style={styles.secaoTitulo}>Pontos Fortes</Text>
-          {avaliacaoFinal.pontos_fortes.map((ponto, index) => (
-            <View key={`forte-${index}`} style={styles.pontoItem}>
-              <Text style={styles.pontoTitulo}>{ponto.ponto}</Text>
-              <Text style={styles.pontoExemplo}>{ponto.exemplo}</Text>
-            </View>
-          ))}
-        </View>
-        
-        <View style={styles.secaoAvaliacao}>
-          <Text style={styles.secaoTitulo}>Áreas de Melhoria</Text>
-          {avaliacaoFinal.areas_melhoria.map((area, index) => (
-            <View key={`melhoria-${index}`} style={styles.pontoItem}>
-              <Text style={styles.pontoTitulo}>{area.area}</Text>
-              <Text style={styles.pontoExemplo}>{area.sugestao}</Text>
-            </View>
-          ))}
-        </View>
-        
-        <View style={styles.secaoAvaliacao}>
-          <Text style={styles.secaoTitulo}>Recomendações</Text>
-          {avaliacaoFinal.recomendacoes.map((recomendacao, index) => (
-            <View key={`rec-${index}`} style={styles.recomendacaoItem}>
-              <Text style={styles.recomendacaoNumero}>{index + 1}</Text>
-              <Text style={styles.recomendacaoTexto}>{recomendacao}</Text>
-            </View>
-          ))}
-        </View>
-        
-        <View style={styles.secaoAvaliacao}>
-          <Text style={styles.secaoTitulo}>Avaliação Detalhada</Text>
-          
-          <View style={styles.avaliacaoDetalheItem}>
-            <Text style={styles.avaliacaoDetalheTitulo}>Comunicação:</Text>
-            <Text style={styles.avaliacaoDetalheTexto}>{avaliacaoFinal.avaliacao_comunicacao}</Text>
-          </View>
-          
-          <View style={styles.avaliacaoDetalheItem}>
-            <Text style={styles.avaliacaoDetalheTitulo}>Estrutura das Respostas:</Text>
-            <Text style={styles.avaliacaoDetalheTexto}>{avaliacaoFinal.avaliacao_estrutura}</Text>
-          </View>
-          
-          <View style={styles.avaliacaoDetalheItem}>
-            <Text style={styles.avaliacaoDetalheTitulo}>Confiança:</Text>
-            <Text style={styles.avaliacaoDetalheTexto}>{avaliacaoFinal.avaliacao_confianca}</Text>
-          </View>
-        </View>
-        
-        <View style={styles.conclusaoContainer}>
-          <Text style={styles.conclusaoTitulo}>Conclusão</Text>
-          <Text style={styles.conclusaoTexto}>{avaliacaoFinal.conclusao}</Text>
-        </View>
-        
-        <TouchableOpacity
-          style={styles.botaoEncerrar}
-          onPress={() => navigation.goBack()}
-        >
-          <Text style={styles.textoEncerrar}>Encerrar Entrevista</Text>
-        </TouchableOpacity>
-      </ScrollView>
-    );
-  };
-  
-  return (
-    <SafeAreaView style={styles.container}>
-      <StatusBar barStyle="dark-content" backgroundColor={Colors.dark} />
-      
-      <View style={styles.header}>
-        <TouchableOpacity
-          style={styles.backButton}
-          onPress={() => {
-            if (entrevistaIniciada && !concluido) {
-              Alert.alert(
-                "Sair da entrevista",
-                "Tem certeza que deseja sair? Seu progresso será perdido.",
-                [
-                  { text: "Cancelar", style: "cancel" },
-                  { text: "Sair", onPress: () => navigation.goBack() }
-                ]
-              );
-            } else {
-              navigation.goBack();
-            }
-          }}
-        >
-          <Text style={styles.backButtonText}>‹</Text>
-        </TouchableOpacity>
-        <Text style={styles.headerTitle}>
-          {concluido ? 'Resultado da Entrevista' : 'Entrevista Simulada'}
-        </Text>
-      </View>
-      
-      {carregando && !entrevistaIniciada ? (
-        <View style={styles.loadingContainer}>
-          <ActivityIndicator size="large" color={Colors.primary} />
-          <Text style={styles.loadingText}>
-            Preparando sua entrevista{curriculoData ? ' personalizada' : ' genérica'}...
-          </Text>
-        </View>
-      ) : concluido ? (
-        renderAvaliacaoFinal()
-      ) : (
-        <View style={styles.entrevistaContainer}>
-          <View style={styles.progressoContainer}>
-            <View style={styles.progressoTrack}>
-              <View
-                style={[
-                  styles.progressoFill,
-                  { width: `${(numeroPergunta / totalPerguntas) * 100}%` }
-                ]}
-              />
-            </View>
-            <Text style={styles.progressoTexto}>
-              Pergunta {numeroPergunta} de {totalPerguntas}
-            </Text>
-          </View>
-          
-          <FlatList
-            ref={flatListRef}
-            data={historico}
-            keyExtractor={(item) => item.id}
-            renderItem={renderMensagem}
-            contentContainerStyle={styles.mensagensLista}
-            onLayout={() => {
-              if (flatListRef.current) {
-                flatListRef.current.scrollToEnd({ animated: true });
-              }
-            }}
-          />
-          
-          {feedbackVisible ? (
-            <View style={styles.feedbackContainer}>
-              <Text style={styles.feedbackTitulo}>Feedback do Recrutador</Text>
-              
-              <ScrollView style={styles.feedbackScrollView}>
-                <Markdown
-                  style={{
-                    body: { fontSize: 14, lineHeight: 20, color: Colors.dark },
-                    heading2: {
-                      fontSize: 16,
-                      fontWeight: 'bold',
-                      marginBottom: 10,
-                      color: Colors.dark
-                    },
-                    bullet_list: { marginVertical: 5 },
-                    paragraph: { marginBottom: 10 },
-                    strong: { fontWeight: 'bold' },
-                  }}
-                >
-                  {feedback}
-                </Markdown>
-              </ScrollView>
-              
-              <TouchableOpacity
-                style={styles.continuarButton}
-                onPress={proximaPergunta}
-              >
-                <Text style={styles.continuarButtonText}>
-                  {numeroPergunta === totalPerguntas ? 'Finalizar Entrevista' : 'Próxima Pergunta'}
-                </Text>
-              </TouchableOpacity>
-            </View>
-          ) : (
-            <View style={styles.inputContainer}>
-              <TextInput
-                ref={respostaInputRef}
-                style={styles.input}
-                placeholder="Digite sua resposta aqui..."
-                value={resposta}
-                onChangeText={setResposta}
-                multiline
-                textAlignVertical="top"
-                editable={!carregando}
-              />
-              
-              <TouchableOpacity
-                style={[
-                  styles.enviarButton,
-                  (resposta.trim() === '' || carregando) && styles.enviarButtonDisabled
-                ]}
-                onPress={enviarResposta}
-                disabled={resposta.trim() === '' || carregando}
-              >
-                {carregando ? (
-                  <ActivityIndicator color={Colors.white} size="small" />
-                ) : (
-                  <Text style={styles.enviarButtonText}>Enviar</Text>
-                )}
-              </TouchableOpacity>
-            </View>
-          )}
-        </View>
-      )}
-    </SafeAreaView>
-  );
-};
-
-const salvarProgressoCurriculo = async (userId, data) => {
-  try {
-    // Salvar o estado atual do chatbot
-    await AsyncStorage.setItem(`curriculo_em_progresso_${userId}`, JSON.stringify({
-      timestamp: new Date().toISOString(),
-      data: data
-    }));
-    console.log('Progresso do currículo salvo com sucesso');
-  } catch (error) {
-    console.error('Erro ao salvar progresso do currículo:', error);
-  }
-};
-
-const recuperarProgressoCurriculo = async (userId) => {
-  try {
-    const progresso = await AsyncStorage.getItem(`curriculo_em_progresso_${userId}`);
-    if (progresso) {
-      return JSON.parse(progresso);
-    }
-    return null;
-  } catch (error) {
-    console.error('Erro ao recuperar progresso do currículo:', error);
-    return null;
-  }
-};
-
-const limparProgressoCurriculo = async (userId) => {
-  try {
-    await AsyncStorage.removeItem(`curriculo_em_progresso_${userId}`);
-    console.log('Progresso do currículo limpo com sucesso');
-  } catch (error) {
-    console.error('Erro ao limpar progresso do currículo:', error);
-  }
-};
-
-const ChatbotScreen = ({ navigation, route }) => {
-  // Estados do componente original
-  const [messages, setMessages] = useState([]);
-  const [currentMessage, setCurrentMessage] = useState('');
-  const [options, setOptions] = useState(['Começar']);
-  const [isTyping, setIsTyping] = useState(false);
-  const [currentStep, setCurrentStep] = useState('boas_vindas');
-  const [cvData, setCvData] = useState(null);
-  const [showPreview, setShowPreview] = useState(false);
-  const [initializing, setInitializing] = useState(true);
-  
-  // Novos estados para controle de confirmação
-  const [showConfirmation, setShowConfirmation] = useState(false);
-  const [lastResponse, setLastResponse] = useState(null);
-  const [waitingConfirmation, setWaitingConfirmation] = useState(false);
-  const [lastProcessedResult, setLastProcessedResult] = useState(null);
-
-  const { user } = useAuth();
-  const flatListRef = useRef();
-
-  // Função para inicializar o chat com mensagem de boas-vindas
-  const inicializarChat = () => {
-    console.log('Inicializando chat com mensagem de boas-vindas');
-    const welcomeMessage = {
-      id: getUniqueId(),
-      text: "Olá! Sou o CurriculoBot, seu assistente para criar um currículo profissional. Digite 'começar' quando estiver pronto!",
-      isUser: false,
-      time: getCurrentTime()
-    };
-
-    setMessages([welcomeMessage]);
-    setCurrentStep('boas_vindas');
-    setCvData(null);
-    setOptions(['Começar']);
-  };
-
-  // Verificar se estamos retomando um currículo em progresso
-  useEffect(() => {
-    const carregarDados = async () => {
-      try {
-        console.log('Carregando dados iniciais do chat');
-
-        // Flag para verificar se devemos restaurar ou inicializar
-        let restaurado = false;
-
-        // Verificar se estamos restaurando de um progresso salvo
-        if (route.params?.continuarProgresso) {
-          console.log('Tentando restaurar progresso...');
-          const progresso = await recuperarProgressoCurriculo(user.id);
-
-          if (progresso && progresso.data) {
-            // Verificar se o progresso é válido (menos de 24h)
-            const dataProgresso = new Date(progresso.timestamp);
-            const agora = new Date();
-            const diferencaHoras = (agora - dataProgresso) / (1000 * 60 * 60);
-
-            if (diferencaHoras < 24 && progresso.data.messages && progresso.data.messages.length > 0) {
-              console.log('Restaurando progresso de', dataProgresso);
-
-              // Restaurar o estado do chat
-              setCvData(progresso.data.cvData || null);
-              setCurrentStep(progresso.data.currentStep || 'boas_vindas');
-              setOptions(progresso.data.options || ['Começar']);
-              setMessages(progresso.data.messages || []);
-
-              restaurado = true;
-
-              // Notificar o usuário que o progresso foi restaurado
-              setTimeout(() => {
-                Alert.alert(
-                  "Progresso Restaurado",
-                  "Seu currículo em andamento foi restaurado com sucesso!"
-                );
-              }, 500);
-            } else {
-              console.log('Progresso muito antigo ou inválido:', diferencaHoras, 'horas');
-            }
-          } else {
-            console.log('Nenhum progresso encontrado para restaurar');
-          }
-        }
-
-        // Se não conseguimos restaurar, inicializar normalmente
-        if (!restaurado) {
-          console.log('Inicializando chat normalmente');
-          inicializarChat();
-        }
-      } catch (error) {
-        console.error('Erro ao carregar dados iniciais:', error);
-        // Em caso de erro, garantir que o chat seja inicializado
-        inicializarChat();
-      } finally {
-        // Sempre marcar a inicialização como concluída
-        setInitializing(false);
-      }
-    };
-
-    carregarDados();
-  }, []);
-
-  // Efeito para rolar para o final da lista quando mensagens mudarem
-  useEffect(() => {
-    if (messages.length > 0 && flatListRef.current && !initializing) {
-      setTimeout(() => {
-        flatListRef.current.scrollToEnd({ animated: true });
-      }, 100);
-    }
-  }, [messages, initializing]);
-
-  // Salvar progresso quando sair da tela
-  useEffect(() => {
-    return () => {
-      // Só salvar se houver progresso significativo (além da mensagem inicial) e não estiver concluído
-      if (messages.length > 1 && currentStep !== 'boas_vindas' && currentStep !== 'concluido' && cvData) {
-        console.log('Salvando progresso ao sair da tela');
-        salvarProgressoCurriculo(user.id, {
-          cvData,
-          currentStep,
-          options,
-          messages,
-        });
-      }
-    };
-  }, [messages, currentStep, cvData, options, user.id]);
-
-  // Limpar o progresso salvo quando finalizar o currículo
-  useEffect(() => {
-    if (currentStep === 'concluido' && cvData) {
-      console.log('Currículo concluído, limpando progresso salvo');
-      limparProgressoCurriculo(user.id);
-    }
-  }, [currentStep, cvData, user.id]);
-
-  // Adicionar mensagem do bot
-  const addBotMessage = (text) => {
-    setIsTyping(true);
-
-    // Simular tempo de digitação do bot (mais curto para melhor responsividade)
-    setTimeout(() => {
-      const newMessage = {
-        id: getUniqueId(),
-        text,
-        isUser: false,
-        time: getCurrentTime()
-      };
-
-      setMessages(prevMessages => [...prevMessages, newMessage]);
-      setIsTyping(false);
-
-      // Rolar para o final da lista
-      if (flatListRef.current) {
-        setTimeout(() => flatListRef.current.scrollToEnd({ animated: true }), 100);
-      }
-    }, 700);
-  };
-
-  // Função para aplicar o resultado processado
-  const applyProcessedResult = (result) => {
-    // Atualizar estados
-    setCvData(result.cvData);
-    setCurrentStep(result.nextStep);
-    setOptions(result.options || []);
-
-    // Adicionar resposta do bot
-    addBotMessage(result.response);
-    
-    // Resetar confirmação
-    setShowConfirmation(false);
-    setWaitingConfirmation(false);
-
-    // Salvar currículo se finalizado
-    if (result.isFinished) {
-      salvarCurriculo(result.cvData, user.id)
-        .then(id => {
-          console.log('Currículo salvo com ID:', id);
-          // Limpar o progresso salvo ao finalizar
-          limparProgressoCurriculo(user.id);
-        })
-        .catch(error => {
-          console.error('Erro ao salvar currículo:', error);
-          Alert.alert('Erro', 'Não foi possível salvar o currículo.');
-        });
-    }
-  };
-
-  // Lidar com envio de mensagem (versão modificada com confirmação)
-  const handleSendMessage = () => {
-    if (currentMessage.trim() === '') return;
-    
-    // Se estamos esperando confirmação, ignorar novas mensagens
-    if (waitingConfirmation) return;
-
-    // Adicionar mensagem do usuário
-    const userMessage = {
-      id: getUniqueId(),
-      text: currentMessage,
-      isUser: true,
-      time: getCurrentTime()
-    };
-
-    // Atualizar mensagens
-    setMessages(prevMessages => [...prevMessages, userMessage]);
-
-    // Processar a mensagem para obter a resposta
-    const result = processMessage(currentMessage, currentStep, cvData);
-    
-    // Salvar resultado para usar após confirmação
-    setLastProcessedResult(result);
-    setLastResponse(currentMessage);
-    
-    // Limpar campo de entrada
-    setCurrentMessage('');
-    
-    // Mostrar confirmação, exceto para algumas etapas como 'boas_vindas'
-    if (currentStep !== 'boas_vindas' && currentStep !== 'concluido' && !currentStep.includes('escolher')) {
-      setShowConfirmation(true);
-      setWaitingConfirmation(true);
-    } else {
-      // Para etapas que não precisam de confirmação, proceder normalmente
-      applyProcessedResult(result);
-    }
-
-    // Rolar para o final da lista
-    if (flatListRef.current) {
-      setTimeout(() => flatListRef.current.scrollToEnd({ animated: true }), 100);
-    }
-  };
-  
-  // Função para confirmar a resposta
-  const handleConfirmResponse = () => {
-    if (lastProcessedResult) {
-      applyProcessedResult(lastProcessedResult);
-    }
-  };
-  
-  // Função para corrigir a resposta
-  const handleCorrectResponse = () => {
-    // Voltar para a entrada anterior
-    setCurrentMessage(lastResponse || '');
-    setShowConfirmation(false);
-    setWaitingConfirmation(false);
-  };
-
-  // Selecionar uma opção pré-definida
-  const handleOptionSelect = (option) => {
-    setCurrentMessage(option);
-    handleSendMessage();
-  };
-
-  // Exibir indicador de carregamento enquanto inicializa
-  if (initializing) {
-    return (
-      <SafeAreaView style={styles.chatContainer}>
-        <StatusBar barStyle="dark-content" backgroundColor={Colors.dark} />
-        <View style={styles.chatHeader}>
-          <TouchableOpacity
-            style={styles.chatBackButton}
-            onPress={() => navigation.goBack()}
-          >
-            <Text style={styles.chatBackButtonText}>‹</Text>
-          </TouchableOpacity>
-          <Text style={styles.chatHeaderTitle}>CurriculoBot</Text>
-          <View style={{ width: 80 }} />
-        </View>
-        <View style={{
-          flex: 1,
-          justifyContent: 'center',
-          alignItems: 'center',
-          backgroundColor: '#f5f7fa'
-        }}>
-          <ActivityIndicator size="large" color={Colors.primary} />
-          <Text style={{ marginTop: 20, color: Colors.dark }}>
-            Preparando o assistente...
-          </Text>
-        </View>
-      </SafeAreaView>
-    );
-  }
-
-  // Renderizar chatbot
-  return (
-    <SafeAreaView style={styles.chatContainer}>
-      <StatusBar barStyle="dark-content" backgroundColor={Colors.dark} />
-
-      <View style={styles.chatHeader}>
-        <TouchableOpacity
-          style={styles.chatBackButton}
-          onPress={() => {
-            // Se há progresso significativo, confirmar antes de voltar
-            if (messages.length > 1 && currentStep !== 'boas_vindas' && currentStep !== 'concluido') {
-              Alert.alert(
-                "Sair da criação?",
-                "Seu progresso será salvo e você poderá continuar depois. Deseja sair?",
-                [
-                  { text: "Cancelar", style: "cancel" },
-                  {
-                    text: "Sair",
-                    onPress: () => navigation.goBack()
-                  }
-                ]
-              );
-            } else {
-              navigation.goBack();
-            }
-          }}
-        >
-          <Text style={styles.chatBackButtonText}>‹</Text>
-        </TouchableOpacity>
-        <Text style={styles.chatHeaderTitle}>CurriculoBot</Text>
-        <TouchableOpacity
-          style={styles.previewToggle}
-          onPress={() => setShowPreview(!showPreview)}
-        >
-          <Text style={styles.previewToggleText}>
-            {showPreview ? 'Esconder Prévia' : 'Ver Prévia'}
-          </Text>
-        </TouchableOpacity>
-      </View>
-
-      <View style={styles.chatContent}>
-        {showPreview ? (
-          <ScrollView style={styles.previewScroll}>
-            <CurriculumPreview data={cvData} />
-          </ScrollView>
-        ) : (
-          <>
-            <FlatList
-              ref={flatListRef}
-              data={messages}
-              keyExtractor={(item) => item.id}
-              renderItem={({ item }) => (
-                <ChatMessage
-                  message={item.text}
-                  isUser={item.isUser}
-                  time={item.time}
-                />
-              )}
-              contentContainerStyle={styles.messagesContainer}
-              onContentSizeChange={() => {
-                if (flatListRef.current) {
-                  flatListRef.current.scrollToEnd({ animated: true });
-                }
-              }}
-              onLayout={() => {
-                if (flatListRef.current) {
-                  flatListRef.current.scrollToEnd({ animated: false });
-                }
-              }}
-              ListFooterComponent={
-                isTyping ? (
-                  <View style={styles.typingContainer}>
-                    <View style={{ flexDirection: 'row', alignItems: 'center' }}>
-                      <View style={[styles.typingDot, { opacity: 0.7 }]} />
-                      <View style={[styles.typingDot, { opacity: 0.8, marginHorizontal: 4 }]} />
-                      <View style={[styles.typingDot, { opacity: 0.9 }]} />
-                    </View>
-                    <Text style={styles.typingText}>Bot está digitando...</Text>
-                  </View>
-                ) : null
-              }
-            />
-
-            {showConfirmation && (
-              <ConfirmationButtons 
-                onConfirm={handleConfirmResponse} 
-                onCorrect={handleCorrectResponse} 
-              />
-            )}
-
-            {options && options.length > 0 && !waitingConfirmation && (
-              <ChatOptions options={options} onSelect={handleOptionSelect} />
-            )}
-          </>
-        )}
-      </View>
-
-      <KeyboardAvoidingView
-        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-        keyboardVerticalOffset={Platform.OS === 'ios' ? 10 : 0}
-        style={{ width: '100%' }}
-      >
-        <View style={styles.chatInputContainer}>
-          <TextInput
-            style={styles.improvedChatInput}
-            placeholder="Digite sua mensagem..."
-            value={currentMessage}
-            onChangeText={setCurrentMessage}
-            onSubmitEditing={handleSendMessage}
-            returnKeyType="send"
-            multiline={true}
-            numberOfLines={3}
-          />
-          <TouchableOpacity
-            style={[
-              styles.improvedSendButton,
-              {
-                opacity: currentMessage.trim() === '' ? 0.5 : 1,
-              }
-            ]}
-            onPress={handleSendMessage}
-            disabled={currentMessage.trim() === ''}
-          >
-            <Text style={styles.improvedSendButtonText}>Enviar</Text>
-          </TouchableOpacity>
-        </View>
-      </KeyboardAvoidingView>
-    </SafeAreaView>
-  );
-};
-
-const EditarCurriculoScreen = ({ route, navigation }) => {
-  const { curriculoData } = route.params;
-  const { user } = useAuth();
-  const [loading, setLoading] = useState(false);
-  const [saving, setSaving] = useState(false);
-  const [editData, setEditData] = useState(curriculoData ? { ...curriculoData.data } : null);
-  const [activeSection, setActiveSection] = useState('informacoes_pessoais');
-  
-  // Seções disponíveis para edição
-  const sections = [
-    { id: 'informacoes_pessoais', title: 'Informações Pessoais', icon: '👤' },
-    { id: 'resumo_profissional', title: 'Resumo Profissional', icon: '📝' },
-    { id: 'formacoes_academicas', title: 'Formação Acadêmica', icon: '🎓' },
-    { id: 'experiencias', title: 'Experiência Profissional', icon: '💼' },
-    { id: 'cursos', title: 'Cursos e Certificados', icon: '📚' },
-    { id: 'projetos', title: 'Projetos', icon: '🚀' },
-    { id: 'idiomas', title: 'Idiomas', icon: '🌐' }
-  ];
-  
-  // Salvar as alterações feitas
-  const handleSaveChanges = async () => {
-    try {
-      setSaving(true);
-      
-      // Buscar currículos existentes
-      const cvs = await AsyncStorage.getItem(`curriculos_${user.id}`);
-      const curriculos = cvs ? JSON.parse(cvs) : [];
-      
-      // Encontrar e atualizar o currículo atual
-      const index = curriculos.findIndex(cv => cv.id === curriculoData.id);
-      
-      if (index !== -1) {
-        // Criar cópia atualizada
-        const updatedCurriculo = {
-          ...curriculos[index],
-          data: editData,
-          dataAtualizacao: new Date().toISOString()
-        };
-        
-        // Atualizar array de currículos
-        curriculos[index] = updatedCurriculo;
-        
-        // Salvar no AsyncStorage
-        await AsyncStorage.setItem(`curriculos_${user.id}`, JSON.stringify(curriculos));
-        
-        Alert.alert(
-          'Sucesso',
-          'Currículo atualizado com sucesso!',
-          [{ text: 'OK', onPress: () => navigation.goBack() }]
-        );
-      } else {
-        throw new Error('Currículo não encontrado');
-      }
-    } catch (error) {
-      console.error('Erro ao salvar alterações:', error);
-      Alert.alert('Erro', 'Não foi possível salvar as alterações.');
-    } finally {
-      setSaving(false);
-    }
-  };
-  
-  // Renderizar editor de informações pessoais
-  const renderPersonalInfoEditor = () => {
-    const pessoal = editData.informacoes_pessoais || {};
-    
-    return (
-      <View style={styles.editorSection}>
-        <Text style={styles.editorSectionTitle}>Informações Pessoais</Text>
-        
-        <View style={styles.inputGroup}>
-          <Text style={styles.inputLabel}>Nome:</Text>
-          <TextInput
-            style={styles.input}
-            value={pessoal.nome || ''}
-            onChangeText={(text) => {
-              setEditData({
-                ...editData,
-                informacoes_pessoais: { ...pessoal, nome: text }
-              });
-            }}
-            placeholder="Nome"
-          />
-        </View>
-        
-        <View style={styles.inputGroup}>
-          <Text style={styles.inputLabel}>Sobrenome:</Text>
-          <TextInput
-            style={styles.input}
-            value={pessoal.sobrenome || ''}
-            onChangeText={(text) => {
-              setEditData({
-                ...editData,
-                informacoes_pessoais: { ...pessoal, sobrenome: text }
-              });
-            }}
-            placeholder="Sobrenome"
-          />
-        </View>
-        
-        <View style={styles.inputGroup}>
-          <Text style={styles.inputLabel}>Email:</Text>
-          <TextInput
-            style={styles.input}
-            value={pessoal.email || ''}
-            onChangeText={(text) => {
-              setEditData({
-                ...editData,
-                informacoes_pessoais: { ...pessoal, email: text }
-              });
-            }}
-            placeholder="Email"
-            keyboardType="email-address"
-          />
-        </View>
-        
-        <View style={styles.inputGroup}>
-          <Text style={styles.inputLabel}>Endereço:</Text>
-          <TextInput
-            style={styles.input}
-            value={pessoal.endereco || ''}
-            onChangeText={(text) => {
-              setEditData({
-                ...editData,
-                informacoes_pessoais: { ...pessoal, endereco: text }
-              });
-            }}
-            placeholder="Endereço"
-          />
-        </View>
-        
-        <View style={styles.inputGroup}>
-          <Text style={styles.inputLabel}>CEP:</Text>
-          <TextInput
-            style={styles.input}
-            value={pessoal.cep || ''}
-            onChangeText={(text) => {
-              setEditData({
-                ...editData,
-                informacoes_pessoais: { ...pessoal, cep: text }
-              });
-            }}
-            placeholder="CEP"
-            keyboardType="numeric"
-          />
-        </View>
-        
-        <View style={styles.inputGroup}>
-          <Text style={styles.inputLabel}>Área:</Text>
-          <TextInput
-            style={styles.input}
-            value={pessoal.area || ''}
-            onChangeText={(text) => {
-              setEditData({
-                ...editData,
-                informacoes_pessoais: { ...pessoal, area: text }
-              });
-            }}
-            placeholder="Área de atuação"
-          />
-        </View>
-        
-        <View style={styles.inputGroup}>
-          <Text style={styles.inputLabel}>LinkedIn:</Text>
-          <TextInput
-            style={styles.input}
-            value={pessoal.linkedin || ''}
-            onChangeText={(text) => {
-              setEditData({
-                ...editData,
-                informacoes_pessoais: { ...pessoal, linkedin: text }
-              });
-            }}
-            placeholder="Perfil LinkedIn"
-          />
-        </View>
-        
-        <View style={styles.inputGroup}>
-          <Text style={styles.inputLabel}>GitHub:</Text>
-          <TextInput
-            style={styles.input}
-            value={pessoal.github || ''}
-            onChangeText={(text) => {
-              setEditData({
-                ...editData,
-                informacoes_pessoais: { ...pessoal, github: text }
-              });
-            }}
-            placeholder="Perfil GitHub"
-          />
-        </View>
-      </View>
-    );
-  };
-  
-  // Renderizar editor de resumo profissional
-  const renderResumeEditor = () => {
-    return (
-      <View style={styles.editorSection}>
-        <Text style={styles.editorSectionTitle}>Resumo Profissional</Text>
-        
-        <TextInput
-          style={[styles.input, styles.textArea]}
-          value={editData.resumo_profissional || ''}
-          onChangeText={(text) => {
-            setEditData({
-              ...editData,
-              resumo_profissional: text
-            });
-          }}
-          placeholder="Descreva brevemente sua trajetória e objetivos profissionais"
-          multiline
-          numberOfLines={6}
-          textAlignVertical="top"
-        />
-      </View>
-    );
-  };
-  
-  // Renderizar editor de formação acadêmica
-  const renderEducationEditor = () => {
-    const formacoes = editData.formacoes_academicas || [];
-    
-    return (
-      <View style={styles.editorSection}>
-        <Text style={styles.editorSectionTitle}>Formação Acadêmica</Text>
-        
-        {formacoes.map((formacao, index) => (
-          <View key={index} style={styles.itemCard}>
-            <View style={styles.itemHeader}>
-              <Text style={styles.itemTitle}>{formacao.diploma || 'Formação'} em {formacao.area_estudo || 'Área'}</Text>
-              
-              <TouchableOpacity
-                style={styles.deleteButton}
-                onPress={() => {
-                  const newFormacoes = [...formacoes];
-                  newFormacoes.splice(index, 1);
-                  setEditData({
-                    ...editData,
-                    formacoes_academicas: newFormacoes
-                  });
-                }}
-              >
-                <Text style={styles.deleteButtonText}>✕</Text>
-              </TouchableOpacity>
-            </View>
-            
-            <View style={styles.inputGroup}>
-              <Text style={styles.inputLabel}>Instituição:</Text>
-              <TextInput
-                style={styles.input}
-                value={formacao.instituicao || ''}
-                onChangeText={(text) => {
-                  const newFormacoes = [...formacoes];
-                  newFormacoes[index] = { ...formacao, instituicao: text };
-                  setEditData({
-                    ...editData,
-                    formacoes_academicas: newFormacoes
-                  });
-                }}
-                placeholder="Instituição de ensino"
-              />
-            </View>
-            
-            <View style={styles.inputGroup}>
-              <Text style={styles.inputLabel}>Diploma:</Text>
-              <TextInput
-                style={styles.input}
-                value={formacao.diploma || ''}
-                onChangeText={(text) => {
-                  const newFormacoes = [...formacoes];
-                  newFormacoes[index] = { ...formacao, diploma: text };
-                  setEditData({
-                    ...editData,
-                    formacoes_academicas: newFormacoes
-                  });
-                }}
-                placeholder="Tipo de diploma"
-              />
-            </View>
-            
-            <View style={styles.inputGroup}>
-              <Text style={styles.inputLabel}>Área de Estudo:</Text>
-              <TextInput
-                style={styles.input}
-                value={formacao.area_estudo || ''}
-                onChangeText={(text) => {
-                  const newFormacoes = [...formacoes];
-                  newFormacoes[index] = { ...formacao, area_estudo: text };
-                  setEditData({
-                    ...editData,
-                    formacoes_academicas: newFormacoes
-                  });
-                }}
-                placeholder="Área de estudo"
-              />
-            </View>
-            
-            <View style={styles.rowInputs}>
-              <View style={[styles.inputGroup, { flex: 1, marginRight: 5 }]}>
-                <Text style={styles.inputLabel}>Data Início:</Text>
-                <TextInput
-                  style={styles.input}
-                  value={formacao.data_inicio || ''}
-                  onChangeText={(text) => {
-                    const newFormacoes = [...formacoes];
-                    newFormacoes[index] = { ...formacao, data_inicio: text };
-                    setEditData({
-                      ...editData,
-                      formacoes_academicas: newFormacoes
-                    });
-                  }}
-                  placeholder="MM/AAAA"
-                />
-              </View>
-              
-              <View style={[styles.inputGroup, { flex: 1, marginLeft: 5 }]}>
-                <Text style={styles.inputLabel}>Data Fim:</Text>
-                <TextInput
-                  style={styles.input}
-                  value={formacao.data_fim || ''}
-                  onChangeText={(text) => {
-                    const newFormacoes = [...formacoes];
-                    newFormacoes[index] = { ...formacao, data_fim: text };
-                    setEditData({
-                      ...editData,
-                      formacoes_academicas: newFormacoes
-                    });
-                  }}
-                  placeholder="MM/AAAA ou Atual"
-                />
-              </View>
-            </View>
-          </View>
-        ))}
-        
-        <TouchableOpacity
-          style={styles.addButton}
-          onPress={() => {
-            setEditData({
-              ...editData,
-              formacoes_academicas: [
-                ...(editData.formacoes_academicas || []),
-                { instituicao: '', diploma: '', area_estudo: '', data_inicio: '', data_fim: '' }
-              ]
-            });
-          }}
-        >
-          <Text style={styles.addButtonText}>+ Adicionar Formação</Text>
-        </TouchableOpacity>
-      </View>
-    );
-  };
-  
-  // Renderizar editor de experiências
-  const renderExperienceEditor = () => {
-    const experiencias = editData.experiencias || [];
-    
-    return (
-      <View style={styles.editorSection}>
-        <Text style={styles.editorSectionTitle}>Experiência Profissional</Text>
-        
-        {experiencias.map((experiencia, index) => (
-          <View key={index} style={styles.itemCard}>
-            <View style={styles.itemHeader}>
-              <Text style={styles.itemTitle}>{experiencia.cargo || 'Cargo'} - {experiencia.empresa || 'Empresa'}</Text>
-              
-              <TouchableOpacity
-                style={styles.deleteButton}
-                onPress={() => {
-                  const newExperiencias = [...experiencias];
-                  newExperiencias.splice(index, 1);
-                  setEditData({
-                    ...editData,
-                    experiencias: newExperiencias
-                  });
-                }}
-              >
-                <Text style={styles.deleteButtonText}>✕</Text>
-              </TouchableOpacity>
-            </View>
-            
-            <View style={styles.inputGroup}>
-              <Text style={styles.inputLabel}>Cargo:</Text>
-              <TextInput
-                style={styles.input}
-                value={experiencia.cargo || ''}
-                onChangeText={(text) => {
-                  const newExperiencias = [...experiencias];
-                  newExperiencias[index] = { ...experiencia, cargo: text };
-                  setEditData({
-                    ...editData,
-                    experiencias: newExperiencias
-                  });
-                }}
-                placeholder="Cargo ou posição"
-              />
-            </View>
-            
-            <View style={styles.inputGroup}>
-              <Text style={styles.inputLabel}>Empresa:</Text>
-              <TextInput
-                style={styles.input}
-                value={experiencia.empresa || ''}
-                onChangeText={(text) => {
-                  const newExperiencias = [...experiencias];
-                  newExperiencias[index] = { ...experiencia, empresa: text };
-                  setEditData({
-                    ...editData,
-                    experiencias: newExperiencias
-                  });
-                }}
-                placeholder="Nome da empresa"
-              />
-            </View>
-            
-            <View style={styles.rowInputs}>
-              <View style={[styles.inputGroup, { flex: 1, marginRight: 5 }]}>
-                <Text style={styles.inputLabel}>Data Início:</Text>
-                <TextInput
-                  style={styles.input}
-                  value={experiencia.data_inicio || ''}
-                  onChangeText={(text) => {
-                    const newExperiencias = [...experiencias];
-                    newExperiencias[index] = { ...experiencia, data_inicio: text };
-                    setEditData({
-                      ...editData,
-                      experiencias: newExperiencias
-                    });
-                  }}
-                  placeholder="MM/AAAA"
-                />
-              </View>
-              
-              <View style={[styles.inputGroup, { flex: 1, marginLeft: 5 }]}>
-                <Text style={styles.inputLabel}>Data Fim:</Text>
-                <TextInput
-                  style={styles.input}
-                  value={experiencia.data_fim || ''}
-                  onChangeText={(text) => {
-                    const newExperiencias = [...experiencias];
-                    newExperiencias[index] = { ...experiencia, data_fim: text };
-                    setEditData({
-                      ...editData,
-                      experiencias: newExperiencias
-                    });
-                  }}
-                  placeholder="MM/AAAA ou Atual"
-                />
-              </View>
-            </View>
-            
-            <View style={styles.inputGroup}>
-              <Text style={styles.inputLabel}>Descrição:</Text>
-              <TextInput
-                style={[styles.input, styles.textArea]}
-                value={experiencia.descricao || ''}
-                onChangeText={(text) => {
-                  const newExperiencias = [...experiencias];
-                  newExperiencias[index] = { ...experiencia, descricao: text };
-                  setEditData({
-                    ...editData,
-                    experiencias: newExperiencias
-                  });
-                }}
-                placeholder="Descreva suas responsabilidades e realizações"
-                multiline
-                numberOfLines={4}
-                textAlignVertical="top"
-              />
-            </View>
-          </View>
-        ))}
-        
-        <TouchableOpacity
-          style={styles.addButton}
-          onPress={() => {
-            setEditData({
-              ...editData,
-              experiencias: [
-                ...(editData.experiencias || []),
-                { cargo: '', empresa: '', data_inicio: '', data_fim: '', descricao: '' }
-              ]
-            });
-          }}
-        >
-          <Text style={styles.addButtonText}>+ Adicionar Experiência</Text>
-        </TouchableOpacity>
-      </View>
-    );
-  };
-  
-  // Renderizar seção ativa
-  const renderActiveSection = () => {
-    switch (activeSection) {
-      case 'informacoes_pessoais':
-        return renderPersonalInfoEditor();
-      case 'resumo_profissional':
-        return renderResumeEditor();
-      case 'formacoes_academicas':
-        return renderEducationEditor();
-      case 'experiencias':
-        return renderExperienceEditor();
-      // Implementar outras seções seguindo o mesmo padrão
-      default:
-        return <Text>Selecione uma seção para editar</Text>;
-    }
-  };
-  
-  return (
-    <SafeAreaView style={styles.container}>
-      <StatusBar barStyle="dark-content" backgroundColor={Colors.dark} />
-      
-      <View style={styles.header}>
-        <TouchableOpacity
-          style={styles.backButton}
-          onPress={() => {
-            Alert.alert(
-              'Sair da edição',
-              'Todas as alterações não salvas serão perdidas. Deseja sair?',
-              [
-                { text: 'Cancelar', style: 'cancel' },
-                { text: 'Sair', onPress: () => navigation.goBack() }
-              ]
-            );
-          }}
-        >
-          <Text style={styles.backButtonText}>‹</Text>
-        </TouchableOpacity>
-        <Text style={styles.headerTitle}>Editar Currículo</Text>
-        
-        <TouchableOpacity
-          style={styles.saveButton}
-          onPress={handleSaveChanges}
-          disabled={saving}
-        >
-          {saving ? (
-            <ActivityIndicator size="small" color={Colors.white} />
-          ) : (
-            <Text style={styles.saveButtonText}>Salvar</Text>
-          )}
-        </TouchableOpacity>
-      </View>
-      
-      <View style={styles.editorContainer}>
-        <ScrollView
-          horizontal
-          showsHorizontalScrollIndicator={false}
-          style={styles.sectionsScroll}
-          contentContainerStyle={styles.sectionsScrollContent}
-        >
-          {sections.map(section => (
-            <TouchableOpacity
-              key={section.id}
-              style={[
-                styles.sectionTab,
-                activeSection === section.id && styles.activeSectionTab
-              ]}
-              onPress={() => setActiveSection(section.id)}
-            >
-              <Text style={styles.sectionTabIcon}>{section.icon}</Text>
-              <Text
-                style={[
-                  styles.sectionTabText,
-                  activeSection === section.id && styles.activeSectionTabText
-                ]}
-              >
-                {section.title}
-              </Text>
-            </TouchableOpacity>
-          ))}
-        </ScrollView>
-        
-        <ScrollView
-          style={styles.editorScroll}
-          contentContainerStyle={styles.editorScrollContent}
-        >
-          {renderActiveSection()}
-        </ScrollView>
-      </View>
-    </SafeAreaView>
-  );
-};
-
-const melhorarCurriculoComIA = async (curriculoData) => {
-  try {
-    // Obter API key do Gemini ou outro provedor disponível
-    const apiKey = await getIAAPIKey('GEMINI');
-    
-    if (!apiKey) {
-      throw new Error("API key do Gemini não configurada");
-    }
-    
-    // Formatar o currículo para envio à IA
-    const cvFormatado = formatarCurriculo(curriculoData);
-    
-    // Construir o prompt para a IA
-    const promptText = `
-Você é um especialista em recrutamento e elaboração de currículos profissionais. Sua tarefa é melhorar o currículo abaixo, mantendo todas as informações verdadeiras, mas tornando-o mais atrativo, profissional e eficaz.
-
-- Melhore o resumo profissional para destacar competências e realizações
-- Reformule as descrições de experiência para enfatizar resultados e impacto
-- Padronize a formatação e estrutura 
-- Mantenha todas as informações factuais e datas inalteradas
-- Use linguagem mais dinâmica e verbos de ação
-- Elimine repetições e informações desnecessárias
-- Inclua palavras-chave relevantes para a área
-
-NÃO INVENTE informações falsas ou exageradas. Mantenha-se fiel ao conteúdo original.
-
-CURRÍCULO ORIGINAL:
-${cvFormatado}
-
-Retorne o currículo melhorado no formato JSON com a mesma estrutura do original, mas com conteúdo aprimorado. Mantenha os nomes das propriedades exatamente iguais.
-    `;
-    
-    // Chamar a API do Gemini
-    const endpoint = `${IA_APIS.GEMINI.endpoint}?key=${apiKey}`;
-    const requestBody = {
-      contents: [{ parts: [{ text: promptText }] }],
-      generationConfig: {
-        temperature: 0.3,
-        maxOutputTokens: 4000,
-        topP: 0.8,
-        topK: 40
-      }
-    };
-    
-    const response = await axios.post(endpoint, requestBody, {
-      headers: { 'Content-Type': 'application/json' },
-      timeout: 30000
-    });
-    
-    if (response.data?.candidates?.[0]?.content?.parts?.[0]?.text) {
-      const resultText = response.data.candidates[0].content.parts[0].text;
-      
-      // Extrair o JSON da resposta
-      const jsonMatch = resultText.match(/\{[\s\S]*\}/);
-      if (jsonMatch) {
-        try {
-          // Converter o texto JSON em objeto
-          const melhoradoData = JSON.parse(jsonMatch[0]);
-          
-          return {
-            success: true,
-            curriculoMelhorado: melhoradoData
-          };
-        } catch (jsonError) {
-          console.error('Erro ao parsear JSON da resposta:', jsonError);
-          throw new Error('Formato de resposta inválido');
-        }
-      } else {
-        throw new Error('Não foi possível extrair currículo melhorado da resposta');
-      }
-    } else {
-      throw new Error('Formato de resposta inesperado do Gemini');
-    }
-  } catch (error) {
-    console.error('Erro ao melhorar currículo com IA:', error);
-    return {
-      success: false,
-      error: error.message || 'Erro ao processar o currículo'
-    };
-  }
-};
-
-const MelhorarComIAButton = ({ curriculoData, onMelhoria }) => {
-  const [loading, setLoading] = useState(false);
-  
-  const handleMelhorarComIA = async () => {
-    try {
-      setLoading(true);
-      
-      // Confirmar antes de proceder
-      Alert.alert(
-        "Melhorar com IA",
-        "A IA irá melhorar a redação e apresentação do seu currículo, mantendo todas as informações verdadeiras. Deseja continuar?",
-        [
-          { text: "Cancelar", style: "cancel" },
-          { 
-            text: "Continuar", 
-            onPress: async () => {
-              // Chamar a função de melhoria
-              const resultado = await melhorarCurriculoComIA(curriculoData.data);
-              
-              if (resultado.success) {
-                // Chamar a função de callback com os dados melhorados
-                onMelhoria(resultado.curriculoMelhorado);
-              } else {
-                Alert.alert("Erro", resultado.error || "Não foi possível melhorar o currículo.");
-              }
-              
-              setLoading(false);
-            }
-          }
-        ]
-      );
-    } catch (error) {
-      console.error('Erro ao melhorar currículo:', error);
-      Alert.alert("Erro", "Ocorreu um erro ao tentar melhorar o currículo.");
-      setLoading(false);
-    }
-  };
-  
-  return (
-    <TouchableOpacity
-      style={{
-        backgroundColor: Colors.info,
-        paddingVertical: 12,
-        paddingHorizontal: 20,
-        borderRadius: 8,
-        flexDirection: 'row',
-        alignItems: 'center',
-        justifyContent: 'center',
-        marginVertical: 10,
-      }}
-      onPress={handleMelhorarComIA}
-      disabled={loading}
-    >
-      {loading ? (
-        <ActivityIndicator size="small" color={Colors.white} />
-      ) : (
-        <>
-          <Text style={{ color: Colors.white, fontWeight: 'bold', marginRight: 5 }}>✨</Text>
-          <Text style={{ color: Colors.white, fontWeight: 'bold' }}>
-            Melhorar com IA
-          </Text>
-        </>
-      )}
-    </TouchableOpacity>
-  );
-};
-
-const PreviewCVScreen = ({ route, navigation }) => {
-  const { curriculoData } = route.params;
-  const [templateStyle, setTemplateStyle] = useState('modern');
-  const [showTemplateSelector, setShowTemplateSelector] = useState(false);
-  const [generatingPDF, setGeneratingPDF] = useState(false);
-  const [currentData, setCurrentData] = useState(curriculoData); // Para armazenar versão atual (original ou melhorada)
-  const [showComparison, setShowComparison] = useState(false); // Para mostrar comparação antes/depois
-  const { user } = useAuth();
-  
-  const handleShare = async () => {
-    try {
-      await Share.share({
-        message: `Currículo de ${curriculoData.nome || 'Usuário'}`,
-        title: `Currículo - ${curriculoData.nome || 'Usuário'}`
-      });
-    } catch (error) {
-      console.error('Erro ao compartilhar:', error);
-      Alert.alert('Erro', 'Não foi possível compartilhar o currículo.');
-    }
-  };
-
-  // Emular criação de PDF (já que não temos a biblioteca)
-  const handleExportPDF = async () => {
-    setGeneratingPDF(true);
-
-    try {
-      // Simular processo de geração de PDF
-      await new Promise(resolve => setTimeout(resolve, 2000));
-
-      // Exibir alerta com opções de ação
-      Alert.alert(
-        'PDF Gerado com Sucesso!',
-        'O que você gostaria de fazer com o PDF?',
-        [
-          {
-            text: 'Compartilhar',
-            onPress: () => handleShare(),
-          },
-          {
-            text: 'Salvar na Galeria',
-            onPress: () => {
-              Alert.alert(
-                'Salvando na Galeria...',
-                'Funcionalidade simulada. Em um app real, o PDF seria salvo na galeria.',
-                [{ text: 'OK' }]
-              );
-            },
-          },
-          {
-            text: 'Cancelar',
-            style: 'cancel',
-          },
-        ]
-      );
-    } catch (error) {
-      console.error('Erro ao gerar PDF:', error);
-      Alert.alert('Erro', 'Não foi possível gerar o PDF.');
-    } finally {
-      setGeneratingPDF(false);
-    }
-  };
-  
-  // Função para salvar o currículo melhorado
-  const handleSalvarMelhorado = async (dadosMelhorados) => {
-    try {
-      // Buscar currículos existentes
-      const cvs = await AsyncStorage.getItem(`curriculos_${user.id}`);
-      const curriculos = cvs ? JSON.parse(cvs) : [];
-      
-      // Criar uma nova entrada para o currículo melhorado
-      const novoCurriculo = {
-        id: getUniqueId(),
-        nome: `${curriculoData.nome || 'Currículo'} (Melhorado)`,
-        data: dadosMelhorados,
-        dataCriacao: new Date().toISOString()
-      };
-      
-      // Adicionar ao array e salvar
-      curriculos.push(novoCurriculo);
-      await AsyncStorage.setItem(`curriculos_${user.id}`, JSON.stringify(curriculos));
-      
-      Alert.alert(
-        "Sucesso",
-        "Currículo melhorado salvo com sucesso!",
-        [{ text: "OK" }]
-      );
-      
-      // Atualizar dados na tela
-      setCurrentData({
-        ...novoCurriculo
-      });
-      
-    } catch (error) {
-      console.error('Erro ao salvar currículo melhorado:', error);
-      Alert.alert("Erro", "Não foi possível salvar o currículo melhorado.");
-    }
-  };
-  
-  // Lidar com melhoria de currículo
-  const handleCurriculoMelhorado = (dadosMelhorados) => {
-    // Mostrar alerta com opções
-    Alert.alert(
-      "Currículo Melhorado",
-      "Seu currículo foi melhorado com sucesso! O que deseja fazer?",
-      [
-        { 
-          text: "Visualizar Melhorias", 
-          onPress: () => {
-            // Mostrar comparação
-            setShowComparison(true);
-            setCurrentData({
-              ...curriculoData,
-              data: dadosMelhorados
-            });
-          }
-        },
-        { 
-          text: "Salvar como Novo", 
-          onPress: () => handleSalvarMelhorado(dadosMelhorados)
-        },
-        { 
-          text: "Cancelar", 
-          style: "cancel" 
-        }
-      ]
-    );
-  };
-
-  const templateOptions = [
-    { id: 'modern', name: 'Moderno', category: 'Moderno', color: Colors.primary },
-    // Clássicos
-    { id: 'classic', name: 'Clássico', category: 'Clássico', color: Colors.dark },
-    { id: 'traditional', name: 'Tradicional', category: 'Clássico', color: '#333333' },
-    // Criativos
-    { id: 'consulting', name: 'Consultoria', category: 'Profissional', color: '#1a237e' },
-  ];
-
-  return (
-    <SafeAreaView style={styles.container}>
-      <StatusBar barStyle="dark-content" backgroundColor={Colors.dark} />
-
-      <View style={styles.header}>
-        <TouchableOpacity
-          style={styles.backButton}
-          onPress={() => navigation.goBack()}
-        >
-          <Text style={styles.backButtonText}>‹</Text>
-        </TouchableOpacity>
-        <Text style={styles.headerTitle}>Visualizar Currículo</Text>
-      </View>
-
-      {/* Barra de ferramentas */}
-      <View style={{
-        flexDirection: 'row',
-        backgroundColor: '#f0f0f0',
-        padding: 10,
-        borderBottomWidth: 1,
-        borderBottomColor: Colors.mediumGray,
-      }}>
-        <TouchableOpacity
-          style={{
-            flex: 1,
-            flexDirection: 'row',
-            alignItems: 'center',
-            justifyContent: 'center',
-            paddingVertical: 8,
-            borderRightWidth: 1,
-            borderRightColor: Colors.mediumGray,
-          }}
-          onPress={() => setShowTemplateSelector(!showTemplateSelector)}
-        >
-          <Text style={{ marginRight: 5 }}>Template: {templateOptions.find(t => t.id === templateStyle)?.name}</Text>
-          <Text>▼</Text>
-        </TouchableOpacity>
-
-        <TouchableOpacity
-          style={{
-            flex: 1,
-            flexDirection: 'row',
-            alignItems: 'center',
-            justifyContent: 'center',
-            paddingVertical: 8,
-          }}
-          onPress={handleExportPDF}
-          disabled={generatingPDF}
-        >
-          {generatingPDF ? (
-            <ActivityIndicator size="small" color={Colors.primary} />
-          ) : (
-            <>
-              <Text style={{ marginRight: 5 }}>Exportar PDF</Text>
-              <Text>📄</Text>
-            </>
-          )}
-        </TouchableOpacity>
-      </View>
-
-      {/* Template selector overlay (em vez de Modal) */}
-      {showTemplateSelector && (
-        <View style={{
-          position: 'absolute',
-          top: 0,
-          left: 0,
-          right: 0,
-          bottom: 0,
-          backgroundColor: 'rgba(0, 0, 0, 0.5)',
-          zIndex: 100,
-        }}>
-          <TouchableOpacity
-            style={{ flex: 1 }}
-            onPress={() => setShowTemplateSelector(false)}
-          />
-
-          <View style={{
-            backgroundColor: Colors.white,
-            borderTopLeftRadius: 20,
-            borderTopRightRadius: 20,
-            padding: 20,
-          }}>
-            <View style={{
-              flexDirection: 'row',
-              justifyContent: 'space-between',
-              alignItems: 'center',
-              marginBottom: 15,
-            }}>
-              <Text style={{
-                fontSize: 18,
-                fontWeight: 'bold',
-                color: Colors.dark,
-              }}>
-                Escolher Template
-              </Text>
-
-              <TouchableOpacity
-                onPress={() => setShowTemplateSelector(false)}
-              >
-                <Text style={{
-                  fontSize: 22,
-                  color: Colors.lightText,
-                  paddingHorizontal: 5,
-                }}>
-                  ×
-                </Text>
-              </TouchableOpacity>
-            </View>
-
-            {templateOptions.map(template => (
-              <TouchableOpacity
-                key={template.id}
-                style={{
-                  flexDirection: 'row',
-                  alignItems: 'center',
-                  padding: 15,
-                  borderBottomWidth: 1,
-                  borderBottomColor: Colors.mediumGray,
-                  backgroundColor: templateStyle === template.id ? '#e3f2fd' : 'transparent',
-                }}
-                onPress={() => {
-                  setTemplateStyle(template.id);
-                  setShowTemplateSelector(false);
-                }}
-              >
-                <View style={{
-                  width: 24,
-                  height: 24,
-                  borderRadius: 12,
-                  backgroundColor: template.color,
-                  marginRight: 15,
-                }} />
-
-                <View style={{ flex: 1 }}>
-                  <Text style={{
-                    fontSize: 16,
-                    fontWeight: templateStyle === template.id ? 'bold' : 'normal',
-                    color: Colors.dark,
-                  }}>
-                    {template.name}
-                  </Text>
-                </View>
-
-                {templateStyle === template.id && (
-                  <Text style={{ fontSize: 18, color: Colors.primary }}>✓</Text>
-                )}
-              </TouchableOpacity>
-            ))}
-          </View>
-        </View>
-      )}
-
-      <ScrollView style={styles.previewScreenScroll}>
-        <View style={styles.previewScreenCard}>
-          <CurriculumPreview data={currentData.data} templateStyle={templateStyle} />
-        </View>
-        
-        {/* Adicionar o botão de melhoria com IA */}
-        <View style={{ padding: 15 }}>
-          <MelhorarComIAButton 
-            curriculoData={curriculoData}
-            onMelhoria={handleCurriculoMelhorado}
-          />
-        </View>
-      </ScrollView>
-
-      <View style={styles.previewActions}>
-        <TouchableOpacity
-          style={styles.previewActionButton}
-          onPress={handleShare}
-        >
-          <Text style={styles.previewActionButtonText}>Compartilhar</Text>
-        </TouchableOpacity>
-
-        <TouchableOpacity
-          style={[styles.previewActionButton, { backgroundColor: Colors.secondary }]}
-          onPress={() => navigation.navigate('AnaliseCV', { curriculoData })}
-        >
-          <Text style={styles.previewActionButtonText}>Analisar com IA</Text>
-        </TouchableOpacity>
-        
-        {/* Adicionar botão de edição */}
-        <TouchableOpacity
-          style={[styles.previewActionButton, { backgroundColor: Colors.info }]}
-          onPress={() => navigation.navigate('EditarCurriculo', { curriculoData: currentData })}
-        >
-          <Text style={styles.previewActionButtonText}>Editar Currículo</Text>
-        </TouchableOpacity>
-      </View>
-      
-      {/* Modal de comparação antes/depois */}
-      {showComparison && (
-        <View style={styles.comparisonModal}>
-          <View style={styles.comparisonContainer}>
-            <View style={styles.comparisonHeader}>
-              <Text style={styles.comparisonTitle}>Antes e Depois</Text>
-              <TouchableOpacity
-                style={styles.comparisonCloseButton}
-                onPress={() => setShowComparison(false)}
-              >
-                <Text style={styles.comparisonCloseText}>✕</Text>
-              </TouchableOpacity>
-            </View>
-            
-            <ScrollView style={styles.comparisonScroll}>
-              {/* Exemplo de comparação - resumo profissional */}
-              <View style={styles.comparisonSection}>
-                <Text style={styles.comparisonSectionTitle}>Resumo Profissional</Text>
-                
-                <View style={styles.comparisonItem}>
-                  <Text style={styles.comparisonLabel}>Antes:</Text>
-                  <Text style={styles.comparisonOriginalText}>
-                    {curriculoData.data.resumo_profissional || 'Sem resumo profissional'}
-                  </Text>
-                </View>
-                
-                <View style={styles.comparisonItem}>
-                  <Text style={styles.comparisonLabel}>Depois:</Text>
-                  <Text style={styles.comparisonImprovedText}>
-                    {currentData.data.resumo_profissional || 'Sem resumo profissional'}
-                  </Text>
-                </View>
-              </View>
-              
-              {/* Outras comparações podem ser adicionadas para experiências, etc. */}
-            </ScrollView>
-            
-            <View style={styles.comparisonActions}>
-              <TouchableOpacity
-                style={styles.comparisonButton}
-                onPress={() => setShowComparison(false)}
-              >
-                <Text style={styles.comparisonButtonText}>Fechar</Text>
-              </TouchableOpacity>
-              
-              <TouchableOpacity
-                style={[styles.comparisonButton, { backgroundColor: Colors.success }]}
-                onPress={() => {
-                  handleSalvarMelhorado(currentData.data);
-                  setShowComparison(false);
-                }}
-              >
-                <Text style={styles.comparisonButtonText}>Salvar Melhorias</Text>
-              </TouchableOpacity>
-            </View>
-          </View>
-        </View>
-      )}
-    </SafeAreaView>
-  );
-};
-
-const ProfessionalColors = {
-  primary: '#0062cc',         // Azul profissional mais escuro
-  secondary: '#4e73df',       // Azul secundário 
-  tertiary: '#2c9faf',        // Azul esverdeado para destacar
-  backgroundLight: '#f8f9fc', // Fundo claro
-  cardBackground: '#ffffff',  // Branco para cartões
-  textDark: '#333333',        // Texto escuro
-  textMedium: '#5a5c69',      // Texto médio para descrições
-  textLight: '#858796',       // Texto claro para informações secundárias
-  border: '#e3e6f0',          // Bordas sutis
-  success: '#1cc88a',         // Verde para ações positivas
-  danger: '#e74a3b',          // Vermelho para ações negativas
-  warning: '#f6c23e',         // Amarelo para alertas
-  info: '#36b9cc'             // Azul claro para informações
-};
-
-const sharedStyles = {
-  cardShadow: {
-    ...Platform.select({
-      ios: {
-        shadowColor: '#000',
-        shadowOffset: { width: 0, height: 2 },
-        shadowOpacity: 0.07,
-        shadowRadius: 3,
-      },
-      android: {
-        elevation: 2,
-      },
-    }),
-  },
-
-  cardAnimationConfig: {
-    animation: 'fadeInUp',
-    duration: 400,
-    useNativeDriver: true
-  }
-};
-
-const DocumentIcon = ({ style }) => {
-  return (
-    <View style={[{
-      width: 80,
-      height: 80,
-      justifyContent: 'center',
-      alignItems: 'center',
-      backgroundColor: 'rgba(78, 115, 223, 0.1)',
-      borderRadius: 40,
-    }, style]}>
-      <Text style={{ fontSize: 40 }}>📄</Text>
-    </View>
-  );
-};
-
-const curriculoAnaliseStyles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: ProfessionalColors.backgroundLight,
-  },
-
-  header: {
-    backgroundColor: ProfessionalColors.cardBackground,
-    padding: 16,
-    flexDirection: 'row',
-    alignItems: 'center',
-    borderBottomWidth: 1,
-    borderBottomColor: ProfessionalColors.border,
-    ...sharedStyles.cardShadow
-  },
-
-  headerTitle: {
-    color: ProfessionalColors.textDark,
-    fontSize: 18,
-    fontWeight: '600',
-  },
-
-  backButton: {
-    marginRight: 15,
-    width: 36,
-    height: 36,
-    borderRadius: 18,
-    backgroundColor: 'rgba(78, 115, 223, 0.1)',
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-
-  backButtonText: {
-    fontSize: 22,
-    color: ProfessionalColors.primary,
-    fontWeight: '600',
-  },
-
-  introContainer: {
-    backgroundColor: ProfessionalColors.cardBackground,
-    margin: 16,
-    marginBottom: 24,
-    borderRadius: 10,
-    padding: 20,
-    ...sharedStyles.cardShadow
-  },
-
-  introTitle: {
-    fontSize: 20,
-    fontWeight: '700',
-    color: ProfessionalColors.textDark,
-    marginBottom: 12,
-  },
-
-  introText: {
-    fontSize: 15,
-    lineHeight: 22,
-    color: ProfessionalColors.textMedium,
-  },
-
-  sectionTitle: {
-    fontSize: 17,
-    fontWeight: '600',
-    color: ProfessionalColors.textDark,
-    marginHorizontal: 16,
-    marginTop: 8,
-    marginBottom: 16,
-  },
-
-  curriculoCard: {
-    backgroundColor: ProfessionalColors.cardBackground,
-    marginHorizontal: 16,
-    marginBottom: 12,
-    borderRadius: 8,
-    padding: 0,
-    overflow: 'hidden',
-    ...sharedStyles.cardShadow
-  },
-
-  curriculoCardContent: {
-    padding: 16,
-  },
-
-  curriculoCardHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    marginBottom: 10,
-  },
-
-  curriculoCardTitle: {
-    fontSize: 17,
-    fontWeight: '600',
-    color: ProfessionalColors.textDark,
-    flex: 1,
-  },
-
-  curriculoCardDate: {
-    fontSize: 13,
-    color: ProfessionalColors.textLight,
-    marginTop: 4,
-  },
-
-  curriculoCardBadge: {
-    paddingHorizontal: 12,
-    paddingVertical: 4,
-    borderRadius: 15,
-    backgroundColor: ProfessionalColors.primary,
-    alignSelf: 'flex-start',
-    marginTop: 6,
-  },
-
-  curriculoCardBadgeText: {
-    color: 'white',
-    fontSize: 12,
-    fontWeight: '500',
-  },
-
-  curriculoCardStats: {
-    flexDirection: 'row',
-    marginTop: 12,
-    flexWrap: 'wrap',
-  },
-
-  curriculoCardStatItem: {
-    backgroundColor: 'rgba(78, 115, 223, 0.1)',
-    paddingHorizontal: 10,
-    paddingVertical: 6,
-    borderRadius: 15,
-    marginRight: 8,
-    marginBottom: 8,
-  },
-
-  curriculoCardStatText: {
-    color: ProfessionalColors.primary,
-    fontSize: 12,
-    fontWeight: '500',
-  },
-
-  curriculoCardFooter: {
-    flexDirection: 'row',
-    borderTopWidth: 1,
-    borderTopColor: ProfessionalColors.border,
-  },
-
-  curriculoCardButton: {
-    flex: 1,
-    paddingVertical: 12,
-    alignItems: 'center',
-    justifyContent: 'center',
-    flexDirection: 'row',
-  },
-
-  curriculoCardButtonText: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: ProfessionalColors.primary,
-    marginLeft: 6,
-  },
-
-  curriculoCardButtonDivider: {
-    width: 1,
-    backgroundColor: ProfessionalColors.border,
-  },
-
-  analyzeButton: {
-    backgroundColor: ProfessionalColors.primary,
-    paddingVertical: 14,
-    paddingHorizontal: 20,
-    borderRadius: 8,
-    alignItems: 'center',
-    justifyContent: 'center',
-    flexDirection: 'row',
-    marginHorizontal: 16,
-    marginTop: 8,
-    marginBottom: 30,
-    ...sharedStyles.cardShadow
-  },
-
-  analyzeButtonText: {
-    color: 'white',
-    fontWeight: '600',
-    fontSize: 16,
-    marginLeft: 8,
-  },
-
-  emptyState: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-    padding: 30,
-  },
-
-  emptyStateIcon: {
-    width: 80,
-    height: 80,
-    marginBottom: 20,
-    tintColor: 'rgba(78, 115, 223, 0.2)',
-  },
-
-  emptyStateTitle: {
-    fontSize: 20,
-    fontWeight: '700',
-    color: ProfessionalColors.textDark,
-    marginBottom: 10,
-    textAlign: 'center',
-  },
-
-  emptyStateText: {
-    textAlign: 'center',
-    color: ProfessionalColors.textMedium,
-    marginBottom: 24,
-    fontSize: 15,
-    lineHeight: 22,
-  },
-
-  emptyStateButton: {
-    backgroundColor: ProfessionalColors.primary,
-    paddingVertical: 14,
-    paddingHorizontal: 24,
-    borderRadius: 8,
-    alignItems: 'center',
-    justifyContent: 'center',
-    flexDirection: 'row',
-    ...sharedStyles.cardShadow
-  },
-
-  emptyStateButtonText: {
-    color: 'white',
-    fontWeight: '600',
-    fontSize: 16,
-  },
-});
-
-const meusCurriculosStyles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: ProfessionalColors.backgroundLight,
-  },
-
-  header: {
-    backgroundColor: ProfessionalColors.cardBackground,
-    padding: 16,
-    flexDirection: 'row',
-    alignItems: 'center',
-    borderBottomWidth: 1,
-    borderBottomColor: ProfessionalColors.border,
-    ...sharedStyles.cardShadow
-  },
-
-  headerTitle: {
-    color: ProfessionalColors.textDark,
-    fontSize: 18,
-    fontWeight: '600',
-  },
-
-  backButton: {
-    marginRight: 15,
-    width: 36,
-    height: 36,
-    borderRadius: 18,
-    backgroundColor: 'rgba(78, 115, 223, 0.1)',
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-
-  backButtonText: {
-    fontSize: 22,
-    color: ProfessionalColors.primary,
-    fontWeight: '600',
-  },
-
-  headerActions: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginLeft: 'auto',
-  },
-
-  headerActionButton: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    backgroundColor: 'rgba(78, 115, 223, 0.1)',
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginLeft: 8,
-  },
-
-  headerActionIcon: {
-    fontSize: 20,
-    color: ProfessionalColors.primary,
-  },
-
-  searchContainer: {
-    backgroundColor: ProfessionalColors.cardBackground,
-    margin: 16,
-    marginBottom: 20,
-    borderRadius: 10,
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingHorizontal: 16,
-    paddingVertical: 12,
-    ...sharedStyles.cardShadow
-  },
-
-  searchIcon: {
-    fontSize: 20,
-    color: ProfessionalColors.textLight,
-    marginRight: 10,
-  },
-
-  searchInput: {
-    flex: 1,
-    fontSize: 15,
-    color: ProfessionalColors.textDark,
-  },
-
-  sectionHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    paddingHorizontal: 16,
-    marginBottom: 12,
-  },
-
-  sectionTitle: {
-    fontSize: 17,
-    fontWeight: '600',
-    color: ProfessionalColors.textDark,
-  },
-
-  sectionActionText: {
-    fontSize: 14,
-    color: ProfessionalColors.primary,
-  },
-
-  curriculoCard: {
-    backgroundColor: ProfessionalColors.cardBackground,
-    marginHorizontal: 16,
-    marginBottom: 12,
-    borderRadius: 8,
-    overflow: 'hidden',
-    ...sharedStyles.cardShadow
-  },
-
-  curriculoCardContent: {
-    padding: 16,
-  },
-
-  curriculoCardHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'flex-start',
-  },
-
-  curriculoCardTitle: {
-    fontSize: 17,
-    fontWeight: '600',
-    color: ProfessionalColors.textDark,
-    marginBottom: 4,
-    flex: 1,
-  },
-
-  curriculoCardMeta: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginBottom: 8,
-  },
-
-  curriculoCardMetaIcon: {
-    fontSize: 14,
-    color: ProfessionalColors.textLight,
-    marginRight: 6,
-  },
-
-  curriculoCardMetaText: {
-    fontSize: 13,
-    color: ProfessionalColors.textLight,
-  },
-
-  curriculoCardDetails: {
-    backgroundColor: 'rgba(78, 115, 223, 0.05)',
-    padding: 12,
-    borderRadius: 6,
-    marginTop: 8,
-  },
-
-  curriculoCardDetailsRow: {
-    flexDirection: 'row',
-    marginBottom: 8,
-  },
-
-  curriculoCardDetailsLabel: {
-    fontSize: 14,
-    color: ProfessionalColors.textMedium,
-    fontWeight: '500',
-    width: 100,
-  },
-
-  curriculoCardDetailsValue: {
-    fontSize: 14,
-    color: ProfessionalColors.textDark,
-    flex: 1,
-  },
-
-  curriculoCardTagsContainer: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    marginTop: 10,
-  },
-
-  curriculoCardTag: {
-    paddingHorizontal: 10,
-    paddingVertical: 4,
-    borderRadius: 15,
-    backgroundColor: 'rgba(78, 115, 223, 0.1)',
-    marginRight: 8,
-    marginBottom: 8,
-  },
-
-  curriculoCardTagText: {
-    fontSize: 12,
-    color: ProfessionalColors.primary,
-    fontWeight: '500',
-  },
-
-  curriculoCardActions: {
-    flexDirection: 'row',
-    borderTopWidth: 1,
-    borderTopColor: ProfessionalColors.border,
-  },
-
-  curriculoCardAction: {
-    flex: 1,
-    paddingVertical: 12,
-    alignItems: 'center',
-    justifyContent: 'center',
-    flexDirection: 'row',
-  },
-
-  curriculoCardActionText: {
-    fontSize: 14,
-    fontWeight: '500',
-    marginLeft: 6,
-  },
-
-  curriculoCardActionPrimary: {
-    color: ProfessionalColors.primary,
-  },
-
-  curriculoCardActionSecondary: {
-    color: ProfessionalColors.secondary,
-  },
-
-  curriculoCardActionDanger: {
-    color: ProfessionalColors.danger,
-  },
-
-  curriculoCardDivider: {
-    width: 1,
-    backgroundColor: ProfessionalColors.border,
-  },
-
-  menuOptions: {
-    backgroundColor: ProfessionalColors.cardBackground,
-    borderRadius: 8,
-    width: 180,
-    ...sharedStyles.cardShadow
-  },
-
-  menuOption: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingHorizontal: 16,
-    paddingVertical: 12,
-  },
-
-  menuOptionText: {
-    fontSize: 15,
-    marginLeft: 10,
-    color: ProfessionalColors.textDark,
-  },
-
-  menuOptionDanger: {
-    color: ProfessionalColors.danger,
-  },
-
-  fabButton: {
-    position: 'absolute',
-    bottom: 20,
-    right: 20,
-    width: 56,
-    height: 56,
-    borderRadius: 28,
-    backgroundColor: ProfessionalColors.primary,
-    justifyContent: 'center',
-    alignItems: 'center',
-    ...Platform.select({
-      ios: {
-        shadowColor: '#000',
-        shadowOffset: { width: 0, height: 4 },
-        shadowOpacity: 0.3,
-        shadowRadius: 4,
-      },
-      android: {
-        elevation: 6,
-      },
-    }),
-  },
-
-  fabButtonText: {
-    fontSize: 26,
-    color: 'white',
-  },
-
-  emptyState: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-    padding: 30,
-  },
-
-  emptyStateIcon: {
-    width: 80,
-    height: 80,
-    marginBottom: 20,
-    tintColor: 'rgba(78, 115, 223, 0.2)',
-  },
-
-  emptyStateTitle: {
-    fontSize: 20,
-    fontWeight: '700',
-    color: ProfessionalColors.textDark,
-    marginBottom: 10,
-    textAlign: 'center',
-  },
-
-  emptyStateText: {
-    textAlign: 'center',
-    color: ProfessionalColors.textMedium,
-    marginBottom: 24,
-    fontSize: 15,
-    lineHeight: 22,
-  },
-
-  emptyStateButton: {
-    backgroundColor: ProfessionalColors.primary,
-    paddingVertical: 14,
-    paddingHorizontal: 24,
-    borderRadius: 8,
-    alignItems: 'center',
-    justifyContent: 'center',
-    flexDirection: 'row',
-    ...sharedStyles.cardShadow
-  },
-
-  emptyStateButtonText: {
-    color: 'white',
-    fontWeight: '600',
-    fontSize: 16,
-  },
-
-  modalOverlay: {
-    position: 'absolute',
-    top: 0,
-    left: 0,
-    right: 0,
-    bottom: 0,
-    backgroundColor: 'rgba(0,0,0,0.3)',
-    justifyContent: 'center',
-    alignItems: 'center',
-  }
-});
-
-const CurriculosAnaliseScreen = ({ navigation }) => {
-  const { user } = useAuth();
-  const [curriculos, setCurriculos] = useState([]);
-  const [loading, setLoading] = useState(true);
-  const [fadeValue, setFadeValue] = useState(0); // Usar um valor numérico em vez de Animated.Value
-
-  const loadCurriculos = async () => {
-    try {
-      setLoading(true);
-      const cvs = await AsyncStorage.getItem(`curriculos_${user.id}`);
-      const curriculosData = cvs ? JSON.parse(cvs) : [];
-      setCurriculos(curriculosData);
-
-      // Atualizamos para 1 após carregar os dados
-      setTimeout(() => {
-        setFadeValue(1);
-      }, 100);
-    } catch (error) {
-      console.error('Erro ao carregar currículos:', error);
-      Alert.alert('Erro', 'Não foi possível carregar seus currículos.');
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  useEffect(() => {
-    loadCurriculos();
-  }, []);
-
-  // Função para extrair informações do currículo para exibição
-  const getResumoCurriculo = (curriculo) => {
-    const cv = curriculo.data;
-    const experiencias = cv.experiencias?.length || 0;
-    const formacoes = cv.formacoes_academicas?.length || 0;
-    const projetos = cv.projetos?.length || 0;
-    const idiomas = cv.idiomas?.length || 0;
-    const area = cv.informacoes_pessoais?.area || 'Não especificada';
-
-    return { experiencias, formacoes, projetos, idiomas, area };
-  };
-
-  // Formatar data de maneira mais legível
-  const formatDate = (dateString) => {
-    try {
-      if (!dateString) return 'Data não disponível';
-      const date = new Date(dateString);
-      return `${date.getDate().toString().padStart(2, '0')}/${(date.getMonth() + 1).toString().padStart(2, '0')}/${date.getFullYear()}`;
-    } catch (error) {
-      return 'Data inválida';
-    }
-  };
-
-  if (loading) {
-    return (
-      <SafeAreaView style={curriculoAnaliseStyles.container}>
-        <View style={curriculoAnaliseStyles.header}>
-          <TouchableOpacity
-            style={curriculoAnaliseStyles.backButton}
-            onPress={() => navigation.goBack()}
-          >
-            <Text style={curriculoAnaliseStyles.backButtonText}>‹</Text>
-          </TouchableOpacity>
-          <Text style={curriculoAnaliseStyles.headerTitle}>Analisar Currículo</Text>
-        </View>
-        <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}>
-          <ActivityIndicator size="large" color={ProfessionalColors.primary} />
-          <Text style={{ marginTop: 16, color: ProfessionalColors.textMedium, fontSize: 16 }}>
-            Carregando currículos...
-          </Text>
-        </View>
-      </SafeAreaView>
-    );
-  }
-
-  if (curriculos.length === 0) {
-    return (
-      <SafeAreaView style={curriculoAnaliseStyles.container}>
-        <View style={curriculoAnaliseStyles.header}>
-          <TouchableOpacity
-            style={curriculoAnaliseStyles.backButton}
-            onPress={() => navigation.goBack()}
-          >
-            <Text style={curriculoAnaliseStyles.backButtonText}>‹</Text>
-          </TouchableOpacity>
-          <Text style={curriculoAnaliseStyles.headerTitle}>Analisar Currículo</Text>
-        </View>
-        <View style={curriculoAnaliseStyles.emptyState}>
-          <DocumentIcon style={curriculoAnaliseStyles.emptyStateIcon} />
-          <Text style={curriculoAnaliseStyles.emptyStateTitle}>Nenhum Currículo Encontrado</Text>
-          <Text style={curriculoAnaliseStyles.emptyStateText}>
-            Você precisa criar um currículo antes de usar nossa poderosa análise de IA para aprimorá-lo.
-          </Text>
-          <TouchableOpacity
-            style={curriculoAnaliseStyles.emptyStateButton}
-            onPress={() => navigation.navigate('Chatbot')}
-          >
-            <Text style={curriculoAnaliseStyles.emptyStateButtonText}>Criar Meu Currículo</Text>
-          </TouchableOpacity>
-        </View>
-      </SafeAreaView>
-    );
-  }
-
-  return (
-    <SafeAreaView style={curriculoAnaliseStyles.container}>
-      <StatusBar barStyle="dark-content" backgroundColor={ProfessionalColors.cardBackground} />
-
-      <View style={curriculoAnaliseStyles.header}>
-        <TouchableOpacity
-          style={curriculoAnaliseStyles.backButton}
-          onPress={() => navigation.goBack()}
-        >
-          <Text style={curriculoAnaliseStyles.backButtonText}>‹</Text>
-        </TouchableOpacity>
-        <Text style={curriculoAnaliseStyles.headerTitle}>Analisar Currículo</Text>
-      </View>
-
-      <ScrollView contentContainerStyle={{ paddingBottom: 20 }}>
-        <View style={curriculoAnaliseStyles.introContainer}>
-          <Text style={curriculoAnaliseStyles.introTitle}>Análise Profissional com IA</Text>
-          <Text style={curriculoAnaliseStyles.introText}>
-            Nossa tecnologia de IA avançada analisará seu currículo e fornecerá feedback detalhado,
-            identificará pontos fortes e fracos, e sugerirá melhorias personalizadas para aumentar
-            suas chances de sucesso.
-          </Text>
-        </View>
-
-        <Text style={curriculoAnaliseStyles.sectionTitle}>Selecione um currículo para analisar:</Text>
-
-        {/* Não usamos a propriedade opacity com Animated aqui */}
-        <FlatList
-          data={curriculos}
-          keyExtractor={(item) => item.id}
-          contentContainerStyle={{ paddingBottom: 20 }}
-          style={{ opacity: fadeValue }} // Usamos um valor numérico normal
-          renderItem={({ item }) => {
-            const resumo = getResumoCurriculo(item);
-
-            return (
-              <View style={curriculoAnaliseStyles.curriculoCard}>
-                <View style={curriculoAnaliseStyles.curriculoCardContent}>
-                  <View style={curriculoAnaliseStyles.curriculoCardHeader}>
-                    <View>
-                      <Text style={curriculoAnaliseStyles.curriculoCardTitle}>
-                        {item.nome || 'Currículo sem nome'}
-                      </Text>
-                      <Text style={curriculoAnaliseStyles.curriculoCardDate}>
-                        Criado em {formatDate(item.dataCriacao)}
-                      </Text>
-                    </View>
-
-                    <TouchableOpacity
-                      style={curriculoAnaliseStyles.curriculoCardBadge}
-                    >
-                      <Text style={curriculoAnaliseStyles.curriculoCardBadgeText}>
-                        Selecionar
-                      </Text>
-                    </TouchableOpacity>
-                  </View>
-
-                  <View style={curriculoAnaliseStyles.curriculoCardStats}>
-                    <View style={curriculoAnaliseStyles.curriculoCardStatItem}>
-                      <Text style={curriculoAnaliseStyles.curriculoCardStatText}>
-                        Área: {resumo.area}
-                      </Text>
-                    </View>
-
-                    {resumo.experiencias > 0 && (
-                      <View style={curriculoAnaliseStyles.curriculoCardStatItem}>
-                        <Text style={curriculoAnaliseStyles.curriculoCardStatText}>
-                          {resumo.experiencias} experiência(s)
-                        </Text>
-                      </View>
-                    )}
-
-                    {resumo.formacoes > 0 && (
-                      <View style={curriculoAnaliseStyles.curriculoCardStatItem}>
-                        <Text style={curriculoAnaliseStyles.curriculoCardStatText}>
-                          {resumo.formacoes} formação(ões)
-                        </Text>
-                      </View>
-                    )}
-
-                    {resumo.projetos > 0 && (
-                      <View style={curriculoAnaliseStyles.curriculoCardStatItem}>
-                        <Text style={curriculoAnaliseStyles.curriculoCardStatText}>
-                          {resumo.projetos} projeto(s)
-                        </Text>
-                      </View>
-                    )}
-
-                    {resumo.idiomas > 0 && (
-                      <View style={curriculoAnaliseStyles.curriculoCardStatItem}>
-                        <Text style={curriculoAnaliseStyles.curriculoCardStatText}>
-                          {resumo.idiomas} idioma(s)
-                        </Text>
-                      </View>
-                    )}
-                  </View>
-                </View>
-
-                <View style={curriculoAnaliseStyles.curriculoCardFooter}>
-                  <TouchableOpacity
-                    style={curriculoAnaliseStyles.curriculoCardButton}
-                    onPress={() => navigation.navigate('PreviewCV', { curriculoData: item })}
-                  >
-                    <Text style={curriculoAnaliseStyles.curriculoCardButtonText}>
-                      <Text>🔍</Text> Visualizar
-                    </Text>
-                  </TouchableOpacity>
-
-                  <View style={curriculoAnaliseStyles.curriculoCardButtonDivider} />
-
-                  <TouchableOpacity
-                    style={curriculoAnaliseStyles.curriculoCardButton}
-                    onPress={() => navigation.navigate('AnaliseCV', { curriculoData: item })}
-                  >
-                    <Text style={curriculoAnaliseStyles.curriculoCardButtonText}>
-                      <Text>📊</Text> Analisar
-                    </Text>
-                  </TouchableOpacity>
-                </View>
-              </View>
-            );
-          }}
-        />
-
-        <TouchableOpacity
-          style={curriculoAnaliseStyles.analyzeButton}
-          onPress={() => navigation.navigate('AnaliseCV', { curriculoData: curriculos[0] })}
-        >
-          <Text>🧠</Text>
-          <Text style={curriculoAnaliseStyles.analyzeButtonText}>
-            Análise Completa com IA
-          </Text>
-        </TouchableOpacity>
-      </ScrollView>
-    </SafeAreaView>
-  );
-};
-
-const MeusCurriculosScreen = ({ navigation }) => {
-  const { user } = useAuth();
-  const [curriculos, setCurriculos] = useState([]);
-  const [loading, setLoading] = useState(true);
-  const [searchText, setSearchText] = useState('');
-  const [filteredCurriculos, setFilteredCurriculos] = useState([]);
-  const [showMenu, setShowMenu] = useState(false);
-  const [selectedCurriculoId, setSelectedCurriculoId] = useState(null);
-  const [fadeValue, setFadeValue] = useState(0); // Valor numérico para fade
-
-  // Referência para posição do menu
-  const menuPosition = useRef({ x: 0, y: 0 });
-
-  const loadCurriculos = async () => {
-    try {
-      setLoading(true);
-      const cvs = await AsyncStorage.getItem(`curriculos_${user.id}`);
-      const curriculosData = cvs ? JSON.parse(cvs) : [];
-      setCurriculos(curriculosData);
-      setFilteredCurriculos(curriculosData);
-
-      // Usando um valor numérico para fade
-      setTimeout(() => {
-        setFadeValue(1);
-      }, 100);
-    } catch (error) {
-      console.error('Erro ao carregar currículos:', error);
-      Alert.alert('Erro', 'Não foi possível carregar seus currículos.');
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  useEffect(() => {
-    loadCurriculos();
-
-    // Atualizar quando a tela ganhar foco
-    const unsubscribe = navigation.addListener('focus', () => {
-      loadCurriculos();
-    });
-
-    return unsubscribe;
-  }, [navigation]);
-
-  // Filtrar currículos com base no texto de pesquisa
-  useEffect(() => {
-    if (searchText.trim() === '') {
-      setFilteredCurriculos(curriculos);
-    } else {
-      const filtered = curriculos.filter(cv =>
-        cv.nome?.toLowerCase().includes(searchText.toLowerCase())
-      );
-      setFilteredCurriculos(filtered);
-    }
-  }, [searchText, curriculos]);
-
-  const handleDeleteCV = (id) => {
-    setShowMenu(false);
-
-    Alert.alert(
-      "Excluir Currículo",
-      "Tem certeza que deseja excluir este currículo?",
-      [
-        {
-          text: "Cancelar",
-          style: "cancel"
-        },
-        {
-          text: "Excluir",
-          style: "destructive",
-          onPress: async () => {
-            try {
-              const updatedCurriculos = curriculos.filter(cv => cv.id !== id);
-              await AsyncStorage.setItem(`curriculos_${user.id}`, JSON.stringify(updatedCurriculos));
-              setCurriculos(updatedCurriculos);
-              setFilteredCurriculos(
-                filteredCurriculos.filter(cv => cv.id !== id)
-              );
-
-              // Adicionar mensagem de sucesso
-              Alert.alert(
-                "Sucesso",
-                "Currículo excluído com sucesso!"
-              );
-            } catch (error) {
-              console.error('Erro ao excluir currículo:', error);
-              Alert.alert('Erro', 'Não foi possível excluir o currículo.');
-            }
-          }
-        }
-      ]
-    );
-  };
-
-  const handleViewCV = (cv) => {
-    navigation.navigate('PreviewCV', { curriculoData: cv });
-  };
-
-  // Nova função para editar currículo
-  const handleEditCV = (cv) => {
-    navigation.navigate('EditarCurriculo', { curriculoData: cv });
-  };
-
-  const handleAnalyzeCV = (cv) => {
-    navigation.navigate('AnaliseCV', { curriculoData: cv });
-  };
-
-  const handleShareCV = (cv) => {
-    // Simular compartilhamento
-    Share.share({
-      message: `Currículo de ${cv.nome || 'Usuário'} - ${formatDate(cv.dataCriacao)}`,
-      title: `Currículo - ${cv.nome || 'Usuário'}`
-    }).catch(error => {
-      console.error('Erro ao compartilhar:', error);
-    });
-  };
-
-  const showContextMenu = (id, event) => {
-    // Salvar a posição para o menu
-    menuPosition.current = {
-      x: event.nativeEvent.pageX - 180,  // Ajustar para o menu não ficar fora da tela
-      y: event.nativeEvent.pageY
-    };
-    setSelectedCurriculoId(id);
-    setShowMenu(true);
-  };
-
-  const formatDate = (dateString) => {
-    try {
-      if (!dateString) return 'Data não disponível';
-      const date = new Date(dateString);
-      return `${date.getDate().toString().padStart(2, '0')}/${(date.getMonth() + 1).toString().padStart(2, '0')}/${date.getFullYear()}`;
-    } catch (error) {
-      return 'Data inválida';
-    }
-  };
-
-  // Obter resumo do currículo
-  const getCurriculoDetails = (curriculo) => {
-    const cv = curriculo.data;
-    const area = cv.informacoes_pessoais?.area || 'Não especificada';
-    const experiencias = cv.experiencias?.length || 0;
-    const ultimaExperiencia = cv.experiencias?.length > 0
-      ? cv.experiencias[0].cargo + ' em ' + cv.experiencias[0].empresa
-      : 'Nenhuma experiência';
-    const formacoes = cv.formacoes_academicas?.length || 0;
-    const ultimaFormacao = cv.formacoes_academicas?.length > 0
-      ? cv.formacoes_academicas[0].diploma + ' em ' + cv.formacoes_academicas[0].area_estudo
-      : 'Nenhuma formação';
-
-    return { area, experiencias, ultimaExperiencia, formacoes, ultimaFormacao };
-  };
-
-  if (loading) {
-    return (
-      <SafeAreaView style={meusCurriculosStyles.container}>
-        <View style={meusCurriculosStyles.header}>
-          <TouchableOpacity
-            style={meusCurriculosStyles.backButton}
-            onPress={() => navigation.goBack()}
-          >
-            <Text style={meusCurriculosStyles.backButtonText}>‹</Text>
-          </TouchableOpacity>
-          <Text style={meusCurriculosStyles.headerTitle}>Gerenciar Currículos</Text>
-        </View>
-        <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}>
-          <ActivityIndicator size="large" color={ProfessionalColors.primary} />
-          <Text style={{ marginTop: 16, color: ProfessionalColors.textMedium, fontSize: 16 }}>
-            Carregando currículos...
-          </Text>
-        </View>
-      </SafeAreaView>
-    );
-  }
-
-  if (curriculos.length === 0) {
-    return (
-      <SafeAreaView style={meusCurriculosStyles.container}>
-        <View style={meusCurriculosStyles.header}>
-          <TouchableOpacity
-            style={meusCurriculosStyles.backButton}
-            onPress={() => navigation.goBack()}
-          >
-            <Text style={meusCurriculosStyles.backButtonText}>‹</Text>
-          </TouchableOpacity>
-          <Text style={meusCurriculosStyles.headerTitle}>Gerenciar Currículos</Text>
-        </View>
-        <View style={meusCurriculosStyles.emptyState}>
-          <DocumentIcon style={meusCurriculosStyles.emptyStateIcon} />
-          <Text style={meusCurriculosStyles.emptyStateTitle}>Nenhum Currículo Encontrado</Text>
-          <Text style={meusCurriculosStyles.emptyStateText}>
-            Você ainda não criou nenhum currículo. Crie seu primeiro currículo profissional agora mesmo!
-          </Text>
-          <TouchableOpacity
-            style={meusCurriculosStyles.emptyStateButton}
-            onPress={() => navigation.navigate('Chatbot')}
-          >
-            <Text style={meusCurriculosStyles.emptyStateButtonText}>Criar Currículo</Text>
-          </TouchableOpacity>
-        </View>
-      </SafeAreaView>
-    );
-  }
-
-  return (
-    <SafeAreaView style={meusCurriculosStyles.container}>
-      <StatusBar barStyle="dark-content" backgroundColor={ProfessionalColors.cardBackground} />
-
-      <View style={meusCurriculosStyles.header}>
-        <TouchableOpacity
-          style={meusCurriculosStyles.backButton}
-          onPress={() => navigation.goBack()}
-        >
-          <Text style={meusCurriculosStyles.backButtonText}>‹</Text>
-        </TouchableOpacity>
-        <Text style={meusCurriculosStyles.headerTitle}>Gerenciar Currículos</Text>
-
-        <View style={meusCurriculosStyles.headerActions}>
-          <TouchableOpacity style={meusCurriculosStyles.headerActionButton}>
-            <Text style={meusCurriculosStyles.headerActionIcon}>⚙️</Text>
-          </TouchableOpacity>
-        </View>
-      </View>
-
-      {/* Barra de pesquisa */}
-      <View style={meusCurriculosStyles.searchContainer}>
-        <Text style={meusCurriculosStyles.searchIcon}>🔍</Text>
-        <TextInput
-          style={meusCurriculosStyles.searchInput}
-          placeholder="Buscar currículos..."
-          value={searchText}
-          onChangeText={setSearchText}
-        />
-      </View>
-
-      {/* Header da seção */}
-      <View style={meusCurriculosStyles.sectionHeader}>
-        <Text style={meusCurriculosStyles.sectionTitle}>
-          Seus Currículos ({filteredCurriculos.length})
-        </Text>
-        <TouchableOpacity>
-          <Text style={meusCurriculosStyles.sectionActionText}>Ordenar</Text>
-        </TouchableOpacity>
-      </View>
-
-      <FlatList
-        data={filteredCurriculos}
-        keyExtractor={(item) => item.id}
-        contentContainerStyle={{ paddingBottom: 80 }}
-        style={{ opacity: fadeValue }} // Usando valor numérico
-        renderItem={({ item }) => {
-          const details = getCurriculoDetails(item);
-
-          return (
-            <View style={meusCurriculosStyles.curriculoCard}>
-              <TouchableOpacity
-                style={meusCurriculosStyles.curriculoCardContent}
-                onPress={() => handleViewCV(item)}
-                onLongPress={(event) => showContextMenu(item.id, event)}
-              >
-                <View style={meusCurriculosStyles.curriculoCardHeader}>
-                  <Text style={meusCurriculosStyles.curriculoCardTitle}>
-                    {item.nome || 'Currículo sem nome'}
-                  </Text>
-
-                  {/* Menu de contexto */}
-                  <TouchableOpacity
-                    onPress={(event) => showContextMenu(item.id, event)}
-                    hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
-                  >
-                    <Text>⋮</Text>
-                  </TouchableOpacity>
-                </View>
-
-                <View style={meusCurriculosStyles.curriculoCardMeta}>
-                  <Text style={meusCurriculosStyles.curriculoCardMetaIcon}>📅</Text>
-                  <Text style={meusCurriculosStyles.curriculoCardMetaText}>
-                    Criado em {formatDate(item.dataCriacao)}
-                  </Text>
-                </View>
-
-                <View style={meusCurriculosStyles.curriculoCardDetails}>
-                  <View style={meusCurriculosStyles.curriculoCardDetailsRow}>
-                    <Text style={meusCurriculosStyles.curriculoCardDetailsLabel}>Área:</Text>
-                    <Text style={meusCurriculosStyles.curriculoCardDetailsValue}>
-                      {details.area}
-                    </Text>
-                  </View>
-
-                  <View style={meusCurriculosStyles.curriculoCardDetailsRow}>
-                    <Text style={meusCurriculosStyles.curriculoCardDetailsLabel}>Experiência:</Text>
-                    <Text style={meusCurriculosStyles.curriculoCardDetailsValue}>
-                      {details.ultimaExperiencia}
-                    </Text>
-                  </View>
-
-                  <View style={meusCurriculosStyles.curriculoCardDetailsRow}>
-                    <Text style={meusCurriculosStyles.curriculoCardDetailsLabel}>Formação:</Text>
-                    <Text style={meusCurriculosStyles.curriculoCardDetailsValue}>
-                      {details.ultimaFormacao}
-                    </Text>
-                  </View>
-                </View>
-
-                <View style={meusCurriculosStyles.curriculoCardTagsContainer}>
-                  <View style={meusCurriculosStyles.curriculoCardTag}>
-                    <Text style={meusCurriculosStyles.curriculoCardTagText}>
-                      {details.experiencias} experiência(s)
-                    </Text>
-                  </View>
-
-                  <View style={meusCurriculosStyles.curriculoCardTag}>
-                    <Text style={meusCurriculosStyles.curriculoCardTagText}>
-                      {details.formacoes} formação(ões)
-                    </Text>
-                  </View>
-                </View>
-              </TouchableOpacity>
-
-              <View style={meusCurriculosStyles.curriculoCardActions}>
-                <TouchableOpacity
-                  style={meusCurriculosStyles.curriculoCardAction}
-                  onPress={() => handleViewCV(item)}
-                >
-                  <Text style={[
-                    meusCurriculosStyles.curriculoCardActionText,
-                    meusCurriculosStyles.curriculoCardActionPrimary
-                  ]}>
-                    <Text>👁️</Text> Visualizar
-                  </Text>
-                </TouchableOpacity>
-
-                <View style={meusCurriculosStyles.curriculoCardDivider} />
-                
-                {/* Novo botão de edição */}
-                <TouchableOpacity
-                  style={meusCurriculosStyles.curriculoCardAction}
-                  onPress={() => handleEditCV(item)}
-                >
-                  <Text style={[
-                    meusCurriculosStyles.curriculoCardActionText,
-                    meusCurriculosStyles.curriculoCardActionPrimary
-                  ]}>
-                    <Text>✏️</Text> Editar
-                  </Text>
-                </TouchableOpacity>
-
-                <View style={meusCurriculosStyles.curriculoCardDivider} />
-
-                <TouchableOpacity
-                  style={meusCurriculosStyles.curriculoCardAction}
-                  onPress={() => handleAnalyzeCV(item)}
-                >
-                  <Text style={[
-                    meusCurriculosStyles.curriculoCardActionText,
-                    meusCurriculosStyles.curriculoCardActionSecondary
-                  ]}>
-                    <Text>📊</Text> Analisar
-                  </Text>
-                </TouchableOpacity>
-
-                <View style={meusCurriculosStyles.curriculoCardDivider} />
-
-                <TouchableOpacity
-                  style={meusCurriculosStyles.curriculoCardAction}
-                  onPress={() => handleDeleteCV(item.id)}
-                >
-                  <Text style={[
-                    meusCurriculosStyles.curriculoCardActionText,
-                    meusCurriculosStyles.curriculoCardActionDanger
-                  ]}>
-                    <Text>🗑️</Text> Excluir
-                  </Text>
-                </TouchableOpacity>
-              </View>
-            </View>
-          );
-        }}
-      />
-
-      {/* Menu de contexto */}
-      {showMenu && (
-        <TouchableOpacity
-          style={meusCurriculosStyles.modalOverlay}
-          activeOpacity={1}
-          onPress={() => setShowMenu(false)}
-        >
-          <View style={[
-            meusCurriculosStyles.menuOptions,
-            {
-              position: 'absolute',
-              top: menuPosition.current.y,
-              left: menuPosition.current.x
-            }
-          ]}>
-            <TouchableOpacity
-              style={meusCurriculosStyles.menuOption}
-              onPress={() => {
-                setShowMenu(false);
-                const cv = curriculos.find(c => c.id === selectedCurriculoId);
-                if (cv) handleViewCV(cv);
-              }}
-            >
-              <Text>👁️</Text>
-              <Text style={meusCurriculosStyles.menuOptionText}>Visualizar</Text>
-            </TouchableOpacity>
-            
-            {/* Adicionar opção de edição no menu de contexto também */}
-            <TouchableOpacity
-              style={meusCurriculosStyles.menuOption}
-              onPress={() => {
-                setShowMenu(false);
-                const cv = curriculos.find(c => c.id === selectedCurriculoId);
-                if (cv) handleEditCV(cv);
-              }}
-            >
-              <Text>✏️</Text>
-              <Text style={meusCurriculosStyles.menuOptionText}>Editar</Text>
-            </TouchableOpacity>
-
-            <TouchableOpacity
-              style={meusCurriculosStyles.menuOption}
-              onPress={() => {
-                setShowMenu(false);
-                const cv = curriculos.find(c => c.id === selectedCurriculoId);
-                if (cv) handleAnalyzeCV(cv);
-              }}
-            >
-              <Text>📊</Text>
-              <Text style={meusCurriculosStyles.menuOptionText}>Analisar</Text>
-            </TouchableOpacity>
-
-            <TouchableOpacity
-              style={meusCurriculosStyles.menuOption}
-              onPress={() => {
-                setShowMenu(false);
-                const cv = curriculos.find(c => c.id === selectedCurriculoId);
-                if (cv) handleShareCV(cv);
-              }}
-            >
-              <Text>📤</Text>
-              <Text style={meusCurriculosStyles.menuOptionText}>Compartilhar</Text>
-            </TouchableOpacity>
-
-            <TouchableOpacity
-              style={meusCurriculosStyles.menuOption}
-              onPress={() => {
-                if (selectedCurriculoId) handleDeleteCV(selectedCurriculoId);
-              }}
-            >
-              <Text>🗑️</Text>
-              <Text style={[meusCurriculosStyles.menuOptionText, meusCurriculosStyles.menuOptionDanger]}>
-                Excluir
-              </Text>
-            </TouchableOpacity>
-          </View>
-        </TouchableOpacity>
-      )}
-
-      <TouchableOpacity
-        style={meusCurriculosStyles.fabButton}
-        onPress={() => navigation.navigate('Chatbot')}
-      >
-        <Text style={meusCurriculosStyles.fabButtonText}>+</Text>
-      </TouchableOpacity>
-    </SafeAreaView>
-  );
-};
-
-const PerfilFotoScreen = ({ navigation, route }) => {
-  const { user, updateUser } = useAuth();
-  const [selectedImage, setSelectedImage] = useState(user?.foto || null);
-  const [loading, setLoading] = useState(false);
-  const [showImageOptions, setShowImageOptions] = useState(false);
-
-  // Cores predefinidas para avatares caso não haja foto
-  const colorOptions = [
-    '#3498db', '#2ecc71', '#e74c3c', '#f39c12',
-    '#9b59b6', '#1abc9c', '#d35400', '#c0392b'
-  ];
-
-  // Imagens de exemplo para simular a galeria
-  const exampleImages = [
-    { id: 'img1', uri: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=200&h=200&fit=crop' },
-    { id: 'img2', uri: 'https://images.unsplash.com/photo-1506794778202-cad84cf45f1d?w=200&h=200&fit=crop' },
-    { id: 'img3', uri: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=200&h=200&fit=crop' },
-    { id: 'img4', uri: 'https://images.unsplash.com/photo-1438761681033-6461ffad8d80?w=200&h=200&fit=crop' },
-    { id: 'img5', uri: 'https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=200&h=200&fit=crop' },
-    { id: 'img6', uri: 'https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=200&h=200&fit=crop' },
-    { id: 'img7', uri: 'https://randomuser.me/api/portraits/men/1.jpg' },
-    { id: 'img8', uri: 'https://randomuser.me/api/portraits/women/1.jpg' },
-    { id: 'img9', uri: 'https://randomuser.me/api/portraits/men/32.jpg' },
-    { id: 'img10', uri: 'https://randomuser.me/api/portraits/women/44.jpg' },
-    { id: 'img11', uri: 'https://randomuser.me/api/portraits/men/85.jpg' },
-    { id: 'img12', uri: 'https://randomuser.me/api/portraits/women/63.jpg' },
-  ];
-
-  // Estado para controlar o avatar de cor selecionado (caso não use foto)
-  const [selectedColorIndex, setSelectedColorIndex] = useState(
-    user?.avatarColorIndex !== undefined ? user.avatarColorIndex : Math.floor(Math.random() * colorOptions.length)
-  );
-
-  // Função para salvar a foto do perfil
-  const saveProfileImage = async () => {
-    try {
-      setLoading(true);
-
-      // Buscar dados atuais do usuário
-      const usuariosStr = await AsyncStorage.getItem('usuarios');
-      const usuarios = JSON.parse(usuariosStr) || [];
-
-      // Encontrar índice do usuário atual
-      const userIndex = usuarios.findIndex(u => u.id === user.id);
-      if (userIndex === -1) {
-        throw new Error('Usuário não encontrado');
-      }
-
-      // Atualizar usuário com a nova foto e índice de cor do avatar
-      const updatedUser = {
-        ...usuarios[userIndex],
-        foto: selectedImage,
-        avatarColorIndex: selectedColorIndex,
-        dataAtualizacao: new Date().toISOString()
-      };
-
-      usuarios[userIndex] = updatedUser;
-
-      // Salvar usuários atualizados
-      await AsyncStorage.setItem('usuarios', JSON.stringify(usuarios));
-
-      // Atualizar usuário atual
-      await AsyncStorage.setItem('currentUser', JSON.stringify(updatedUser));
-
-      // Se o contexto de autenticação tiver uma função para atualizar o usuário, use-a
-      if (updateUser) {
-        updateUser(updatedUser);
-      }
-
-      Alert.alert('Sucesso', 'Foto de perfil atualizada com sucesso!');
-
-      // Navegar de volta se veio de uma rota específica
-      if (route.params?.returnTo) {
-        navigation.navigate(route.params.returnTo);
-      } else {
-        navigation.goBack();
-      }
-
-    } catch (error) {
-      console.error('Erro ao salvar foto de perfil:', error);
-      Alert.alert('Erro', 'Não foi possível salvar a foto de perfil.');
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  // Função para simular a captura de foto com a câmera
-  const handleTakePhoto = () => {
-    setShowImageOptions(false);
-
-    // Simular o processo de tirar uma foto
-    setLoading(true);
-    setTimeout(() => {
-      // Seleciona uma imagem aleatória da galeria para simular uma foto
-      const randomIndex = Math.floor(Math.random() * exampleImages.length);
-      setSelectedImage(exampleImages[randomIndex].uri);
-      setLoading(false);
-
-      Alert.alert('Foto Capturada', 'A foto foi capturada com sucesso! (Simulação)');
-    }, 1500);
-  };
-
-  // Função para remover a foto de perfil
-  const handleRemovePhoto = () => {
-    Alert.alert(
-      'Remover Foto',
-      'Tem certeza que deseja remover sua foto de perfil?',
-      [
-        { text: 'Cancelar', style: 'cancel' },
-        {
-          text: 'Remover',
-          style: 'destructive',
-          onPress: () => {
-            setSelectedImage(null);
-            setShowImageOptions(false);
-          }
-        }
-      ]
-    );
-  };
-
-  // Renderiza o avatar com iniciais caso não haja foto
-  const renderInitialsAvatar = () => {
-    const initials = user?.nome ? user.nome.charAt(0).toUpperCase() : 'U';
-    const backgroundColor = colorOptions[selectedColorIndex];
-
-    return (
-      <View style={{
-        width: 150,
-        height: 150,
-        borderRadius: 75,
-        backgroundColor,
-        justifyContent: 'center',
-        alignItems: 'center',
-      }}>
-        <Text style={{
-          fontSize: 60,
-          color: Colors.white,
-          fontWeight: 'bold',
-        }}>
-          {initials}
-        </Text>
-      </View>
-    );
-  };
-
-  return (
-    <SafeAreaView style={styles.container}>
-      <StatusBar barStyle="dark-content" backgroundColor={Colors.dark} />
-
-      <View style={styles.header}>
-        <TouchableOpacity
-          style={styles.backButton}
-          onPress={() => navigation.goBack()}
-        >
-          <Text style={styles.backButtonText}>‹</Text>
-        </TouchableOpacity>
-        <Text style={styles.headerTitle}>Foto de Perfil</Text>
-      </View>
-
-      <ScrollView style={{ flex: 1 }}>
-        <View style={{
-          padding: 20,
-          alignItems: 'center',
-        }}>
-          {/* Avatar ou foto do perfil */}
-          <TouchableOpacity
-            style={{
-              marginVertical: 20,
-              borderWidth: 3,
-              borderColor: Colors.primary,
-              borderRadius: 75,
-              padding: 3,
-            }}
-            onPress={() => setShowImageOptions(true)}
-            disabled={loading}
-          >
-            {selectedImage ? (
-              <Image
-                source={{ uri: selectedImage }}
-                style={{
-                  width: 150,
-                  height: 150,
-                  borderRadius: 75,
-                }}
-              />
-            ) : (
-              renderInitialsAvatar()
-            )}
-
-            {/* Ícone de câmera sobreposto */}
-            <View style={{
-              position: 'absolute',
-              bottom: 0,
-              right: 0,
-              backgroundColor: Colors.primary,
-              borderRadius: 20,
-              width: 40,
-              height: 40,
-              justifyContent: 'center',
-              alignItems: 'center',
-              borderWidth: 2,
-              borderColor: Colors.white,
-            }}>
-              <Text style={{ fontSize: 18, color: Colors.white }}>📷</Text>
-            </View>
-          </TouchableOpacity>
-
-          <Text style={{
-            fontSize: 20,
-            fontWeight: 'bold',
-            marginVertical: 10,
-          }}>
-            {user?.nome || 'Usuário'}
-          </Text>
-
-          <Text style={{
-            fontSize: 16,
-            color: Colors.lightText,
-            marginBottom: 20,
-            textAlign: 'center',
-          }}>
-            Selecione ou tire uma foto para seu perfil, ou escolha uma cor para o avatar com suas iniciais.
-          </Text>
-
-          {/* Seletor de cores para o avatar */}
-          {!selectedImage && (
-            <View style={{ marginVertical: 20 }}>
-              <Text style={{
-                fontSize: 16,
-                fontWeight: 'bold',
-                marginBottom: 10,
-                textAlign: 'center',
-              }}>
-                Escolha uma cor para seu avatar
-              </Text>
-
-              <View style={{
-                flexDirection: 'row',
-                flexWrap: 'wrap',
-                justifyContent: 'center',
-              }}>
-                {colorOptions.map((color, index) => (
-                  <TouchableOpacity
-                    key={index}
-                    style={{
-                      width: 40,
-                      height: 40,
-                      borderRadius: 20,
-                      backgroundColor: color,
-                      margin: 5,
-                      justifyContent: 'center',
-                      alignItems: 'center',
-                      borderWidth: selectedColorIndex === index ? 3 : 0,
-                      borderColor: Colors.white,
-                      elevation: selectedColorIndex === index ? 5 : 0,
-                      shadowColor: '#000',
-                      shadowOffset: { width: 0, height: 2 },
-                      shadowOpacity: selectedColorIndex === index ? 0.3 : 0,
-                      shadowRadius: selectedColorIndex === index ? 4 : 0,
-                    }}
-                    onPress={() => setSelectedColorIndex(index)}
-                  >
-                    {selectedColorIndex === index && (
-                      <Text style={{ color: Colors.white, fontWeight: 'bold' }}>✓</Text>
-                    )}
-                  </TouchableOpacity>
-                ))}
-              </View>
-            </View>
-          )}
-
-          {/* Galeria de fotos de exemplo */}
-          {showImageOptions && (
-            <View style={{ marginTop: 20, width: '100%' }}>
-              <View style={{
-                flexDirection: 'row',
-                justifyContent: 'space-between',
-                alignItems: 'center',
-                marginBottom: 15,
-                paddingHorizontal: 10,
-              }}>
-                <Text style={{
-                  fontSize: 18,
-                  fontWeight: 'bold',
-                }}>
-                  Escolha uma Foto
-                </Text>
-
-                <TouchableOpacity
-                  onPress={() => setShowImageOptions(false)}
-                >
-                  <Text style={{
-                    fontSize: 22,
-                    color: Colors.lightText,
-                    paddingHorizontal: 5,
-                  }}>
-                    ×
-                  </Text>
-                </TouchableOpacity>
-              </View>
-
-              <View style={{
-                flexDirection: 'row',
-                justifyContent: 'space-around',
-                marginBottom: 20,
-              }}>
-                <TouchableOpacity
-                  style={{
-                    alignItems: 'center',
-                    backgroundColor: Colors.primary,
-                    padding: 12,
-                    borderRadius: 8,
-                    width: '45%',
-                  }}
-                  onPress={handleTakePhoto}
-                >
-                  <Text style={{ color: Colors.white }}>Tirar Foto</Text>
-                </TouchableOpacity>
-
-                <TouchableOpacity
-                  style={{
-                    alignItems: 'center',
-                    backgroundColor: Colors.danger,
-                    padding: 12,
-                    borderRadius: 8,
-                    width: '45%',
-                  }}
-                  onPress={handleRemovePhoto}
-                >
-                  <Text style={{ color: Colors.white }}>Remover Foto</Text>
-                </TouchableOpacity>
-              </View>
-
-              <Text style={{
-                fontSize: 16,
-                fontWeight: 'bold',
-                marginBottom: 10,
-                paddingHorizontal: 10,
-              }}>
-                Selecione da Galeria:
-              </Text>
-
-              <View style={{
-                flexDirection: 'row',
-                flexWrap: 'wrap',
-                justifyContent: 'space-between',
-                paddingHorizontal: 5,
-              }}>
-                {exampleImages.map((img, index) => (
-                  <TouchableOpacity
-                    key={img.id}
-                    style={{
-                      width: '30%',
-                      aspectRatio: 1,
-                      marginBottom: 10,
-                      borderWidth: 2,
-                      borderColor: selectedImage === img.uri ? Colors.primary : 'transparent',
-                      borderRadius: 8,
-                    }}
-                    onPress={() => setSelectedImage(img.uri)}
-                  >
-                    <Image
-                      source={{ uri: img.uri }}
-                      style={{
-                        width: '100%',
-                        height: '100%',
-                        borderRadius: 6,
-                      }}
-                    />
-                  </TouchableOpacity>
-                ))}
-              </View>
-            </View>
-          )}
-
-          <TouchableOpacity
-            style={{
-              backgroundColor: Colors.primary,
-              paddingVertical: 12,
-              paddingHorizontal: 30,
-              borderRadius: 8,
-              marginTop: 30,
-              width: '80%',
-              alignItems: 'center',
-            }}
-            onPress={saveProfileImage}
-            disabled={loading}
-          >
-            {loading ? (
-              <ActivityIndicator size="small" color={Colors.white} />
-            ) : (
-              <Text style={{
-                color: Colors.white,
-                fontWeight: 'bold',
-                fontSize: 16,
-              }}>
-                Salvar
-              </Text>
-            )}
-          </TouchableOpacity>
-        </View>
-      </ScrollView>
-    </SafeAreaView>
-  );
-};
-
-const AnaliseCVScreen = ({ route, navigation }) => {
-  const { curriculoData } = route.params;
-  const [activeTab, setActiveTab] = useState('pontuacao');
-  const [analiseResultado, setAnaliseResultado] = useState(null);
-  const [providerInfo, setProviderInfo] = useState(null);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState(null);
-  const [usingOfflineMode, setUsingOfflineMode] = useState(false);
-  const [preferOffline, setPreferOffline] = useState(false);
-  const [selectedIA, setSelectedIA] = useState('GEMINI');
-  const [iaOptions, setIaOptions] = useState([]);
-  const [detalhado, setDetalhado] = useState(false); // Estado para controlar análise detalhada
-  const [showCharts, setShowCharts] = useState(false); // Estado para mostrar/esconder gráficos
-
-  // Alteração: Adicionar um ID de currículo atual para controle
-  const [currentCurriculoId, setCurrentCurriculoId] = useState(null);
-
-  useEffect(() => {
-    carregarIAsConfiguradas();
-  }, []);
-
-  // Alteração: Atualizar o ID do currículo atual quando mudar
-  useEffect(() => {
-    if (curriculoData && curriculoData.id !== currentCurriculoId) {
-      setCurrentCurriculoId(curriculoData.id);
-      fetchAnalise(true); // Forçar nova análise quando currículo mudar
-    }
-  }, [curriculoData]);
-
-  useEffect(() => {
-    fetchAnalise();
-  }, [activeTab, preferOffline, selectedIA, detalhado]); // Adicionei 'detalhado' como dependência
-
-  const carregarIAsConfiguradas = async () => {
-    try {
-      // Carregar IA padrão
-      const defaultIA = await AsyncStorage.getItem('ia_padrao');
-      if (defaultIA && IA_APIS[defaultIA] && defaultIA !== 'OPENAI') {
-        setSelectedIA(defaultIA);
-      }
-
-      // Verificar quais IAs estão configuradas
-      const options = [];
-      for (const [key, value] of Object.entries(IA_APIS)) {
-        // Alteração: Excluir OPENAI (ChatGPT) das opções
-        if (key !== 'OPENAI') {
-          const apiKey = await getIAAPIKey(key);
-          if (!value.chaveNecessaria || apiKey) {
-            options.push({
-              id: key,
-              nome: value.nome
-            });
-          }
-        }
-      }
-
-      setIaOptions(options);
-    } catch (error) {
-      console.error('Erro ao carregar IAs configuradas:', error);
-    }
-  };
-
-  // Função para gerar dados de gráficos com base no currículo
-  const gerarDadosGraficos = () => {
-    if (!curriculoData || !curriculoData.data) {
-      return null;
-    }
-
-    // Dados do currículo
-    const cv = curriculoData.data;
-
-    // Gerar dados para o gráfico de habilidades
-    const gerarDadosHabilidades = () => {
-      // Conjunto para armazenar habilidades únicas
-      const habilidadesSet = new Set();
-
-      // Extrair habilidades de projetos
-      if (cv.projetos && cv.projetos.length > 0) {
-        cv.projetos.forEach(projeto => {
-          if (projeto.habilidades) {
-            projeto.habilidades.split(',').forEach(hab => {
-              habilidadesSet.add(hab.trim());
-            });
-          }
-        });
-      }
-
-      // Converter para array de objetos para o gráfico
-      const habilidadesArray = Array.from(habilidadesSet).map(habilidade => ({
-        nome: habilidade,
-        valor: Math.floor(Math.random() * 5) + 5 // Valor aleatório entre 5-10 (demo)
-      }));
-
-      return habilidadesArray.slice(0, 8); // Limitar a 8 habilidades para o gráfico
-    };
-
-    // Gerar dados para o gráfico de experiência
-    const gerarDadosExperiencia = () => {
-      if (!cv.experiencias || cv.experiencias.length === 0) {
-        return [];
-      }
-
-      return cv.experiencias.map(exp => {
-        // Calcular duração aproximada em meses
-        let inicio = exp.data_inicio ? new Date(exp.data_inicio) : new Date();
-        let fim = exp.data_fim && exp.data_fim.toLowerCase() !== 'atual'
-          ? new Date(exp.data_fim)
-          : new Date();
-
-        // Se as datas não são objetos Date válidos, usar valores padrão
-        if (isNaN(inicio.getTime())) inicio = new Date('2020-01-01');
-        if (isNaN(fim.getTime())) fim = new Date();
-
-        const diferencaMeses = (fim.getFullYear() - inicio.getFullYear()) * 12 +
-          (fim.getMonth() - inicio.getMonth());
-
-        return {
-          empresa: exp.empresa || 'Empresa',
-          cargo: exp.cargo || 'Cargo',
-          duracao: Math.max(1, diferencaMeses || 6) // Pelo menos 1 mês
-        };
-      });
-    };
-
-    // Gerar dados para pontuação por área
-    const gerarDadosPontuacao = () => {
-      const pontuacoes = {
-        'Experiência': cv.experiencias && cv.experiencias.length > 0 ? Math.min(10, cv.experiencias.length * 2) : 3,
-        'Formação': cv.formacoes_academicas && cv.formacoes_academicas.length > 0 ? Math.min(10, cv.formacoes_academicas.length * 3) : 4,
-        'Projetos': cv.projetos && cv.projetos.length > 0 ? Math.min(10, cv.projetos.length * 2.5) : 2,
-        'Cursos': cv.cursos && cv.cursos.length > 0 ? Math.min(10, cv.cursos.length * 2) : 3,
-        'Idiomas': cv.idiomas && cv.idiomas.length > 0 ? Math.min(10, cv.idiomas.length * 3) : 5
-      };
-
-      return Object.entries(pontuacoes).map(([area, valor]) => ({ area, valor }));
-    };
-
-    return {
-      habilidades: gerarDadosHabilidades(),
-      experiencia: gerarDadosExperiencia(),
-      pontuacao: gerarDadosPontuacao()
-    };
-  };
-
-  // Alteração: Melhorar a função fetchAnalise para incluir modo detalhado e aceitar parâmetro forceRefresh
-  const fetchAnalise = async (forceRefresh = false) => {
-    // Não recarrega se já estiver carregando, a menos que seja forçado
-    if (loading && !forceRefresh) return;
-
-    setLoading(true);
-    setError(null);
-    setUsingOfflineMode(false);
-    setProviderInfo(null);
-
-    // Limpar resultado anterior se for um currículo diferente ou forçar refresh
-    if (forceRefresh) {
-      setAnaliseResultado(null);
-    }
-
-    try {
-      const tipoIA = selectedIA === 'OFFLINE' ? 'OFFLINE' : selectedIA;
-
-      // Verificar se curriculoData existe e tem dados
-      if (!curriculoData || !curriculoData.data) {
-        throw new Error("Dados do currículo inválidos");
-      }
-
-      // Configurar objeto com parâmetros adicionais para análise detalhada
-      const opcoesAnalise = {
-        analiseDetalhada: detalhado,  // Nova opção para controlar nível de detalhe
-        tipoAnalise: activeTab,
-        maxTokens: detalhado ? 1500 : 800  // Aumenta o limite de tokens para análises detalhadas
-      };
-
-      // Passar as opções adicionais para a função de análise
-      const resultado = await analisarCurriculoComIA(
-        curriculoData.data,
-        activeTab,
-        tipoIA,
-        preferOffline,
-        opcoesAnalise  // Novo parâmetro com opções adicionais
-      );
-
-      if (resultado.offline || tipoIA === 'OFFLINE') {
-        setUsingOfflineMode(true);
-      }
-
-      if (resultado.success) {
-        setAnaliseResultado(resultado.analise);
-        setProviderInfo(resultado.provider || 'IA Não Identificada');
-      } else {
-        setError(resultado.message || 'Erro ao analisar currículo');
-      }
-    } catch (error) {
-      console.error('Erro ao buscar análise:', error);
-      setError('Ocorreu um erro ao analisar o currículo. ' + error.message);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const toggleOfflineMode = () => {
-    setPreferOffline(!preferOffline);
-  };
-
-  // Toggle para modo detalhado
-  const toggleModoDetalhado = () => {
-    setDetalhado(!detalhado);
-    // A análise será atualizada automaticamente pelo useEffect
-  };
-
-  // Toggle para mostrar/esconder gráficos
-  const toggleShowCharts = () => {
-    setShowCharts(!showCharts);
-  };
-
-  // Render do seletor de IA
-  const renderIASelector = () => (
-    <View style={styles.iaSelectorContainer}>
-      <View style={{
-        flexDirection: 'row',
-        justifyContent: 'space-between',
-        alignItems: 'center',
-        marginBottom: 8,
-      }}>
-        <Text style={styles.iaSelectorLabel}>Analisar com:</Text>
-
-        {/* Alteração: Adicionar botão de atualizar */}
-        <TouchableOpacity
-          style={{
-            backgroundColor: Colors.secondary,
-            paddingVertical: 6,
-            paddingHorizontal: 12,
-            borderRadius: 5,
-            flexDirection: 'row',
-            alignItems: 'center',
-          }}
-          onPress={() => fetchAnalise(true)}
-          disabled={loading}
-        >
-          {loading ? (
-            <ActivityIndicator size="small" color={Colors.white} />
-          ) : (
-            <Text style={{
-              color: Colors.white,
-              fontSize: 14,
-              fontWeight: '500',
-            }}>Atualizar</Text>
-          )}
-        </TouchableOpacity>
-      </View>
-
-      <ScrollView
-        horizontal
-        showsHorizontalScrollIndicator={false}
-        contentContainerStyle={styles.iaOptionsContainer}
-      >
-        {iaOptions.map(option => (
-          <TouchableOpacity
-            key={option.id}
-            style={[
-              styles.iaOptionButton,
-              selectedIA === option.id && styles.iaOptionButtonSelected
-            ]}
-            onPress={() => setSelectedIA(option.id)}
-          >
-            <Text
-              style={[
-                styles.iaOptionText,
-                selectedIA === option.id && styles.iaOptionTextSelected
-              ]}
-            >
-              {option.nome}
-            </Text>
-          </TouchableOpacity>
-        ))}
-      </ScrollView>
-
-      {/* Nova linha com opções adicionais */}
-      <View style={{
-        flexDirection: 'row',
-        justifyContent: 'space-between',
-        marginTop: 10,
-      }}>
-        {/* Toggle para modo detalhado */}
-        <TouchableOpacity
-          style={{
-            flexDirection: 'row',
-            alignItems: 'center',
-            backgroundColor: detalhado ? Colors.primary : 'transparent',
-            borderWidth: 1,
-            borderColor: Colors.primary,
-            borderRadius: 5,
-            paddingHorizontal: 10,
-            paddingVertical: 6,
-          }}
-          onPress={toggleModoDetalhado}
-        >
-          <Text
-            style={{
-              color: detalhado ? Colors.white : Colors.primary,
-              fontSize: 14,
-            }}
-          >
-            {detalhado ? 'Análise Detalhada ✓' : 'Análise Simples'}
-          </Text>
-        </TouchableOpacity>
-
-        {/* Botão para visualização de gráficos */}
-        <TouchableOpacity
-          style={{
-            flexDirection: 'row',
-            alignItems: 'center',
-            backgroundColor: showCharts ? Colors.info : 'transparent',
-            borderWidth: 1,
-            borderColor: Colors.info,
-            borderRadius: 5,
-            paddingHorizontal: 10,
-            paddingVertical: 6,
-          }}
-          onPress={toggleShowCharts}
-        >
-          <Text
-            style={{
-              color: showCharts ? Colors.white : Colors.info,
-              fontSize: 14,
-            }}
-          >
-            {showCharts ? 'Esconder Gráficos' : 'Visualizar Gráficos'}
-          </Text>
-        </TouchableOpacity>
-      </View>
-
-      {providerInfo && (
-        <Text style={styles.providerInfo}>
-          Análise fornecida por: {providerInfo}
-        </Text>
-      )}
-    </View>
-  );
-
-  // Renderização dos gráficos
-  const renderCharts = () => {
-    const dadosGraficos = gerarDadosGraficos();
-
-    if (!dadosGraficos) {
-      return (
-        <View style={{ padding: 15, alignItems: 'center' }}>
-          <Text>Não foi possível gerar gráficos com os dados atuais.</Text>
-        </View>
-      );
-    }
-
-    return (
-      <View style={{
-        backgroundColor: '#f9f9f9',
-        marginHorizontal: 15,
-        marginBottom: 20,
-        borderRadius: 10,
-        padding: 15,
-        elevation: 2,
-        shadowColor: '#000',
-        shadowOffset: { width: 0, height: 1 },
-        shadowOpacity: 0.1,
-        shadowRadius: 2,
-      }}>
-        <Text style={{
-          fontSize: 18,
-          fontWeight: 'bold',
-          marginBottom: 15,
-          color: Colors.dark,
-          textAlign: 'center',
-        }}>
-          Visualização Gráfica do Currículo
-        </Text>
-
-        {/* Gráfico de Pontuação por Área */}
-        <View style={{ marginBottom: 20 }}>
-          <Text style={{
-            fontSize: 16,
-            fontWeight: 'bold',
-            marginBottom: 10,
-            color: Colors.dark,
-          }}>
-            Pontuação por Área
-          </Text>
-
-          {/* Renderização do gráfico de barras horizontal */}
-          {dadosGraficos.pontuacao.map((item, index) => (
-            <View key={index} style={{ marginBottom: 8 }}>
-              <View style={{ flexDirection: 'row', justifyContent: 'space-between' }}>
-                <Text>{item.area}</Text>
-                <Text>{item.valor.toFixed(1)}/10</Text>
-              </View>
-              <View style={{
-                height: 10,
-                backgroundColor: Colors.mediumGray,
-                borderRadius: 5,
-                marginTop: 5,
-              }}>
-                <View style={{
-                  width: `${item.valor * 10}%`,
-                  height: '100%',
-                  backgroundColor: getBarColor(item.valor),
-                  borderRadius: 5,
-                }} />
-              </View>
-            </View>
-          ))}
-        </View>
-
-        {/* Gráfico de Habilidades */}
-        {dadosGraficos.habilidades.length > 0 && (
-          <View style={{ marginBottom: 20 }}>
-            <Text style={{
-              fontSize: 16,
-              fontWeight: 'bold',
-              marginBottom: 10,
-              color: Colors.dark,
-            }}>
-              Principais Habilidades
-            </Text>
-
-            <View style={{ flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'space-between' }}>
-              {dadosGraficos.habilidades.map((item, index) => (
-                <View key={index} style={{
-                  width: '48%',
-                  backgroundColor: Colors.white,
-                  padding: 10,
-                  borderRadius: 5,
-                  marginBottom: 10,
-                  borderLeftWidth: 3,
-                  borderLeftColor: Colors.primary,
-                  elevation: 1,
-                  shadowColor: '#000',
-                  shadowOffset: { width: 0, height: 1 },
-                  shadowOpacity: 0.1,
-                  shadowRadius: 1,
-                }}>
-                  <Text style={{ fontWeight: 'bold' }}>{item.nome}</Text>
-                  <View style={{ flexDirection: 'row', marginTop: 5 }}>
-                    {Array(10).fill(0).map((_, i) => (
-                      <View
-                        key={i}
-                        style={{
-                          width: 8,
-                          height: 8,
-                          borderRadius: 4,
-                          backgroundColor: i < item.valor ? Colors.primary : Colors.mediumGray,
-                          marginRight: 2,
-                        }}
-                      />
-                    ))}
-                  </View>
-                </View>
-              ))}
-            </View>
-          </View>
-        )}
-
-        {/* Gráfico de Experiência Profissional */}
-        {dadosGraficos.experiencia.length > 0 && (
-          <View>
-            <Text style={{
-              fontSize: 16,
-              fontWeight: 'bold',
-              marginBottom: 10,
-              color: Colors.dark,
-            }}>
-              Experiência Profissional
-            </Text>
-
-            {dadosGraficos.experiencia.map((item, index) => (
-              <View key={index} style={{ marginBottom: 10 }}>
-                <Text style={{ fontWeight: 'bold' }}>{item.cargo} - {item.empresa}</Text>
-                <View style={{
-                  flexDirection: 'row',
-                  alignItems: 'center',
-                  marginTop: 5,
-                }}>
-                  <View style={{
-                    width: `${Math.min(100, item.duracao * 2)}%`,
-                    maxWidth: '80%',
-                    height: 20,
-                    backgroundColor: Colors.primary,
-                    borderRadius: 5,
-                    justifyContent: 'center',
-                    paddingHorizontal: 5,
-                  }}>
-                    <Text style={{
-                      color: Colors.white,
-                      fontSize: 12,
-                      textAlign: 'center',
-                    }}>
-                      {item.duracao} {item.duracao === 1 ? 'mês' : 'meses'}
-                    </Text>
-                  </View>
-                </View>
-              </View>
-            ))}
-          </View>
-        )}
-      </View>
-    );
-  };
-
-  // Função para determinar a cor da barra com base no valor
-  const getBarColor = (valor) => {
-    if (valor >= 8) return Colors.success;
-    if (valor >= 5) return Colors.primary;
-    if (valor >= 3) return Colors.warning;
-    return Colors.danger;
-  };
-
-  return (
-    <SafeAreaView style={styles.container}>
-      <StatusBar barStyle="dark-content" backgroundColor={Colors.dark} />
-
-      <View style={styles.header}>
-        <TouchableOpacity
-          style={styles.backButton}
-          onPress={() => navigation.goBack()}
-        >
-          <Text style={styles.backButtonText}>‹</Text>
-        </TouchableOpacity>
-        <Text style={styles.headerTitle}>Análise com IA</Text>
-
-        <TouchableOpacity
-          style={styles.modeToggleButton}
-          onPress={toggleOfflineMode}
-        >
-          <Text style={styles.modeToggleText}>
-            {preferOffline ? 'Usar Online' : 'Usar Offline'}
-          </Text>
-        </TouchableOpacity>
-      </View>
-
-      <View style={styles.cvAnalysisHeader}>
-        <Text style={styles.cvAnalysisTitle}>
-          Análise do currículo: {curriculoData.nome || 'Sem nome'}
-        </Text>
-      </View>
-
-      <ScrollView
-        horizontal
-        showsHorizontalScrollIndicator={false}
-        style={styles.analysisTabs}
-        contentContainerStyle={styles.analysisTabsContent}
-      >
-        <TouchableOpacity
-          style={[
-            styles.analysisTab,
-            activeTab === 'pontuacao' && styles.activeAnalysisTab
-          ]}
-          onPress={() => setActiveTab('pontuacao')}
-        >
-          <Text
-            style={[
-              styles.analysisTabText,
-              activeTab === 'pontuacao' && styles.activeAnalysisTabText
-            ]}
-          >
-            Pontuação
-          </Text>
-        </TouchableOpacity>
-
-        <TouchableOpacity
-          style={[
-            styles.analysisTab,
-            activeTab === 'melhorias' && styles.activeAnalysisTab
-          ]}
-          onPress={() => setActiveTab('melhorias')}
-        >
-          <Text
-            style={[
-              styles.analysisTabText,
-              activeTab === 'melhorias' && styles.activeAnalysisTabText
-            ]}
-          >
-            Melhorias
-          </Text>
-        </TouchableOpacity>
-
-        <TouchableOpacity
-          style={[
-            styles.analysisTab,
-            activeTab === 'dicas' && styles.activeAnalysisTab
-          ]}
-          onPress={() => setActiveTab('dicas')}
-        >
-          <Text
-            style={[
-              styles.analysisTabText,
-              activeTab === 'dicas' && styles.activeAnalysisTabText
-            ]}
-          >
-            Dicas
-          </Text>
-        </TouchableOpacity>
-
-        <TouchableOpacity
-          style={[
-            styles.analysisTab,
-            activeTab === 'cursos' && styles.activeAnalysisTab
-          ]}
-          onPress={() => setActiveTab('cursos')}
-        >
-          <Text
-            style={[
-              styles.analysisTabText,
-              activeTab === 'cursos' && styles.activeAnalysisTabText
-            ]}
-          >
-            Cursos
-          </Text>
-        </TouchableOpacity>
-
-        <TouchableOpacity
-          style={[
-            styles.analysisTab,
-            activeTab === 'vagas' && styles.activeAnalysisTab
-          ]}
-          onPress={() => setActiveTab('vagas')}
-        >
-          <Text
-            style={[
-              styles.analysisTabText,
-              activeTab === 'vagas' && styles.activeAnalysisTabText
-            ]}
-          >
-            Vagas
-          </Text>
-        </TouchableOpacity>
-      </ScrollView>
-
-      {/* Selector de IA */}
-      {renderIASelector()}
-
-      {usingOfflineMode && (
-        <View style={styles.offlineBanner}>
-          <Text style={styles.offlineBannerText}>
-            Usando análise offline - Algumas funcionalidades podem estar limitadas.
-          </Text>
-        </View>
-      )}
-
-      {detalhado && !usingOfflineMode && (
-        <View style={{
-          backgroundColor: '#e1f5fe',
-          padding: 10,
-          borderRadius: 5,
-          marginHorizontal: 15,
-          marginBottom: 10,
-          borderLeftWidth: 3,
-          borderLeftColor: Colors.info,
-        }}>
-          <Text style={{ color: '#01579b', fontSize: 14 }}>
-            Modo detalhado ativado - Análise mais completa e aprofundada
-          </Text>
-        </View>
-      )}
-
-      {/* Visualização de gráficos */}
-      {showCharts && !loading && !error && renderCharts()}
-
-      {loading ? (
-        <View style={styles.loadingAnalysisContainer}>
-          <ActivityIndicator size="large" color={Colors.primary} />
-          <Text style={styles.loadingAnalysisText}>
-            {detalhado
-              ? 'Realizando análise detalhada do currículo...'
-              : 'Analisando seu currículo...'}
-          </Text>
-        </View>
-      ) : error ? (
-        <View style={styles.errorContainer}>
-          <Text style={styles.errorText}>{error}</Text>
-          <TouchableOpacity
-            style={styles.retryButton}
-            onPress={() => fetchAnalise(true)}
-          >
-            <Text style={styles.retryButtonText}>Tentar Novamente</Text>
-          </TouchableOpacity>
-        </View>
-      ) : (
-        <ScrollView style={styles.analysisResultContainer}>
-          {/* Use o componente Markdown para renderizar o texto formatado */}
-          <Markdown
-            style={{
-              body: styles.analysisResultText,
-              heading1: {
-                fontSize: 22,
-                fontWeight: 'bold',
-                marginBottom: 10,
-                color: Colors.dark,
-                borderBottomWidth: 1,
-                borderBottomColor: Colors.mediumGray,
-                paddingBottom: 5,
-              },
-              heading2: {
-                fontSize: 20,
-                fontWeight: 'bold',
-                marginBottom: 10,
-                marginTop: 15,
-                color: Colors.dark
-              },
-              heading3: {
-                fontSize: 18,
-                fontWeight: 'bold',
-                marginTop: 10,
-                marginBottom: 5,
-                color: Colors.dark
-              },
-              paragraph: {
-                fontSize: 16,
-                lineHeight: 24,
-                marginBottom: 10,
-                color: Colors.dark
-              },
-              list_item: {
-                marginBottom: 5,
-                flexDirection: 'row',
-                alignItems: 'flex-start',
-              },
-              bullet_list: {
-                marginVertical: 10,
-              },
-              strong: {
-                fontWeight: 'bold',
-              },
-              em: {
-                fontStyle: 'italic',
-              },
-              ordered_list: {
-                marginVertical: 10,
-              },
-              hr: {
-                backgroundColor: Colors.mediumGray,
-                height: 1,
-                marginVertical: 15,
-              },
-              blockquote: {
-                borderLeftWidth: 3,
-                borderLeftColor: Colors.primary,
-                paddingLeft: 10,
-                marginVertical: 10,
-                backgroundColor: Colors.lightGray,
-                padding: 10,
-                borderRadius: 5,
-              },
-            }}
-          >
-            {analiseResultado}
-          </Markdown>
-
-          {/* Adicione também um botão para compartilhar a análise */}
-          <TouchableOpacity
-            style={[styles.shareAnalysisButton, { marginTop: 20 }]}
-            onPress={() => {
-              Share.share({
-                message: analiseResultado,
-                title: `Análise do Currículo - ${curriculoData.nome || 'Sem nome'}`
-              });
-            }}
-          >
-            <Text style={styles.shareAnalysisButtonText}>Compartilhar Análise</Text>
-          </TouchableOpacity>
-        </ScrollView>
-      )}
-    </SafeAreaView>
-  );
-};
-
-const AuthStack = createStackNavigator();
-
-const AuthNavigator = () => (
-  <AuthStack.Navigator
-    screenOptions={{
-      headerShown: false,
-    }}
-  >
-    <AuthStack.Screen name="Login" component={LoginScreen} />
-    <AuthStack.Screen name="Register" component={RegisterScreen} />
-  </AuthStack.Navigator>
-);
-
-const AppStack = createStackNavigator();
-
-const SobreAppScreen = ({ navigation }) => {
-  const [activeSection, setActiveSection] = useState('sobre');
-
-  // Funções para lidar com links externos
-  const handleOpenWebsite = () => {
-    Linking.openURL('https://curriculobot.app');
-  };
-
-  const handleContactSupport = () => {
-    Linking.openURL('mailto:suporte@curriculobot.app');
-  };
-
-  const handleSocialMedia = (platform) => {
-    let url = '';
-    switch (platform) {
-      case 'linkedin':
-        url = 'https://linkedin.com/company/curriculobot';
-        break;
-      case 'twitter':
-        url = 'https://twitter.com/curriculobot';
-        break;
-      case 'instagram':
-        url = 'https://instagram.com/curriculobot';
-        break;
-    }
-
-    if (url) Linking.openURL(url);
-  };
-
-  // Renderização das seções de conteúdo
-  const renderSectionIndicator = () => (
-    <View style={styles.sectionIndicator}>
-      <TouchableOpacity
-        style={[
-          styles.sectionTab,
-          activeSection === 'sobre' && styles.activeSection
-        ]}
-        onPress={() => setActiveSection('sobre')}
-      >
-        <Text style={[
-          styles.sectionTabText,
-          activeSection === 'sobre' && styles.activeSectionText
-        ]}>
-          Sobre
-        </Text>
-      </TouchableOpacity>
-
-      <TouchableOpacity
-        style={[
-          styles.sectionTab,
-          activeSection === 'recursos' && styles.activeSection
-        ]}
-        onPress={() => setActiveSection('recursos')}
-      >
-        <Text style={[
-          styles.sectionTabText,
-          activeSection === 'recursos' && styles.activeSectionText
-        ]}>
-          Recursos
-        </Text>
-      </TouchableOpacity>
-
-      <TouchableOpacity
-        style={[
-          styles.sectionTab,
-          activeSection === 'versao' && styles.activeSection
-        ]}
-        onPress={() => setActiveSection('versao')}
-      >
-        <Text style={[
-          styles.sectionTabText,
-          activeSection === 'versao' && styles.activeSectionText
-        ]}>
-          Versão
-        </Text>
-      </TouchableOpacity>
-    </View>
-  );
-
-  return (
-    <SafeAreaView style={styles.container}>
-      <StatusBar barStyle="dark-content" backgroundColor={Colors.primary} />
-
-      <ScrollView style={styles.scrollView}>
-        {/* Cabeçalho Principal */}
-        <View style={styles.header}>
-          <TouchableOpacity
-            style={styles.backButtonTop}
-            onPress={() => navigation.goBack()}
-          >
-            <Text style={styles.backButtonTopText}>‹</Text>
-          </TouchableOpacity>
-        </View>
-
-        {/* Hero Section */}
-        <View style={styles.heroContainer}>
-          <View style={styles.logoContainer}>
-            <View style={styles.logoBackground}>
-              <Text style={styles.logoIcon}>📝</Text>
-            </View>
-          </View>
-          <Text style={styles.appTitle}>CurriculoBot Premium</Text>
-          <Text style={styles.appSubtitle}>Versão 1.2.0</Text>
-          <View style={styles.premiumBadge}>
-            <Text style={styles.premiumBadgeText}>PREMIUM</Text>
-          </View>
-        </View>
-
-        {/* Indicador de seções */}
-        {renderSectionIndicator()}
-
-        {/* Conteúdo principal */}
-        <View style={styles.contentContainer}>
-          {activeSection === 'sobre' && (
-            <View style={styles.sectionContent}>
-              <Text style={styles.sectionTitle}>O que é o CurriculoBot?</Text>
-              <Text style={styles.sectionDescription}>
-                CurriculoBot é um assistente inteligente que ajuda você a criar, gerenciar e analisar
-                currículos profissionais utilizando inteligência artificial de múltiplos provedores.
-              </Text>
-
-              <Text style={styles.sectionDescription}>
-                Desenvolvido por uma equipe de especialistas da Estacio de Florianopolis, o CurriculoBot utiliza
-                algoritmos avançados para personalizar seu currículo de acordo com as melhores práticas
-                do mercado de trabalho atual.
-              </Text>
-
-              <View style={styles.infoCardContainer}>
-                <View style={styles.infoCard}>
-                  <Text style={styles.infoCardNumber}>1+</Text>
-                  <Text style={styles.infoCardText}>Usuários</Text>
-                </View>
-
-                <View style={styles.infoCard}>
-                  <Text style={styles.infoCardNumber}>10+</Text>
-                  <Text style={styles.infoCardText}>Currículos</Text>
-                </View>
-
-                <View style={styles.infoCard}>
-                  <Text style={styles.infoCardNumber}>98%</Text>
-                  <Text style={styles.infoCardText}>Satisfação</Text>
-                </View>
-              </View>
-            </View>
-          )}
-
-          {activeSection === 'recursos' && (
-            <View style={styles.sectionContent}>
-              <Text style={styles.sectionTitle}>Recursos Premium</Text>
-
-              <View style={styles.featureItem}>
-                <View style={styles.featureIconContainer}>
-                  <Text style={styles.featureIcon}>🤖</Text>
-                </View>
-                <View style={styles.featureTextContainer}>
-                  <Text style={styles.featureTitle}>Criação Guiada por IA</Text>
-                  <Text style={styles.featureDescription}>
-                    Interface conversacional intuitiva que simplifica a criação do seu currículo profissional.
-                  </Text>
-                </View>
-              </View>
-
-              <View style={styles.featureItem}>
-                <View style={styles.featureIconContainer}>
-                  <Text style={styles.featureIcon}>📊</Text>
-                </View>
-                <View style={styles.featureTextContainer}>
-                  <Text style={styles.featureTitle}>Análise Avançada</Text>
-                  <Text style={styles.featureDescription}>
-                    Análise profissional do seu currículo usando inteligência artificial de várias fontes.
-                  </Text>
-                </View>
-              </View>
-
-              <View style={styles.featureItem}>
-                <View style={styles.featureIconContainer}>
-                  <Text style={styles.featureIcon}>🌟</Text>
-                </View>
-                <View style={styles.featureTextContainer}>
-                  <Text style={styles.featureTitle}>Dicas Personalizadas</Text>
-                  <Text style={styles.featureDescription}>
-                    Recomendações de melhorias, cursos e vagas personalizadas ao seu perfil.
-                  </Text>
-                </View>
-              </View>
-
-              <View style={styles.featureItem}>
-                <View style={styles.featureIconContainer}>
-                  <Text style={styles.featureIcon}>📝</Text>
-                </View>
-                <View style={styles.featureTextContainer}>
-                  <Text style={styles.featureTitle}>Múltiplos Templates</Text>
-                  <Text style={styles.featureDescription}>
-                    Escolha entre diversos modelos profissionais para personalizar seu currículo.
-                  </Text>
-                </View>
-              </View>
-
-              <View style={styles.featureItem}>
-                <View style={styles.featureIconContainer}>
-                  <Text style={styles.featureIcon}>🔎</Text>
-                </View>
-                <View style={styles.featureTextContainer}>
-                  <Text style={styles.featureTitle}>Busca de Vagas</Text>
-                  <Text style={styles.featureDescription}>
-                    Encontre oportunidades alinhadas com seu perfil profissional.
-                  </Text>
-                </View>
-              </View>
-            </View>
-          )}
-
-          {activeSection === 'versao' && (
-            <View style={styles.sectionContent}>
-              <Text style={styles.sectionTitle}>Detalhes da Versão</Text>
-
-              <View style={styles.versionCard}>
-                <View style={styles.versionHeader}>
-                  <Text style={styles.versionNumber}>1.2.0</Text>
-                  <Text style={styles.versionDate}>Maio 2025</Text>
-                </View>
-
-                <View style={styles.versionFeatureList}>
-                  <Text style={styles.versionFeatureTitle}>Novos recursos:</Text>
-
-                  <View style={styles.versionFeatureItem}>
-                    <View style={styles.versionFeatureDot} />
-                    <Text style={styles.versionFeatureText}>
-                      Análise avançada de carreira com visualização gráfica
-                    </Text>
-                  </View>
-
-                  <View style={styles.versionFeatureItem}>
-                    <View style={styles.versionFeatureDot} />
-                    <Text style={styles.versionFeatureText}>
-                      Integração com novas IAs (Claude, Perplexity, DeepSeek)
-                    </Text>
-                  </View>
-
-                  <View style={styles.versionFeatureItem}>
-                    <View style={styles.versionFeatureDot} />
-                    <Text style={styles.versionFeatureText}>
-                      Busca de vagas com compatibilidade por perfil
-                    </Text>
-                  </View>
-
-                  <View style={styles.versionFeatureItem}>
-                    <View style={styles.versionFeatureDot} />
-                    <Text style={styles.versionFeatureText}>
-                      Novos templates de currículo
-                    </Text>
-                  </View>
-
-                  <View style={styles.versionFeatureItem}>
-                    <View style={styles.versionFeatureDot} />
-                    <Text style={styles.versionFeatureText}>
-                      Interface redesenhada para melhor experiência
-                    </Text>
-                  </View>
-                </View>
-              </View>
-
-              <View style={styles.versionPrevious}>
-                <Text style={styles.versionPreviousTitle}>Versões anteriores</Text>
-
-                <View style={styles.versionPreviousItem}>
-                  <Text style={styles.versionPreviousNumber}>1.1.0</Text>
-                  <Text style={styles.versionPreviousDate}>Maior 2025</Text>
-                </View>
-
-                <View style={styles.versionPreviousItem}>
-                  <Text style={styles.versionPreviousNumber}>1.0.0</Text>
-                  <Text style={styles.versionPreviousDate}>Maio 2024</Text>
-                </View>
-              </View>
-            </View>
-          )}
-
-          {/* Informações de contato */}
-          <View style={styles.contactSection}>
-            <Text style={styles.contactTitle}>Entre em Contato</Text>
-
-            <TouchableOpacity
-              style={styles.contactButton}
-              onPress={handleOpenWebsite}
-            >
-              <Text style={styles.contactButtonIcon}>🌐</Text>
-              <Text style={styles.contactButtonText}>www.curriculobot.app</Text>
-            </TouchableOpacity>
-
-            <TouchableOpacity
-              style={styles.contactButton}
-              onPress={handleContactSupport}
-            >
-              <Text style={styles.contactButtonIcon}>✉️</Text>
-              <Text style={styles.contactButtonText}>suporte@curriculobot.app</Text>
-            </TouchableOpacity>
-
-            <View style={styles.socialMediaContainer}>
-              <TouchableOpacity
-                style={styles.socialButton}
-                onPress={() => handleSocialMedia('linkedin')}
-              >
-                <Text style={styles.socialButtonText}>in</Text>
-              </TouchableOpacity>
-
-              <TouchableOpacity
-                style={styles.socialButton}
-                onPress={() => handleSocialMedia('twitter')}
-              >
-                <Text style={styles.socialButtonText}>𝕏</Text>
-              </TouchableOpacity>
-
-              <TouchableOpacity
-                style={styles.socialButton}
-                onPress={() => handleSocialMedia('instagram')}
-              >
-                <Text style={styles.socialButtonText}>📷</Text>
-              </TouchableOpacity>
-            </View>
-          </View>
-
-          {/* Rodapé */}
-          <View style={styles.footer}>
-            <Text style={styles.footerText}>© 2025 CurriculoBot Premium</Text>
-            <Text style={styles.footerText}>Todos os direitos reservados</Text>
-          </View>
-        </View>
-      </ScrollView>
-    </SafeAreaView>
-  );
-};
-
-const SelecionarCurriculoScreen = ({ navigation }) => {
-  const { user } = useAuth();
-  const [curriculos, setCurriculos] = useState([]);
-  const [loading, setLoading] = useState(true);
-
-  useEffect(() => {
-    carregarCurriculos();
-  }, []);
-
-  const carregarCurriculos = async () => {
-    try {
-      setLoading(true);
-      const cvs = await AsyncStorage.getItem(`curriculos_${user.id}`);
-      setCurriculos(cvs ? JSON.parse(cvs) : []);
-    } catch (error) {
-      console.error('Erro ao carregar currículos:', error);
-      Alert.alert('Erro', 'Não foi possível carregar seus currículos.');
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const handleSelecionarCurriculo = (curriculo) => {
-    navigation.navigate('BuscaVagas', { curriculoData: curriculo });
-  };
-
-  const formatDate = (dateString) => {
-    try {
-      if (!dateString) return 'Data não disponível';
-      const date = new Date(dateString);
-      return `${date.getDate().toString().padStart(2, '0')}/${(date.getMonth() + 1).toString().padStart(2, '0')}/${date.getFullYear()}`;
-    } catch (error) {
-      return 'Data inválida';
-    }
-  };
-
-  // Extrair informações do currículo para exibição
-  const getResumoCurriculo = (curriculo) => {
-    const cv = curriculo.data;
-    const experiencias = cv.experiencias?.length || 0;
-    const formacoes = cv.formacoes_academicas?.length || 0;
-    const projetos = cv.projetos?.length || 0;
-    const area = cv.informacoes_pessoais?.area || 'Não especificada';
-
-    return { experiencias, formacoes, projetos, area };
-  };
-
-  return (
-    <SafeAreaView style={styles.container}>
-      <StatusBar barStyle="dark-content" backgroundColor={Colors.dark} />
-
-      <View style={styles.header}>
-        <TouchableOpacity
-          style={styles.backButton}
-          onPress={() => navigation.goBack()}
-        >
-          <Text style={styles.backButtonText}>‹</Text>
-        </TouchableOpacity>
-        <Text style={styles.headerTitle}>Selecionar Currículo</Text>
-      </View>
-
-      {loading ? (
-        <View style={styles.loadingContainer}>
-          <ActivityIndicator size="large" color={Colors.primary} />
-          <Text style={{ marginTop: 10 }}>Carregando currículos...</Text>
-        </View>
-      ) : curriculos.length === 0 ? (
-        <View style={styles.emptyState}>
-          <Text style={styles.emptyStateTitle}>Nenhum Currículo Encontrado</Text>
-          <Text style={styles.emptyStateText}>
-            Você precisa criar um currículo antes de buscar vagas.
-          </Text>
-          <TouchableOpacity
-            style={styles.primaryButton}
-            onPress={() => navigation.navigate('Chatbot')}
-          >
-            <Text style={styles.primaryButtonText}>Criar Currículo</Text>
-          </TouchableOpacity>
-        </View>
-      ) : (
-        <View style={{ flex: 1, padding: 15 }}>
-          <View style={{
-            backgroundColor: '#e8f5e9',
-            padding: 15,
-            borderRadius: 10,
-            marginBottom: 20,
-            borderLeftWidth: 4,
-            borderLeftColor: Colors.success,
-          }}>
-            <Text style={{
-              fontSize: 16,
-              fontWeight: 'bold',
-              marginBottom: 5,
-              color: Colors.dark,
-            }}>
-              Buscar Vagas Personalizadas
-            </Text>
-            <Text style={{
-              fontSize: 14,
-              color: '#2e7d32',
-            }}>
-              Selecione o currículo que deseja usar como base para a busca de vagas. Nossa IA encontrará oportunidades de emprego alinhadas ao seu perfil profissional.
-            </Text>
-          </View>
-
-          <Text style={{
-            fontSize: 16,
-            fontWeight: 'bold',
-            marginBottom: 10,
-            color: Colors.dark,
-          }}>
-            Selecione um currículo:
-          </Text>
-
-          <FlatList
-            data={curriculos}
-            keyExtractor={(item) => item.id}
-            renderItem={({ item }) => {
-              const resumo = getResumoCurriculo(item);
-
-              return (
-                <TouchableOpacity
-                  style={{
-                    backgroundColor: Colors.white,
-                    borderRadius: 10,
-                    marginBottom: 15,
-                    padding: 16,
-                    ...Platform.select({
-                      ios: {
-                        shadowColor: '#000',
-                        shadowOffset: { width: 0, height: 2 },
-                        shadowOpacity: 0.1,
-                        shadowRadius: 3,
-                      },
-                      android: {
-                        elevation: 2,
-                      },
-                    }),
-                    borderLeftWidth: 4,
-                    borderLeftColor: Colors.primary,
-                  }}
-                  onPress={() => handleSelecionarCurriculo(item)}
-                >
-                  <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
-                    <Text style={{
-                      fontSize: 18,
-                      fontWeight: 'bold',
-                      color: Colors.dark,
-                      marginBottom: 5,
-                    }}>
-                      {item.nome || 'Currículo sem nome'}
-                    </Text>
-
-                    <View style={{
-                      backgroundColor: Colors.primary,
-                      paddingVertical: 4,
-                      paddingHorizontal: 8,
-                      borderRadius: 15,
-                    }}>
-                      <Text style={{ color: Colors.white, fontSize: 12 }}>
-                        Selecionar
-                      </Text>
-                    </View>
-                  </View>
-
-                  <Text style={{
-                    fontSize: 14,
-                    color: Colors.lightText,
-                    marginBottom: 10,
-                  }}>
-                    Criado em: {formatDate(item.dataCriacao)}
-                  </Text>
-
-                  <View style={{
-                    backgroundColor: '#f5f5f5',
-                    padding: 10,
-                    borderRadius: 5,
-                    marginTop: 5,
-                  }}>
-                    <Text style={{ color: Colors.dark }}>
-                      <Text style={{ fontWeight: 'bold' }}>Área: </Text>
-                      {resumo.area}
-                    </Text>
-
-                    <View style={{ flexDirection: 'row', marginTop: 5, flexWrap: 'wrap' }}>
-                      <View style={{
-                        backgroundColor: Colors.primary,
-                        paddingVertical: 3,
-                        paddingHorizontal: 8,
-                        borderRadius: 12,
-                        marginRight: 8,
-                        marginBottom: 5,
-                      }}>
-                        <Text style={{ color: Colors.white, fontSize: 12 }}>
-                          {resumo.experiencias} experiência(s)
-                        </Text>
-                      </View>
-
-                      <View style={{
-                        backgroundColor: Colors.secondary,
-                        paddingVertical: 3,
-                        paddingHorizontal: 8,
-                        borderRadius: 12,
-                        marginRight: 8,
-                        marginBottom: 5,
-                      }}>
-                        <Text style={{ color: Colors.white, fontSize: 12 }}>
-                          {resumo.formacoes} formação(ões)
-                        </Text>
-                      </View>
-
-                      <View style={{
-                        backgroundColor: '#673AB7',
-                        paddingVertical: 3,
-                        paddingHorizontal: 8,
-                        borderRadius: 12,
-                        marginBottom: 5,
-                      }}>
-                        <Text style={{ color: Colors.white, fontSize: 12 }}>
-                          {resumo.projetos} projeto(s)
-                        </Text>
-                      </View>
-                    </View>
-                  </View>
-                </TouchableOpacity>
-              );
-            }}
-          />
-        </View>
-      )}
-    </SafeAreaView>
-  );
-};
-
-const RootStack = createStackNavigator();
 
 const RootNavigator = () => {
   const { user, loading } = useAuth();
